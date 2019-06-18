@@ -68,6 +68,7 @@ with rec
     # anything changes all the deps will be rebuilt.  The rustc compiler is
     # pretty fast so this is not too bad. In the future we'll want to pre-build
     # the crates and give cargo a pre-populated ./target directory.
+    # TODO: this should most likely take more than one packageName
     mkSnapshotForest = patchCrate: packageName: cargolock:
       pkgs.symlinkJoin
         { name = "crates-io";
@@ -77,43 +78,44 @@ with rec
               (mkVersions packageName cargolock);
         };
 
-
     buildPackage =
       src:
       { cargoCommands ? [ "cargo build" ]
       , patchCrate ? (_: _: x: x)
       , name ? null
+      , rustc ? rustPackages
+      , cargo ? rustPackages
+      , override ? null
       }:
       with rec
         {
           readTOML = f: builtins.fromTOML (builtins.readFile f);
           cargolock = readTOML "${src}/Cargo.lock";
+
+          # The top-level Cargo.toml
           cargotoml = readTOML "${src}/Cargo.toml";
-          crateNames =
+
+          # All the Cargo.tomls, including the top-level one
+          cargotomls =
             with rec
-              { packageName = cargotoml.package.name or null;
-                workspaceMembers = cargotoml.workspace.members or null;
+              { workspaceMembers = cargotoml.workspace.members or [];
               };
 
-            if isNull packageName && isNull workspaceMembers then
-              abort
-                ''The cargo manifest has neither
-                    - a package.name field, nor
-                    - a workspace.members field
-                  Cannot continue.
-                ''
-            else if ! isNull packageName && ! isNull workspaceMembers then
-              abort
-                ''The cargo manifest has both
-                    - a package.name field, and
-                    - a workspace.members field
-                  Refusing to continue.
-                ''
-            else if ! isNull packageName then
-              [packageName]
-            else map
-              (member: (builtins.fromTOML (builtins.readFile "${src}/${member}/Cargo.toml")).package.name)
-              workspaceMembers;
+            [cargotoml] ++ (
+              map (member: (builtins.fromTOML (builtins.readFile
+                "${src}/${member}/Cargo.toml")).package.name)
+              workspaceMembers);
+
+          crateNames = builtins.filter (pname: ! isNull pname) (
+              map (ctoml: ctoml.package.name or null) cargotomls);
+
+          # The list of potential binaries
+          # TODO: is this even worth it or shall we simply copy all the
+          # executables to bin/?
+          bins = crateNames ++
+              map (bin: bin.name) (
+              pkgs.lib.concatMap (ctoml: ctoml.bin or []) cargotomls);
+
           cargoconfig = pkgs.writeText "cargo-config"
             ''
               [source.crates-io]
@@ -122,77 +124,77 @@ with rec
               [source.nix-sources]
               directory = '${mkSnapshotForest patchCrate (pkgs.lib.head crateNames) cargolock}'
             '';
-        };
-      pkgs.stdenv.mkDerivation
-        { inherit src;
-          name =
-            if ! isNull name then
-              name
-            else if pkgs.lib.length crateNames == 0 then
-              abort "No crate names"
-            else if pkgs.lib.length crateNames == 1 then
-              pkgs.lib.head crateNames
-            else
-              pkgs.lib.head crateNames + "-et-al";
-          buildInputs =
-            [ pkgs.cargo
+          drv = pkgs.stdenv.mkDerivation
+            { inherit src;
+              name =
+                if ! isNull name then
+                  name
+                else if pkgs.lib.length crateNames == 0 then
+                  abort "No crate names"
+                else if pkgs.lib.length crateNames == 1 then
+                  pkgs.lib.head crateNames
+                else
+                  pkgs.lib.head crateNames + "-et-al";
+              buildInputs =
+                [ cargo
 
-              # needed for "dsymutil"
-              pkgs.llvmPackages.stdenv.cc.bintools
+                  # needed for "dsymutil"
+                  pkgs.llvmPackages.stdenv.cc.bintools
 
-              # needed for "cc"
-              pkgs.llvmPackages.stdenv.cc
+                  # needed for "cc"
+                  pkgs.llvmPackages.stdenv.cc
 
-            ] ++ (pkgs.stdenv.lib.optionals pkgs.stdenv.isDarwin
-            [ pkgs.darwin.Security
-              pkgs.darwin.apple_sdk.frameworks.CoreServices
-              pkgs.darwin.cf-private
-            ]);
-          LIBCLANG_PATH="${pkgs.llvmPackages.libclang.lib}/lib";
-          CXX="clang++";
-          RUSTC="${rustPackages}/bin/rustc";
-          BUILD_REV_COUNT = 1;
-          RUN_TIME_CLOSURE = "${sources.lorri}/nix/runtime.nix";
+                ] ++ (pkgs.stdenv.lib.optionals pkgs.stdenv.isDarwin
+                [ pkgs.darwin.Security
+                  pkgs.darwin.apple_sdk.frameworks.CoreServices
+                  pkgs.darwin.cf-private
+                ]);
+              LIBCLANG_PATH="${pkgs.llvmPackages.libclang.lib}/lib";
+              CXX="clang++";
+              RUSTC="${rustc}/bin/rustc";
 
-          cargoCommands = pkgs.lib.concatStringsSep "\n" cargoCommands;
-          crateNames = pkgs.lib.concatStringsSep "\n" crateNames;
-          buildPhase =
-            ''
-              runHook preBuild
+              cargoCommands = pkgs.lib.concatStringsSep "\n" cargoCommands;
+              crateNames = pkgs.lib.concatStringsSep "\n" crateNames;
+              bins = pkgs.lib.concatStringsSep "\n" bins;
+              buildPhase =
+                ''
+                  runHook preBuild
 
-              ## registry setup
-              export CARGO_HOME="$PWD/.cargo-home"
-              mkdir -p $CARGO_HOME
-              mkdir -p .cargo
-              cp ${cargoconfig} .cargo/config
+                  ## registry setup
+                  export CARGO_HOME="$PWD/.cargo-home"
+                  mkdir -p $CARGO_HOME
+                  mkdir -p .cargo
+                  cp ${cargoconfig} .cargo/config
 
-              ## Build commands
-              echo "$cargoCommands" | \
-                while IFS= read -r c
-                do
-                  echo "Runnig cargo command: $c"
-                  $c
-                done
+                  ## Build commands
+                  echo "$cargoCommands" | \
+                    while IFS= read -r c
+                    do
+                      echo "Runnig cargo command: $c"
+                      $c
+                    done
 
-              runHook postBuild
-            '';
+                  runHook postBuild
+                '';
 
-          installPhase =
-            # TODO: this should also copy <foo> for every src/bin/<foo.rs>
-            ''
-              runHook preInstall
-              mkdir -p $out/bin
-              echo "$crateNames" | \
-                while IFS= read -r c
-                do
-                  echo "Installing executable: $c"
-                  cp "target/debug/$c" $out/bin \
-                    || echo "No executable $c to install"
-                done
+              installPhase =
+                # TODO: this should also copy <foo> for every src/bin/<foo.rs>
+                ''
+                  runHook preInstall
+                  mkdir -p $out/bin
+                  echo "$bins" | \
+                    while IFS= read -r c
+                    do
+                      echo "Installing executable: $c"
+                      cp "target/debug/$c" $out/bin \
+                        || echo "No executable $c to install"
+                    done
 
-              runHook postInstall
-            '';
-        };
+                  runHook postInstall
+                '';
+            };
+          };
+      if isNull override then drv else drv.overrideAttrs override;
   };
 
 # lib-like helpers
@@ -219,7 +221,12 @@ with rec
         '';
   };
 
-{ test_lorri = buildPackage sources.lorri {};
+{ test_lorri = buildPackage sources.lorri
+    { override = _oldAttrs:
+        { BUILD_REV_COUNT = 1;
+          RUN_TIME_CLOSURE = "${sources.lorri}/nix/runtime.nix";
+        };
+    };
 
   test_talent-plan-1 = buildPackage "${sources.talent-plan}/rust/projects/project-1" {};
   test_talent-plan-2 = buildPackage "${sources.talent-plan}/rust/projects/project-2" {};
@@ -253,4 +260,13 @@ with rec
   #test_lucet = buildPackage sources.lucet {};
 
   test_rustlings = buildPackage sources.rustlings {};
+
+  # TODO: walk through bins
+  test_rustfmt = pkgs.runCommand "rust-fmt"
+    { buildInputs = [ (buildPackage sources.rustfmt {}) ]; }
+    ''
+      rustfmt --help
+      cargo-fmt --help
+      touch $out
+    '';
 }

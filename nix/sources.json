@@ -82,6 +82,18 @@
         "description": "Lucet, the Sandboxing WebAssembly Compiler.",
         "rev": "8b20e9527aabd27e8360bd2aac763cedf4a96a8b"
     },
+    "rustfmt": {
+        "homepage": "",
+        "url": "https://github.com/rust-lang/rustfmt/archive/1d19a08ed4743e3c95176fb639ebcd50f68a3313.tar.gz",
+        "owner": "rust-lang",
+        "branch": "master",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz",
+        "repo": "rustfmt",
+        "type": "tarball",
+        "sha256": "1cschys4igyraqqw1gq3279bavvsjy6hx93is5myr70kx998x48k",
+        "description": "Format Rust code",
+        "rev": "1d19a08ed4743e3c95176fb639ebcd50f68a3313"
+    },
     "lorri": {
         "homepage": "bar",
         "url": "https://github.com/target/lorri/archive/ba299dde70af5cb8bffbce3eb770ec6cfb2fd1aa.tar.gz",
