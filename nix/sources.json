@@ -1,4 +1,17 @@
 {
+    "rust-nightly": {
+        "homepage": "",
+        "url": "https://github.com/solson/rust-nightly-nix/archive/7081bacc88037d9e218f62767892102c96b0a321.tar.gz",
+        "owner": "solson",
+        "date": "2019-06-16",
+        "branch": "master",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz",
+        "repo": "rust-nightly-nix",
+        "type": "tarball",
+        "sha256": "0dzqmbwl2fkrdhj3vqczk7fqah8q7mfn40wx9vqavcgcsss63m8p",
+        "description": "A Nix expression for nightly Rust versions",
+        "rev": "7081bacc88037d9e218f62767892102c96b0a321"
+    },
     "nixpkgs": {
         "url": "https://github.com/NixOS/nixpkgs-channels/archive/a7e559a5504572008567383c3dc8e142fa7a8633.tar.gz",
         "owner": "NixOS",
@@ -9,19 +22,6 @@
         "sha256": "16j95q58kkc69lfgpjkj76gw5sx8rcxwi3civm0mlfaxxyw9gzp6",
         "description": "Nixpkgs/NixOS branches that track the Nixpkgs/NixOS channels",
         "rev": "a7e559a5504572008567383c3dc8e142fa7a8633"
-    },
-    "rust-nightly": {
-        "homepage": "",
-        "url": "https://github.com/solson/rust-nightly-nix/archive/7081bacc88037d9e218f62767892102c96b0a321.tar.gz",
-        "owner": "solson",
-        "date": "2018-09-13",
-        "branch": "master",
-        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz",
-        "repo": "rust-nightly-nix",
-        "type": "tarball",
-        "sha256": "0dzqmbwl2fkrdhj3vqczk7fqah8q7mfn40wx9vqavcgcsss63m8p",
-        "description": "A Nix expression for nightly Rust versions",
-        "rev": "7081bacc88037d9e218f62767892102c96b0a321"
     },
     "lorri": {
         "homepage": "bar",

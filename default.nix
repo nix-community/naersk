@@ -10,16 +10,29 @@ with
 # Crate building
 with rec
   { # creates an attrset from package name to package version + sha256
-    mkVersions = cargotoml: cargolock: pkgs.lib.listToAttrs
-      (map (x:
-        { inherit (x) name;
-          value =
-            { inherit (x) version;
+    # (note: this includes the package's dependencies)
+    mkVersions = cargotoml: cargolock:
+      # TODO: this should nub by <pkg-name>-<pkg-version>
+      (pkgs.lib.concatMap (x:
+        [
+            { inherit (x) version name;
               sha256 = cargolock.metadata.${mkMetadataKey x.name x.version};
-            } ;
-        }
+            }
+        ] ++ (map (parseDependency cargolock) (x.dependencies or []))
+
       )
       (builtins.filter (v: v.name != cargotoml.package.name) cargolock.package));
+
+    # Turns "lib-name lib-ver (registry+...)" to { name = "lib-name", etc }
+    parseDependency = cargolock: str:
+      with rec
+        { components = pkgs.lib.splitString " " str;
+          name = pkgs.lib.elemAt components 0;
+          version = pkgs.lib.elemAt components 1;
+          sha256 = cargolock.metadata.${mkMetadataKey name version};
+        };
+      { inherit name version sha256;
+      };
 
     # crafts the key used to look up the sha256 in the cargo lock; no
     # robustness guarantee
@@ -52,8 +65,8 @@ with rec
       pkgs.symlinkJoin
         { name = "crates-io";
           paths =
-            pkgs.lib.mapAttrsToList
-              (k: v: patchCrate k v (unpackCrate k v.version v.sha256))
+            map
+              (v: patchCrate v.name v (unpackCrate v.name v.version v.sha256))
               (mkVersions cargotoml cargolock);
         };
 
@@ -67,11 +80,10 @@ with rec
           readTOML = f: builtins.fromTOML (builtins.readFile f);
           cargolock = readTOML "${src}/Cargo.lock";
           cargotoml = readTOML "${src}/Cargo.toml";
-          versions = mkVersions cargolock;
         };
       pkgs.stdenv.mkDerivation
         { inherit src;
-          name = "cargo-package";
+          name = cargotoml.package.name;
           buildInputs =
             [ pkgs.cargo
 
@@ -81,11 +93,16 @@ with rec
               # needed for "cc"
               pkgs.llvmPackages.stdenv.cc
 
-            ] ++ (pkgs.stdenv.lib.optional
-            pkgs.stdenv.isDarwin pkgs.darwin.apple_sdk.frameworks.Security);
+            ] ++ (pkgs.stdenv.lib.optionals pkgs.stdenv.isDarwin
+            [ pkgs.darwin.Security
+              pkgs.darwin.apple_sdk.frameworks.CoreServices
+              pkgs.darwin.cf-private
+            ]);
           LIBCLANG_PATH="${pkgs.llvmPackages.libclang.lib}/lib";
           CXX="clang++";
           RUSTC="${rustPackages}/bin/rustc";
+          BUILD_REV_COUNT = 1;
+          RUN_TIME_CLOSURE = "${sources.lorri}/nix/runtime.nix";
 
           cargoCommands = pkgs.lib.concatStringsSep "\n" cargoCommands;
           buildPhase =
@@ -96,6 +113,8 @@ with rec
               ##
               export CARGO_HOME="$PWD/.cargo-home"
               mkdir -p $CARGO_HOME
+
+              cat Cargo.toml
 
               mkdir -p .cargo
               echo '[source.crates-io]' > .cargo/config
@@ -113,20 +132,35 @@ with rec
 
               runHook postBuild
             '';
+
+          installPhase =
+            ''
+              runHook preInstall
+              mkdir -p $out/bin
+              cp target/debug/${cargotoml.package.name} $out/bin \
+                || echo "No executable to install"
+              runHook postInstall
+            '';
         };
+  };
+
+# lib-like helpers
+with
+  { fixupEditions = name: v: src:
+      pkgs.runCommand "fixup-editions-${name}" {}
+        ''
+          mkdir -p $out
+          cp -r --no-preserve=mode ${src}/* $out
+
+          sed -i '/\[package\]/i cargo-features = ["edition"]' $out/${name}-${v.version}/Cargo.toml
+          cat $out/${name}-${v.version}/Cargo.toml
+          echo $out
+        '';
   };
 
 buildPackage sources.lorri
   { patchCrate = name: v: src:
       if name == "fuchsia-cprng" || name == "proptest" then
-        pkgs.runCommand "fuchsia-cprng" {}
-          ''
-            mkdir -p $out
-            cp -r --no-preserve=mode ${src}/* $out
-
-            sed -i '/edition =/c\cargo-features = ["edition"]' $out/${name}-${v.version}/Cargo.toml
-            cat $out/${name}-${v.version}/Cargo.toml
-            echo $out
-          ''
+        fixupEditions name v src
       else src;
   }
