@@ -146,22 +146,52 @@ with rec
   };
 
 # lib-like helpers
-with
-  { fixupEditions = name: v: src:
+# These come in handy when cargo manifests must be patched
+with rec
+  { # Enables the cargo feature "edition" in the cargo manifest
+    fixupEdition = name: v: src: fixupFeatures name v src ["edition"];
+
+    # Generates a sed expression that enables the given features
+    fixupFeaturesSed = feats:
+      with
+        { features = ''["'' + pkgs.lib.concatStringsSep ''","'' feats + ''"]'';
+        };
+      ''/\[package\]/i cargo-features = ${features}'';
+
+    # Patches the cargo manifest to enable the list of features
+    fixupFeatures = name: v: src: feats:
       pkgs.runCommand "fixup-editions-${name}" {}
         ''
           mkdir -p $out
           cp -r --no-preserve=mode ${src}/* $out
-
-          sed -i '/\[package\]/i cargo-features = ["edition"]' $out/${name}-${v.version}/Cargo.toml
-          cat $out/${name}-${v.version}/Cargo.toml
-          echo $out
+          sed -i '${fixupFeaturesSed feats}' \
+            $out/${name}-${v.version}/Cargo.toml
         '';
   };
 
-buildPackage sources.lorri
-  { patchCrate = name: v: src:
-      if name == "fuchsia-cprng" || name == "proptest" then
-        fixupEditions name v src
-      else src;
-  }
+{ test_lorri = buildPackage sources.lorri {};
+
+  test_talent-plan-1 = buildPackage "${sources.talent-plan}/rust/projects/project-1" {};
+  test_talent-plan-2 = buildPackage "${sources.talent-plan}/rust/projects/project-2" {};
+  test_talent-plan-3 = buildPackage "${sources.talent-plan}/rust/projects/project-3" {};
+
+  # TODO: support for git deps
+  #test_talent-plan-4 = buildPackage "${sources.talent-plan}/rust/projects/project-4" {};
+  #test_talent-plan-5 = buildPackage "${sources.talent-plan}/rust/projects/project-5" {};
+
+  test_ripgrep-all = buildPackage sources.ripgrep-all {};
+
+  # TODO: Nix error:
+  # error: while parsing a TOML string at default.nix:80:25:
+  #   Bare key 'cfg(all(target_env = "musl", target_pointer_width = "64"))'
+  #   cannot contain whitespace at line 64
+  # and this is the culprit:
+  #  https://github.com/BurntSushi/ripgrep/blob/d1389db2e39802d5e04dc7b902fd2b1f9f615b01/Cargo.toml#L64
+  #test_ripgrep = buildPackage sources.ripgrep {};
+
+  # TODO: (workspace)
+  # error: attribute 'package' missing,
+  #   at /Users/nicolas/naersk/default.nix:94:18
+  #test_rust = buildPackage sources.rust {};
+  #test_noria = buildPackage sources.noria {};
+}

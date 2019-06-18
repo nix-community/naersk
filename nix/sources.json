@@ -12,16 +12,51 @@
         "description": "A Nix expression for nightly Rust versions",
         "rev": "7081bacc88037d9e218f62767892102c96b0a321"
     },
+    "ripgrep-all": {
+        "homepage": "",
+        "url": "https://github.com/phiresky/ripgrep-all/archive/9c285670fd128d5f142df170ffc38bda82cf15b5.tar.gz",
+        "owner": "phiresky",
+        "branch": "master",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz",
+        "repo": "ripgrep-all",
+        "type": "tarball",
+        "sha256": "19w10ba0wjrlr0zfg4axaii48dc8a03isrwz9nhjgq3pa5v025b7",
+        "description": "rga: ripgrep, but also search in PDFs, E-Books, Office documents, zip, tar.gz, etc.",
+        "rev": "9c285670fd128d5f142df170ffc38bda82cf15b5"
+    },
+    "talent-plan": {
+        "url": "https://github.com/pingcap/talent-plan/archive/2729bc5a5fc791a4c5c7b941ca5559b2d1fab1fb.tar.gz",
+        "owner": "pingcap",
+        "branch": "master",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz",
+        "repo": "talent-plan",
+        "type": "tarball",
+        "sha256": "1f3vsfbh17sn9rvpn9d64ik6ln6ynik9rkfzhrkli2cwyinlpddk",
+        "description": "PingCAP training courses",
+        "rev": "2729bc5a5fc791a4c5c7b941ca5559b2d1fab1fb"
+    },
     "nixpkgs": {
-        "url": "https://github.com/NixOS/nixpkgs-channels/archive/a7e559a5504572008567383c3dc8e142fa7a8633.tar.gz",
+        "url": "https://github.com/NixOS/nixpkgs-channels/archive/1601f559e89ba71091faa26888711d4dd24c2d4d.tar.gz",
         "owner": "NixOS",
-        "branch": "nixos-18.09",
+        "branch": "nixos-19.03",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz",
         "repo": "nixpkgs-channels",
         "type": "tarball",
-        "sha256": "16j95q58kkc69lfgpjkj76gw5sx8rcxwi3civm0mlfaxxyw9gzp6",
+        "sha256": "0iayyz9617mz6424spwbi9qvmcl8hiql42czxg8mi4ycq4p1k0dx",
         "description": "Nixpkgs/NixOS branches that track the Nixpkgs/NixOS channels",
-        "rev": "a7e559a5504572008567383c3dc8e142fa7a8633"
+        "rev": "1601f559e89ba71091faa26888711d4dd24c2d4d"
+    },
+    "noria": {
+        "homepage": "",
+        "url": "https://github.com/mit-pdos/noria/archive/e1dd3d4bdeda53ff72f8ee0b8deaa923afe4f67a.tar.gz",
+        "owner": "mit-pdos",
+        "branch": "master",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz",
+        "repo": "noria",
+        "type": "tarball",
+        "sha256": "1x3lx58qhgy8iw3ykd3cwia5bnfflgxpf88ssi2p631kcail5m6z",
+        "description": "Dynamically changing, partially-stateful data-flow for web application backends.",
+        "rev": "e1dd3d4bdeda53ff72f8ee0b8deaa923afe4f67a"
     },
     "lorri": {
         "homepage": "bar",
@@ -34,6 +69,30 @@
         "sha256": "17b2s62bdly9gf93rcbc39f0qyz45pq13x2ch6ga5vwb8ydmn4r8",
         "description": "foo",
         "rev": "ba299dde70af5cb8bffbce3eb770ec6cfb2fd1aa"
+    },
+    "rust": {
+        "homepage": "https://www.rust-lang.org",
+        "url": "https://github.com/rust-lang/rust/archive/03769411561f3d282bfeb0e86ca38d898f02cbdb.tar.gz",
+        "owner": "rust-lang",
+        "branch": "master",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz",
+        "repo": "rust",
+        "type": "tarball",
+        "sha256": "0d2gpsj870hi7wd1hklcsgwgf6vs7ygw3fjjbdf7p93rjdll6x91",
+        "description": "Empowering everyone to build reliable and efficient software.",
+        "rev": "03769411561f3d282bfeb0e86ca38d898f02cbdb"
+    },
+    "ripgrep": {
+        "homepage": "",
+        "url": "https://github.com/BurntSushi/ripgrep/archive/d1389db2e39802d5e04dc7b902fd2b1f9f615b01.tar.gz",
+        "owner": "BurntSushi",
+        "branch": "master",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz",
+        "repo": "ripgrep",
+        "type": "tarball",
+        "sha256": "11cflb47pjyb5kx8n2a4w34y47z8dw935i7v11g3ynzhq4apsavi",
+        "description": "ripgrep recursively searches directories for a regex pattern",
+        "rev": "d1389db2e39802d5e04dc7b902fd2b1f9f615b01"
     },
     "niv": {
         "homepage": "https://github.com/nmattia/niv",
