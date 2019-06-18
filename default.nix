@@ -80,6 +80,14 @@ with rec
           readTOML = f: builtins.fromTOML (builtins.readFile f);
           cargolock = readTOML "${src}/Cargo.lock";
           cargotoml = readTOML "${src}/Cargo.toml";
+          cargoconfig = pkgs.writeText "cargo-config"
+            ''
+              [source.crates-io]
+              replace-with = 'nix-sources'
+
+              [source.nix-sources]
+              directory = '${mkSnapshotForest patchCrate cargotoml cargolock}'
+            '';
         };
       pkgs.stdenv.mkDerivation
         { inherit src;
@@ -108,21 +116,14 @@ with rec
           buildPhase =
             ''
               runHook preBuild
-              ##
+
               ## registry setup
-              ##
               export CARGO_HOME="$PWD/.cargo-home"
               mkdir -p $CARGO_HOME
-
-              cat Cargo.toml
-
               mkdir -p .cargo
-              echo '[source.crates-io]' > .cargo/config
-              echo "replace-with = 'nix-sources'" >> .cargo/config
+              cp ${cargoconfig} .cargo/config
 
-              echo '[source.nix-sources]' >> .cargo/config
-              echo "directory = '${mkSnapshotForest patchCrate cargotoml cargolock}'" >> .cargo/config
-
+              ## Build commands
               echo "$cargoCommands" | \
                 while IFS= read -r c
                 do
