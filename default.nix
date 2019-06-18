@@ -178,6 +178,7 @@ with rec
             '';
 
           installPhase =
+            # TODO: this should also copy <foo> for every src/bin/<foo.rs>
             ''
               runHook preInstall
               mkdir -p $out/bin
