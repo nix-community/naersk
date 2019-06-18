@@ -124,8 +124,7 @@ buildPackage sources.lorri
             mkdir -p $out
             cp -r --no-preserve=mode ${src}/* $out
 
-            sed -i '/edition =/d' $out/${name}-${v.version}/Cargo.toml
-            echo 'cargo-features = ["edition"]' >> $out/${name}-${v.version}/Cargo.toml
+            sed -i '/edition =/c\cargo-features = ["edition"]' $out/${name}-${v.version}/Cargo.toml
             cat $out/${name}-${v.version}/Cargo.toml
             echo $out
           ''
