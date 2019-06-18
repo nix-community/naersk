@@ -1,10 +1,18 @@
-with
-  { sources = import ./nix/sources.nix; };
+with rec
+  { sources = import ./nix/sources.nix;
+    _pkgs = import sources.nixpkgs {};
+  };
 
-{ pkgs ? import sources.nixpkgs {}
+{ lib ? _pkgs.lib
+, runCommand ? _pkgs.runCommand
+, symlinkJoin ? _pkgs.symlinkJoin
+, stdenv ? _pkgs.stdenv
+, writeText ? _pkgs.writeText
+, llvmPackages ? _pkgs.llvmPackages
+, darwin ? _pkgs.darwin
 , rustPackages ?
     with sources;
-    (pkgs.callPackage rust-nightly {}).rust {inherit (rust-nightly) date; }
+    (_pkgs.callPackage rust-nightly {}).rust {inherit (rust-nightly) date; }
 }:
 
 # Crate building
@@ -13,13 +21,13 @@ with rec
     # (note: this includes the package's dependencies)
     mkVersions = packageName: cargolock:
       # TODO: this should nub by <pkg-name>-<pkg-version>
-      (pkgs.lib.concatMap (x:
+      (lib.concatMap (x:
         with { mdk = mkMetadataKey x.name x.version; };
-        ( pkgs.lib.optional (builtins.hasAttr mdk cargolock.metadata)
+        ( lib.optional (builtins.hasAttr mdk cargolock.metadata)
             { inherit (x) version name;
               sha256 = cargolock.metadata.${mkMetadataKey x.name x.version};
             }
-        ) ++ (pkgs.lib.concatMap (parseDependency cargolock) (x.dependencies or []))
+        ) ++ (lib.concatMap (parseDependency cargolock) (x.dependencies or []))
 
       )
       (builtins.filter (v: v.name != packageName) cargolock.package));
@@ -28,12 +36,12 @@ with rec
     # iff the package is present in the Cargo.lock (otherwise returns [])
     parseDependency = cargolock: str:
       with rec
-        { components = pkgs.lib.splitString " " str;
-          name = pkgs.lib.elemAt components 0;
-          version = pkgs.lib.elemAt components 1;
+        { components = lib.splitString " " str;
+          name = lib.elemAt components 0;
+          version = lib.elemAt components 1;
           mdk = mkMetadataKey name version;
         };
-      ( pkgs.lib.optional (builtins.hasAttr mdk cargolock.metadata)
+      ( lib.optional (builtins.hasAttr mdk cargolock.metadata)
       (
       with
         { sha256 = cargolock.metadata.${mkMetadataKey name version};
@@ -56,7 +64,7 @@ with rec
             inherit sha256;
           };
       };
-      pkgs.runCommand "unpack-${name}-${version}" {}
+      runCommand "unpack-${name}-${version}" {}
       ''
         mkdir -p $out
         tar -xvzf ${src} -C $out
@@ -70,7 +78,7 @@ with rec
     # the crates and give cargo a pre-populated ./target directory.
     # TODO: this should most likely take more than one packageName
     mkSnapshotForest = patchCrate: packageName: cargolock:
-      pkgs.symlinkJoin
+      symlinkJoin
         { name = "crates-io";
           paths =
             map
@@ -114,48 +122,48 @@ with rec
           # executables to bin/?
           bins = crateNames ++
               map (bin: bin.name) (
-              pkgs.lib.concatMap (ctoml: ctoml.bin or []) cargotomls);
+              lib.concatMap (ctoml: ctoml.bin or []) cargotomls);
 
-          cargoconfig = pkgs.writeText "cargo-config"
+          cargoconfig = writeText "cargo-config"
             ''
               [source.crates-io]
               replace-with = 'nix-sources'
 
               [source.nix-sources]
-              directory = '${mkSnapshotForest patchCrate (pkgs.lib.head crateNames) cargolock}'
+              directory = '${mkSnapshotForest patchCrate (lib.head crateNames) cargolock}'
             '';
-          drv = pkgs.stdenv.mkDerivation
+          drv = stdenv.mkDerivation
             { inherit src;
               name =
                 if ! isNull name then
                   name
-                else if pkgs.lib.length crateNames == 0 then
+                else if lib.length crateNames == 0 then
                   abort "No crate names"
-                else if pkgs.lib.length crateNames == 1 then
-                  pkgs.lib.head crateNames
+                else if lib.length crateNames == 1 then
+                  lib.head crateNames
                 else
-                  pkgs.lib.head crateNames + "-et-al";
+                  lib.head crateNames + "-et-al";
               buildInputs =
                 [ cargo
 
                   # needed for "dsymutil"
-                  pkgs.llvmPackages.stdenv.cc.bintools
+                  llvmPackages.stdenv.cc.bintools
 
                   # needed for "cc"
-                  pkgs.llvmPackages.stdenv.cc
+                  llvmPackages.stdenv.cc
 
-                ] ++ (pkgs.stdenv.lib.optionals pkgs.stdenv.isDarwin
-                [ pkgs.darwin.Security
-                  pkgs.darwin.apple_sdk.frameworks.CoreServices
-                  pkgs.darwin.cf-private
+                ] ++ (stdenv.lib.optionals stdenv.isDarwin
+                [ darwin.Security
+                  darwin.apple_sdk.frameworks.CoreServices
+                  darwin.cf-private
                 ]);
-              LIBCLANG_PATH="${pkgs.llvmPackages.libclang.lib}/lib";
+              LIBCLANG_PATH="${llvmPackages.libclang.lib}/lib";
               CXX="clang++";
               RUSTC="${rustc}/bin/rustc";
 
-              cargoCommands = pkgs.lib.concatStringsSep "\n" cargoCommands;
-              crateNames = pkgs.lib.concatStringsSep "\n" crateNames;
-              bins = pkgs.lib.concatStringsSep "\n" bins;
+              cargoCommands = lib.concatStringsSep "\n" cargoCommands;
+              crateNames = lib.concatStringsSep "\n" crateNames;
+              bins = lib.concatStringsSep "\n" bins;
               buildPhase =
                 ''
                   runHook preBuild
@@ -206,13 +214,13 @@ with rec
     # Generates a sed expression that enables the given features
     fixupFeaturesSed = feats:
       with
-        { features = ''["'' + pkgs.lib.concatStringsSep ''","'' feats + ''"]'';
+        { features = ''["'' + lib.concatStringsSep ''","'' feats + ''"]'';
         };
       ''/\[package\]/i cargo-features = ${features}'';
 
     # Patches the cargo manifest to enable the list of features
     fixupFeatures = name: v: src: feats:
-      pkgs.runCommand "fixup-editions-${name}" {}
+      runCommand "fixup-editions-${name}" {}
         ''
           mkdir -p $out
           cp -r --no-preserve=mode ${src}/* $out
@@ -221,7 +229,9 @@ with rec
         '';
   };
 
-{ test_lorri = buildPackage sources.lorri
+{ inherit buildPackage fixupEdition fixupFeatures fixupFeaturesSed;
+
+  test_lorri = buildPackage sources.lorri
     { override = _oldAttrs:
         { BUILD_REV_COUNT = 1;
           RUN_TIME_CLOSURE = "${sources.lorri}/nix/runtime.nix";
@@ -262,7 +272,7 @@ with rec
   test_rustlings = buildPackage sources.rustlings {};
 
   # TODO: walk through bins
-  test_rustfmt = pkgs.runCommand "rust-fmt"
+  test_rustfmt = runCommand "rust-fmt"
     { buildInputs = [ (buildPackage sources.rustfmt {}) ]; }
     ''
       rustfmt --help
