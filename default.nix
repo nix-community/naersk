@@ -20,17 +20,20 @@ with rec
   { # creates an attrset from package name to package version + sha256
     # (note: this includes the package's dependencies)
     mkVersions = packageName: cargolock:
-      # TODO: this should nub by <pkg-name>-<pkg-version>
-      (lib.concatMap (x:
-        with { mdk = mkMetadataKey x.name x.version; };
-        ( lib.optional (builtins.hasAttr mdk cargolock.metadata)
-            { inherit (x) version name;
-              sha256 = cargolock.metadata.${mkMetadataKey x.name x.version};
-            }
-        ) ++ (lib.concatMap (parseDependency cargolock) (x.dependencies or []))
+      if builtins.hasAttr "metadata" cargolock then
 
-      )
-      (builtins.filter (v: v.name != packageName) cargolock.package));
+        # TODO: this should nub by <pkg-name>-<pkg-version>
+        (lib.concatMap (x:
+          with { mdk = mkMetadataKey x.name x.version; };
+          ( lib.optional (builtins.hasAttr mdk cargolock.metadata)
+              { inherit (x) version name;
+                sha256 = cargolock.metadata.${mkMetadataKey x.name x.version};
+              }
+          ) ++ (lib.concatMap (parseDependency cargolock) (x.dependencies or []))
+
+        )
+        (builtins.filter (v: v.name != packageName) cargolock.package))
+      else [];
 
     # Turns "lib-name lib-ver (registry+...)" to [ { name = "lib-name", etc } ]
     # iff the package is present in the Cargo.lock (otherwise returns [])
@@ -111,7 +114,7 @@ with rec
 
             [cargotoml] ++ (
               map (member: (builtins.fromTOML (builtins.readFile
-                "${src}/${member}/Cargo.toml")).package.name)
+                "${src}/${member}/Cargo.toml")))
               workspaceMembers);
 
           crateNames = builtins.filter (pname: ! isNull pname) (
