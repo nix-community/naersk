@@ -24,6 +24,18 @@
         "description": "rga: ripgrep, but also search in PDFs, E-Books, Office documents, zip, tar.gz, etc.",
         "rev": "9c285670fd128d5f142df170ffc38bda82cf15b5"
     },
+    "rustlings": {
+        "homepage": "",
+        "url": "https://github.com/rust-lang/rustlings/archive/b8d59d699bed76b6be95d1ed41881d00d4b0d533.tar.gz",
+        "owner": "rust-lang",
+        "branch": "master",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz",
+        "repo": "rustlings",
+        "type": "tarball",
+        "sha256": "1rqn9rbgxs8vxqm4y29kvrgri22cgkb7jczwx19f9vlfphj7lkvm",
+        "description": "Small exercises to get you used to reading and writing Rust code!",
+        "rev": "b8d59d699bed76b6be95d1ed41881d00d4b0d533"
+    },
     "talent-plan": {
         "url": "https://github.com/pingcap/talent-plan/archive/2729bc5a5fc791a4c5c7b941ca5559b2d1fab1fb.tar.gz",
         "owner": "pingcap",
@@ -57,6 +69,18 @@
         "sha256": "1x3lx58qhgy8iw3ykd3cwia5bnfflgxpf88ssi2p631kcail5m6z",
         "description": "Dynamically changing, partially-stateful data-flow for web application backends.",
         "rev": "e1dd3d4bdeda53ff72f8ee0b8deaa923afe4f67a"
+    },
+    "lucet": {
+        "homepage": "",
+        "url": "https://github.com/fastly/lucet/archive/8b20e9527aabd27e8360bd2aac763cedf4a96a8b.tar.gz",
+        "owner": "fastly",
+        "branch": "master",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz",
+        "repo": "lucet",
+        "type": "tarball",
+        "sha256": "0wpfj1qyqbkym83yvlg3xmj8vlf1g7r0azmif51m58k3qqm86fca",
+        "description": "Lucet, the Sandboxing WebAssembly Compiler.",
+        "rev": "8b20e9527aabd27e8360bd2aac763cedf4a96a8b"
     },
     "lorri": {
         "homepage": "bar",

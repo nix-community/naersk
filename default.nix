@@ -11,28 +11,35 @@ with
 with rec
   { # creates an attrset from package name to package version + sha256
     # (note: this includes the package's dependencies)
-    mkVersions = cargotoml: cargolock:
+    mkVersions = packageName: cargolock:
       # TODO: this should nub by <pkg-name>-<pkg-version>
       (pkgs.lib.concatMap (x:
-        [
+        with { mdk = mkMetadataKey x.name x.version; };
+        ( pkgs.lib.optional (builtins.hasAttr mdk cargolock.metadata)
             { inherit (x) version name;
               sha256 = cargolock.metadata.${mkMetadataKey x.name x.version};
             }
-        ] ++ (map (parseDependency cargolock) (x.dependencies or []))
+        ) ++ (pkgs.lib.concatMap (parseDependency cargolock) (x.dependencies or []))
 
       )
-      (builtins.filter (v: v.name != cargotoml.package.name) cargolock.package));
+      (builtins.filter (v: v.name != packageName) cargolock.package));
 
-    # Turns "lib-name lib-ver (registry+...)" to { name = "lib-name", etc }
+    # Turns "lib-name lib-ver (registry+...)" to [ { name = "lib-name", etc } ]
+    # iff the package is present in the Cargo.lock (otherwise returns [])
     parseDependency = cargolock: str:
       with rec
         { components = pkgs.lib.splitString " " str;
           name = pkgs.lib.elemAt components 0;
           version = pkgs.lib.elemAt components 1;
-          sha256 = cargolock.metadata.${mkMetadataKey name version};
+          mdk = mkMetadataKey name version;
         };
-      { inherit name version sha256;
-      };
+      ( pkgs.lib.optional (builtins.hasAttr mdk cargolock.metadata)
+      (
+      with
+        { sha256 = cargolock.metadata.${mkMetadataKey name version};
+        };
+      { inherit name version sha256; }
+      ));
 
     # crafts the key used to look up the sha256 in the cargo lock; no
     # robustness guarantee
@@ -61,37 +68,72 @@ with rec
     # anything changes all the deps will be rebuilt.  The rustc compiler is
     # pretty fast so this is not too bad. In the future we'll want to pre-build
     # the crates and give cargo a pre-populated ./target directory.
-    mkSnapshotForest = patchCrate: cargotoml: cargolock:
+    mkSnapshotForest = patchCrate: packageName: cargolock:
       pkgs.symlinkJoin
         { name = "crates-io";
           paths =
             map
               (v: patchCrate v.name v (unpackCrate v.name v.version v.sha256))
-              (mkVersions cargotoml cargolock);
+              (mkVersions packageName cargolock);
         };
 
 
     buildPackage =
       src:
       { cargoCommands ? [ "cargo build" ]
-      , patchCrate ? (_: _: x: x) }:
+      , patchCrate ? (_: _: x: x)
+      , name ? null
+      }:
       with rec
         {
           readTOML = f: builtins.fromTOML (builtins.readFile f);
           cargolock = readTOML "${src}/Cargo.lock";
           cargotoml = readTOML "${src}/Cargo.toml";
+          crateNames =
+            with rec
+              { packageName = cargotoml.package.name or null;
+                workspaceMembers = cargotoml.workspace.members or null;
+              };
+
+            if isNull packageName && isNull workspaceMembers then
+              abort
+                ''The cargo manifest has neither
+                    - a package.name field, nor
+                    - a workspace.members field
+                  Cannot continue.
+                ''
+            else if ! isNull packageName && ! isNull workspaceMembers then
+              abort
+                ''The cargo manifest has both
+                    - a package.name field, and
+                    - a workspace.members field
+                  Refusing to continue.
+                ''
+            else if ! isNull packageName then
+              [packageName]
+            else map
+              (member: (builtins.fromTOML (builtins.readFile "${src}/${member}/Cargo.toml")).package.name)
+              workspaceMembers;
           cargoconfig = pkgs.writeText "cargo-config"
             ''
               [source.crates-io]
               replace-with = 'nix-sources'
 
               [source.nix-sources]
-              directory = '${mkSnapshotForest patchCrate cargotoml cargolock}'
+              directory = '${mkSnapshotForest patchCrate (pkgs.lib.head crateNames) cargolock}'
             '';
         };
       pkgs.stdenv.mkDerivation
         { inherit src;
-          name = cargotoml.package.name;
+          name =
+            if ! isNull name then
+              name
+            else if pkgs.lib.length crateNames == 0 then
+              abort "No crate names"
+            else if pkgs.lib.length crateNames == 1 then
+              pkgs.lib.head crateNames
+            else
+              pkgs.lib.head crateNames + "-et-al";
           buildInputs =
             [ pkgs.cargo
 
@@ -113,6 +155,7 @@ with rec
           RUN_TIME_CLOSURE = "${sources.lorri}/nix/runtime.nix";
 
           cargoCommands = pkgs.lib.concatStringsSep "\n" cargoCommands;
+          crateNames = pkgs.lib.concatStringsSep "\n" crateNames;
           buildPhase =
             ''
               runHook preBuild
@@ -138,8 +181,14 @@ with rec
             ''
               runHook preInstall
               mkdir -p $out/bin
-              cp target/debug/${cargotoml.package.name} $out/bin \
-                || echo "No executable to install"
+              echo "$crateNames" | \
+                while IFS= read -r c
+                do
+                  echo "Installing executable: $c"
+                  cp "target/debug/$c" $out/bin \
+                    || echo "No executable $c to install"
+                done
+
               runHook postInstall
             '';
         };
@@ -179,6 +228,7 @@ with rec
   #test_talent-plan-4 = buildPackage "${sources.talent-plan}/rust/projects/project-4" {};
   #test_talent-plan-5 = buildPackage "${sources.talent-plan}/rust/projects/project-5" {};
 
+  # TODO: figure out executables from src/bin/*.rs
   test_ripgrep-all = buildPackage sources.ripgrep-all {};
 
   # TODO: Nix error:
@@ -190,8 +240,16 @@ with rec
   #test_ripgrep = buildPackage sources.ripgrep {};
 
   # TODO: (workspace)
-  # error: attribute 'package' missing,
-  #   at /Users/nicolas/naersk/default.nix:94:18
+  # error: while parsing a TOML string at ...:115:25:
+  #   Bare key 'cfg(any(all(target_arch = "wasm32", not(target_os = "emscripten")), all(target_vendor = "fortanix", target_env = "sgx")))'
+  #   cannot contain whitespace at line 53
   #test_rust = buildPackage sources.rust {};
+
+  # Unable to update https://github.com/...
   #test_noria = buildPackage sources.noria {};
+
+  # No submodules
+  #test_lucet = buildPackage sources.lucet {};
+
+  test_rustlings = buildPackage sources.rustlings {};
 }
