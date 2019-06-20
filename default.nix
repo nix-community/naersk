@@ -232,14 +232,25 @@ with rec
         '';
   };
 
-{ inherit buildPackage fixupEdition fixupFeatures fixupFeaturesSed;
+with
+  { crates =
+      { lorri = buildPackage sources.lorri
+          { override = _oldAttrs:
+              { BUILD_REV_COUNT = 1;
+                RUN_TIME_CLOSURE = "${sources.lorri}/nix/runtime.nix";
+              };
+          };
 
-  test_lorri = buildPackage sources.lorri
-    { override = _oldAttrs:
-        { BUILD_REV_COUNT = 1;
-          RUN_TIME_CLOSURE = "${sources.lorri}/nix/runtime.nix";
-        };
-    };
+        ripgrep-all = buildPackage sources.ripgrep-all {};
+
+        rustfmt = buildPackage sources.rustfmt {};
+      };
+  };
+
+{ inherit buildPackage fixupEdition fixupFeatures fixupFeaturesSed crates;
+
+  test_lorri = runCommand "lorri" { buildInputs = [ crates.lorri ]; }
+    "lorri --help && touch $out";
 
   test_talent-plan-1 = buildPackage "${sources.talent-plan}/rust/projects/project-1" {};
   test_talent-plan-2 = buildPackage "${sources.talent-plan}/rust/projects/project-2" {};
@@ -250,7 +261,9 @@ with rec
   #test_talent-plan-5 = buildPackage "${sources.talent-plan}/rust/projects/project-5" {};
 
   # TODO: figure out executables from src/bin/*.rs
-  test_ripgrep-all = buildPackage sources.ripgrep-all {};
+  test_ripgrep-all = runCommand "ripgrep-all"
+    { buildInputs = [ crates.ripgrep-all ]; }
+    "touch $out";
 
   # TODO: Nix error:
   # error: while parsing a TOML string at default.nix:80:25:
@@ -276,7 +289,7 @@ with rec
 
   # TODO: walk through bins
   test_rustfmt = runCommand "rust-fmt"
-    { buildInputs = [ (buildPackage sources.rustfmt {}) ]; }
+    { buildInputs = [ crates.rustfmt ]; }
     ''
       rustfmt --help
       cargo-fmt --help
