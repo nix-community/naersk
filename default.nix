@@ -91,13 +91,16 @@ with rec
 
     buildPackage =
       src:
-      { cargoCommands ? [ "cargo build" ]
+      { cargoBuildCommands ? [ "cargo build --release" ]
+      , cargoTestCommands ? [ "cargo test" ]
       , patchCrate ? (_: _: x: x)
       , name ? null
       , rustc ? rustPackages
       , cargo ? rustPackages
       , override ? null
+      , buildInputs ? []
       }:
+
       with rec
         {
           readTOML = f: builtins.fromTOML (builtins.readFile f);
@@ -159,12 +162,13 @@ with rec
                 [ darwin.Security
                   darwin.apple_sdk.frameworks.CoreServices
                   darwin.cf-private
-                ]);
+                ]) ++ buildInputs;
               LIBCLANG_PATH="${llvmPackages.libclang.lib}/lib";
               CXX="clang++";
               RUSTC="${rustc}/bin/rustc";
 
-              cargoCommands = lib.concatStringsSep "\n" cargoCommands;
+              cargoBuildCommands = lib.concatStringsSep "\n" cargoBuildCommands;
+              cargoTestCommands = lib.concatStringsSep "\n" cargoTestCommands;
               crateNames = lib.concatStringsSep "\n" crateNames;
               bins = lib.concatStringsSep "\n" bins;
               buildPhase =
@@ -178,14 +182,29 @@ with rec
                   cp ${cargoconfig} .cargo/config
 
                   ## Build commands
-                  echo "$cargoCommands" | \
+                  echo "$cargoBuildCommands" | \
                     while IFS= read -r c
                     do
-                      echo "Runnig cargo command: $c"
+                      echo "Running cargo command: $c"
                       $c
                     done
 
                   runHook postBuild
+                '';
+
+              checkPhase =
+                ''
+                  runHook preCheck
+
+                  ## test commands
+                  echo "$cargoTestCommands" | \
+                    while IFS= read -r c
+                    do
+                      echo "Running cargo (test) command: $c"
+                      $c
+                    done
+
+                  runHook postCheck
                 '';
 
               installPhase =
@@ -197,7 +216,7 @@ with rec
                     while IFS= read -r c
                     do
                       echo "Installing executable: $c"
-                      cp "target/debug/$c" $out/bin \
+                      cp "target/release/$c" $out/bin \
                         || echo "No executable $c to install"
                     done
 
