@@ -92,7 +92,8 @@ with rec
     buildPackage =
       src:
       { cargoBuildCommands ? [ "cargo build --release" ]
-      , cargoTestCommands ? [ "cargo test" ]
+      , cargoTestCommands ? [ "cargo test --release" ]
+      , doCheck ? true
       , patchCrate ? (_: _: x: x)
       , name ? null
       , rustc ? rustPackages
@@ -139,7 +140,7 @@ with rec
               directory = '${mkSnapshotForest patchCrate (lib.head crateNames) cargolock}'
             '';
           drv = stdenv.mkDerivation
-            { inherit src;
+            { inherit src doCheck;
               name =
                 if ! isNull name then
                   name
@@ -258,6 +259,7 @@ with
               { BUILD_REV_COUNT = 1;
                 RUN_TIME_CLOSURE = "${sources.lorri}/nix/runtime.nix";
               };
+            doCheck = false;
           };
 
         ripgrep-all = buildPackage sources.ripgrep-all {};
