@@ -91,7 +91,7 @@ with rec
 
     buildPackage =
       src:
-      { cargoBuildCommands ? [ "cargo build --release" ]
+      { cargoBuildCommands ? [ "cargo build --frozen --release" ]
       , cargoTestCommands ? [ "cargo test --release" ]
       , doCheck ? true
       , patchCrate ? (_: _: x: x)
@@ -100,6 +100,7 @@ with rec
       , cargo ? rustPackages
       , override ? null
       , buildInputs ? []
+      , nativeBuildInputs ? []
       }:
 
       with rec
@@ -140,7 +141,11 @@ with rec
               directory = '${mkSnapshotForest patchCrate (lib.head crateNames) cargolock}'
             '';
           drv = stdenv.mkDerivation
-            { inherit src doCheck;
+            { inherit src doCheck nativeBuildInputs;
+
+              # Otherwise specifying CMake as a dep breaks the build
+              dontUseCmakeConfigure = true;
+
               name =
                 if ! isNull name then
                   name
@@ -275,7 +280,9 @@ with
 
   test_talent-plan-1 = buildPackage "${sources.talent-plan}/rust/projects/project-1" {};
   test_talent-plan-2 = buildPackage "${sources.talent-plan}/rust/projects/project-2" {};
-  test_talent-plan-3 = buildPackage "${sources.talent-plan}/rust/projects/project-3" {};
+  test_talent-plan-3 = buildPackage
+    "${sources.talent-plan}/rust/projects/project-3"
+    { cargoTestCommands = [] ; };
 
   # TODO: support for git deps
   #test_talent-plan-4 = buildPackage "${sources.talent-plan}/rust/projects/project-4" {};
@@ -303,8 +310,29 @@ with
   # Unable to update https://github.com/...
   #test_noria = buildPackage sources.noria {};
 
-  # No submodules
-  #test_lucet = buildPackage sources.lucet {};
+  # TODO: fix submodules
+  test_lucet =
+      with rec
+        { lucetSpec =
+            { inherit (sources.lucet) owner repo rev;
+              fetchSubmodules = true;
+              sha256 = "1vwz7gijq4pcs2dvaazmzcdyb8d64y5qss6s4j2wwigsgqmpfdvs";
+            } ;
+          lucetGit = _pkgs.fetchFromGitHub lucetSpec;
+        };
+      buildPackage lucetGit
+        { nativeBuildInputs = [ _pkgs.cmake _pkgs.python3 ] ;
+          cargoBuildCommands =
+            [ (lib.concatStringsSep " "
+              [ "cargo build"
+                "-p lucetc"
+                "-p lucet-runtime"
+                "-p lucet-runtime-internals"
+                "-p lucet-module-data"
+              ])
+            ];
+          cargoTestCommands = [];
+        };
 
   test_rustlings = buildPackage sources.rustlings {};
 
