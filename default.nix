@@ -1,3 +1,9 @@
+# TODO:
+# cargo puts all built libs in 'target/(release|debug)/deps'. The format is
+# something like 'libfoo-<some hash>.(rlib|rmeta)'. Would be straightforward to
+# just copy these instead of rebuilding everything from scratch.
+#
+#
 with rec
   { sources = import ./nix/sources.nix;
     _pkgs = import sources.nixpkgs {};
