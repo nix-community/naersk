@@ -299,6 +299,7 @@ with
   #   cannot contain whitespace at line 64
   # and this is the culprit:
   #  https://github.com/BurntSushi/ripgrep/blob/d1389db2e39802d5e04dc7b902fd2b1f9f615b01/Cargo.toml#L64
+  # TODO: update Nix: https://github.com/NixOS/nix/pull/2902
   #test_ripgrep = buildPackage sources.ripgrep {};
 
   # TODO: (workspace)
