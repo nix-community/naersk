@@ -95,6 +95,20 @@ with rec
               (mkVersions packageName cargolock);
         };
 
+    #getGitDependencies = cargotoml:
+      #lib.mapAttrsToList (name: spec:
+        #with
+          #{ components = lib.splitString "/" spec.git; };
+        #{ inherit name;
+          #inherit (spec) rev;
+          #owner = builtins.elemAt components 3;
+          #repo = builtins.elemAt components 4;
+          ##sha256 = lib.fakeSha256;
+        #}
+      #) (
+      #lib.filterAttrs (_name: spec: builtins.hasAttr "git" spec)
+        #cargotoml);
+
     buildPackage =
       src:
       { cargoBuildCommands ? [ "cargo build --frozen --release" ]
@@ -117,6 +131,13 @@ with rec
           # The top-level Cargo.toml
           cargotoml = readTOML "${src}/Cargo.toml";
 
+          cratePaths =
+            with rec
+              { workspaceMembers = cargotoml.workspace.members or null;
+              };
+
+            if isNull workspaceMembers then "." else lib.concatStringsSep "\n" workspaceMembers;
+
           # All the Cargo.tomls, including the top-level one
           cargotomls =
             with rec
@@ -131,13 +152,6 @@ with rec
           crateNames = builtins.filter (pname: ! isNull pname) (
               map (ctoml: ctoml.package.name or null) cargotomls);
 
-          # The list of potential binaries
-          # TODO: is this even worth it or shall we simply copy all the
-          # executables to bin/?
-          bins = crateNames ++
-              map (bin: bin.name) (
-              lib.concatMap (ctoml: ctoml.bin or []) cargotomls);
-
           cargoconfig = writeText "cargo-config"
             ''
               [source.crates-io]
@@ -147,7 +161,7 @@ with rec
               directory = '${mkSnapshotForest patchCrate (lib.head crateNames) cargolock}'
             '';
           drv = stdenv.mkDerivation
-            { inherit src doCheck nativeBuildInputs;
+            { inherit src doCheck nativeBuildInputs cratePaths;
 
               # Otherwise specifying CMake as a dep breaks the build
               dontUseCmakeConfigure = true;
@@ -182,7 +196,6 @@ with rec
               cargoBuildCommands = lib.concatStringsSep "\n" cargoBuildCommands;
               cargoTestCommands = lib.concatStringsSep "\n" cargoTestCommands;
               crateNames = lib.concatStringsSep "\n" crateNames;
-              bins = lib.concatStringsSep "\n" bins;
 
               configurePhase =
                 ''
@@ -191,7 +204,9 @@ with rec
                   export CARGO_HOME=''${CARGO_HOME:-$PWD/.cargo-home}
                   mkdir -p $CARGO_HOME
 
-                  cp ${cargoconfig} $CARGO_HOME/config
+                  cp --no-preserve mode ${cargoconfig} $CARGO_HOME/config
+
+                  export CARGO_TARGET_DIR="$out/target"
 
                   runHook postConfigure
                 '';
@@ -201,6 +216,7 @@ with rec
                   runHook preBuild
 
                   ## Build commands
+                  ## TODO: -j $NIX_BUILD_CORES
                   echo "$cargoBuildCommands" | \
                     while IFS= read -r c
                     do
@@ -227,17 +243,21 @@ with rec
                 '';
 
               installPhase =
-                # TODO: this should also copy <foo> for every src/bin/<foo.rs>
                 ''
                   runHook preInstall
+
                   mkdir -p $out/bin
-                  echo "$bins" | \
-                    while IFS= read -r c
-                    do
-                      echo "Installing executable: $c"
-                      cp "target/release/$c" $out/bin \
-                        || echo "No executable $c to install"
-                    done
+                  # XXX: should have --debug if mode is "debug"
+                  for p in "$cratePaths"; do
+                    cargo install --path $p --bins --root $out ||\
+                      echo "WARNING: Member wasn't installed: $p"
+                  done
+
+                  mkdir -p $out/lib
+
+                  # TODO: .../debug if debug
+                  cp -vr $CARGO_TARGET_DIR/release/deps/* $out/lib ||\
+                    echo "WARNING: couldn't copy libs"
 
                   runHook postInstall
                 '';
@@ -358,4 +378,10 @@ with
       cargo-fmt --help
       touch $out
     '';
+
+    #test_git-dep = buildPackage (lib.cleanSource ./test/git-dep)
+      #{ override = oldAttrs:
+          #{};
+
+      #};
 }
