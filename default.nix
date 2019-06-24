@@ -183,15 +183,22 @@ with rec
               cargoTestCommands = lib.concatStringsSep "\n" cargoTestCommands;
               crateNames = lib.concatStringsSep "\n" crateNames;
               bins = lib.concatStringsSep "\n" bins;
+
+              configurePhase =
+                ''
+                  runHook preConfigure
+
+                  export CARGO_HOME=''${CARGO_HOME:-$PWD/.cargo-home}
+                  mkdir -p $CARGO_HOME
+
+                  cp ${cargoconfig} $CARGO_HOME/config
+
+                  runHook postConfigure
+                '';
+
               buildPhase =
                 ''
                   runHook preBuild
-
-                  ## registry setup
-                  export CARGO_HOME="$PWD/.cargo-home"
-                  mkdir -p $CARGO_HOME
-                  mkdir -p .cargo
-                  cp ${cargoconfig} .cargo/config
 
                   ## Build commands
                   echo "$cargoBuildCommands" | \
