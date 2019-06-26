@@ -1,6 +1,6 @@
 src:
-{ cargoBuildCommands ? [ "cargo build --frozen --release" ]
-, cargoTestCommands ? [ "cargo test --release" ]
+{ cargoBuild ?  "cargo build --frozen --release -j $NIX_BUILD_CORES"
+, cargoTest ?  "cargo test --release"
 , doCheck ? true
 , patchCrate ? (_: _: x: x)
 , name ? null
@@ -61,8 +61,6 @@ with rec
         CXX="clang++";
         RUSTC="${rustc}/bin/rustc";
 
-        cargoBuildCommands = lib.concatStringsSep "\n" cargoBuildCommands;
-        cargoTestCommands = lib.concatStringsSep "\n" cargoTestCommands;
         crateNames = lib.concatStringsSep "\n" crateNames;
 
         configurePhase =
@@ -89,14 +87,9 @@ with rec
           ''
             runHook preBuild
 
-            ## Build commands
-            ## TODO: -j $NIX_BUILD_CORES
-            echo "$cargoBuildCommands" | \
-              while IFS= read -r c
-              do
-                echo "Running cargo command: $c"
-                $c
-              done
+            echo "Running build command:"
+            echo '  ${cargoBuild}'
+            ${cargoBuild}
 
             runHook postBuild
           '';
@@ -105,13 +98,9 @@ with rec
           ''
             runHook preCheck
 
-            ## test commands
-            echo "$cargoTestCommands" | \
-              while IFS= read -r c
-              do
-                echo "Running cargo (test) command: $c"
-                $c
-              done
+            echo "Running test command:"
+            echo '  ${cargoTest}'
+            ${cargoTest}
 
             runHook postCheck
           '';

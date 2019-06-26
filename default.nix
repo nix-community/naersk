@@ -71,7 +71,7 @@ with
   test_talent-plan-2 = buildPackage "${sources.talent-plan}/rust/projects/project-2" {};
   test_talent-plan-3 = buildPackage
     "${sources.talent-plan}/rust/projects/project-3"
-    { cargoTestCommands = [] ; };
+    { doCheck = false; };
 
   # TODO: support for git deps
   #test_talent-plan-4 = buildPackage "${sources.talent-plan}/rust/projects/project-4" {};
@@ -112,16 +112,15 @@ with
         };
       buildPackage lucetGit
         { nativeBuildInputs = [ _pkgs.cmake _pkgs.python3 ] ;
-          cargoBuildCommands =
-            [ (lib.concatStringsSep " "
+          doCheck = false;
+          cargoBuild =
+            lib.concatStringsSep " "
               [ "cargo build"
                 "-p lucetc"
                 "-p lucet-runtime"
                 "-p lucet-runtime-internals"
                 "-p lucet-module-data"
-              ])
-            ];
-          cargoTestCommands = [];
+              ];
         };
 
   test_rustlings = buildPackage sources.rustlings {};
