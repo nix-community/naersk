@@ -62,7 +62,7 @@ with
       };
   };
 
-{ inherit buildPackage fixupEdition fixupFeatures fixupFeaturesSed crates;
+{ inherit buildPackage crates;
 
   test_lorri = runCommand "lorri" { buildInputs = [ crates.lorri ]; }
     "lorri --help && touch $out";
