@@ -16,6 +16,7 @@ with rec
 , writeText ? _pkgs.writeText
 , llvmPackages ? _pkgs.llvmPackages
 , jq ? _pkgs.jq
+, rsync ? _pkgs.rsync
 , darwin ? _pkgs.darwin
 , rustPackages ?
     with sources;
@@ -40,6 +41,7 @@ with rec
                   darwin
                   writeText
                   stdenv
+                  rsync
                   symlinkJoin ;
               } ;
           };
@@ -59,6 +61,30 @@ with
         ripgrep-all = buildPackage sources.ripgrep-all {};
 
         rustfmt = buildPackage sources.rustfmt {};
+
+        simple-dep =
+          with rec
+          { rand = buildPackage ./test/simple-dep
+              { cargoBuild = "cargo build --release --frozen -p rand -j $NIX_BUILD_CORES";
+                doCheck = false;
+                #override = _oldAttrs:
+                  #{ installPhase = "echo no install"; };
+              };
+
+          };
+          buildPackage ./test/simple-dep
+            { builtDependencies = [ rand ];
+              cargoBuild = "cargo build --release --frozen -j $NIX_BUILD_CORES";
+              #override = _oldAttrs:
+                #{ preBuild =
+                    #''
+                    #echo $PWD
+                    #sleep infinity
+
+
+                    #'';
+                #};
+            };
       };
   };
 

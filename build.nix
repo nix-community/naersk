@@ -2,17 +2,18 @@ src:
 { cargoBuild ?  "cargo build --frozen --release -j $NIX_BUILD_CORES"
 , cargoTest ?  "cargo test --release"
 , doCheck ? true
-, patchCrate ? (_: _: x: x)
 , name ? null
 , rustc ? rustPackages
 , cargo ? rustPackages
 , override ? null
 , buildInputs ? []
 , nativeBuildInputs ? []
+, builtDependencies ? []
 , rustPackages
 , stdenv
 , lib
 , llvmPackages
+, rsync
 , jq
 , darwin
 , writeText
@@ -21,12 +22,23 @@ src:
 }:
 
 with
-  { libb = import ./lib.nix { inherit lib; }; };
+  { libb = import ./lib.nix { inherit lib; };
+    readTOML = f: builtins.fromTOML (builtins.readFile f);
+  };
 
 with rec
   {
     drv = stdenv.mkDerivation
-      { inherit src doCheck nativeBuildInputs cratePaths;
+      { inherit src doCheck nativeBuildInputs;
+
+        # The list of paths to Cargo.tomls. If this is a workspace, the paths
+        # are the members. Otherwise, there is a single path, ".".
+        cratePaths =
+          with rec
+            { workspaceMembers = cargotoml.workspace.members or null;
+            };
+
+          if isNull workspaceMembers then "." else lib.concatStringsSep "\n" workspaceMembers;
 
         # Otherwise specifying CMake as a dep breaks the build
         dontUseCmakeConfigure = true;
@@ -52,25 +64,31 @@ with rec
 
             # needed for "cc"
             jq
+
+            rsync
           ] ++ (stdenv.lib.optionals stdenv.isDarwin
           [ darwin.Security
             darwin.apple_sdk.frameworks.CoreServices
             darwin.cf-private
           ]) ++ buildInputs;
+
         LIBCLANG_PATH="${llvmPackages.libclang.lib}/lib";
         CXX="clang++";
         RUSTC="${rustc}/bin/rustc";
 
-        crateNames = lib.concatStringsSep "\n" crateNames;
-
         configurePhase =
           ''
             runHook preConfigure
-            cat ${writeText "deps" (builtins.toJSON dependencies)} |\
+
+            mkdir -p target
+
+            cat ${writeText "deps" (builtins.toJSON builtDependencies)} |\
               jq -r '.[]' |\
               while IFS= read -r dep
               do
-                echo dep $dep
+                echo pre-installing dep $dep
+                rsync -rl --executability $dep/target/ target
+                chmod +w -R target
               done
 
             export CARGO_HOME=''${CARGO_HOME:-$PWD/.cargo-home}
@@ -78,7 +96,8 @@ with rec
 
             cp --no-preserve mode ${cargoconfig} $CARGO_HOME/config
 
-            export CARGO_TARGET_DIR="$out/target"
+            # TODO: figure out why "1" works whereas "0" doesn't
+            find . -type f -exec touch --date=@1 {} +
 
             runHook postConfigure
           '';
@@ -119,15 +138,15 @@ with rec
             mkdir -p $out/lib
 
             # TODO: .../debug if debug
-            cp -vr $CARGO_TARGET_DIR/release/deps/* $out/lib ||\
+            cp -vr target/release/deps/* $out/lib ||\
               echo "WARNING: couldn't copy libs"
+
+            mkdir -p $out
+            cp -r target $out
 
             runHook postInstall
           '';
       };
-
-    # List of built crates this crate depends on
-    dependencies = [];
 
     # XXX: the actual crate format is not documented but in practice is a
     # gzipped tar; we simply unpack it and introduce a ".cargo-checksum.json"
@@ -152,27 +171,17 @@ with rec
     # pretty fast so this is not too bad. In the future we'll want to pre-build
     # the crates and give cargo a pre-populated ./target directory.
     # TODO: this should most likely take more than one packageName
-    mkSnapshotForest = patchCrate: packageName: cargolock:
+    mkSnapshotForest = packageName: cargolock:
       symlinkJoin
         { name = "crates-io";
-          paths =
-            map
-              (v: patchCrate v.name v (unpackCrate v.name v.version v.sha256))
-              (libb.mkVersions packageName cargolock);
+          paths = map (v: unpackCrate v.name v.version v.sha256)
+            (libb.mkVersions packageName cargolock);
         };
 
-    readTOML = f: builtins.fromTOML (builtins.readFile f);
     cargolock = readTOML "${src}/Cargo.lock";
 
     # The top-level Cargo.toml
     cargotoml = readTOML "${src}/Cargo.toml";
-
-    cratePaths =
-      with rec
-        { workspaceMembers = cargotoml.workspace.members or null;
-        };
-
-      if isNull workspaceMembers then "." else lib.concatStringsSep "\n" workspaceMembers;
 
     # All the Cargo.tomls, including the top-level one
     cargotomls =
@@ -194,7 +203,7 @@ with rec
         replace-with = 'nix-sources'
 
         [source.nix-sources]
-        directory = '${mkSnapshotForest patchCrate (lib.head crateNames) cargolock}'
+        directory = '${mkSnapshotForest (lib.head crateNames) cargolock}'
       '';
   };
 if isNull override then drv else drv.overrideAttrs override
