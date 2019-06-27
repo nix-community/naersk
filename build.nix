@@ -9,6 +9,7 @@ src:
 , buildInputs ? []
 , nativeBuildInputs ? []
 , builtDependencies ? []
+, cargolock ? null
 , rustPackages
 , stdenv
 , lib
@@ -19,11 +20,11 @@ src:
 , writeText
 , symlinkJoin
 , runCommand
+, remarshal
 }:
 
 with
-  { libb = import ./lib.nix { inherit lib; };
-    readTOML = f: builtins.fromTOML (builtins.readFile f);
+  { libb = import ./lib.nix { inherit lib writeText runCommand remarshal; };
   };
 
 with rec
@@ -130,6 +131,7 @@ with rec
 
             mkdir -p $out/bin
             # XXX: should have --debug if mode is "debug"
+            # TODO: figure out how to not install everything
             for p in "$cratePaths"; do
               cargo install --path $p --bins --root $out ||\
                 echo "WARNING: Member wasn't installed: $p"
@@ -178,10 +180,13 @@ with rec
             (libb.mkVersions packageName cargolock);
         };
 
-    cargolock = readTOML "${src}/Cargo.lock";
+    cargolock = libb.readTOML "${src}/Cargo.lock";
+
+    #cargolockFor = name: version:
+
 
     # The top-level Cargo.toml
-    cargotoml = readTOML "${src}/Cargo.toml";
+    cargotoml = libb.readTOML "${src}/Cargo.toml";
 
     # All the Cargo.tomls, including the top-level one
     cargotomls =

@@ -18,13 +18,14 @@ with rec
 , jq ? _pkgs.jq
 , rsync ? _pkgs.rsync
 , darwin ? _pkgs.darwin
+, remarshal ? _pkgs.remarshal
 , rustPackages ?
     with sources;
     (_pkgs.callPackage rust-nightly {}).rust {inherit (rust-nightly) date; }
 }:
 
 with
-  { libb = import ./lib.nix { inherit lib; }; };
+  { libb = import ./lib.nix { inherit lib writeText runCommand remarshal; }; };
 
 # Crate building
 with rec
@@ -42,6 +43,7 @@ with rec
                   writeText
                   stdenv
                   rsync
+                  remarshal
                   symlinkJoin ;
               } ;
           };
@@ -64,26 +66,71 @@ with
 
         simple-dep =
           with rec
-          { rand = buildPackage ./test/simple-dep
-              { cargoBuild = "cargo build --release --frozen -p rand -j $NIX_BUILD_CORES";
+          { randCargoToml =
+              { package =
+                  { name = "dummy";
+                    version = "0.1.0";
+                    edition = "2018";
+                  };
+                dependencies =
+                  { rand = "0.7.0-pre.1"; };
+              };
+            randCargoLock =
+              libb.cargolockFor (libb.readTOML ./test/simple-dep/Cargo.lock)
+              "rand" "0.7.0-pre.1";
+
+            rcl = randCargoLock //
+              { package = randCargoLock.package ++
+                  [
+                  { name = "dummy";
+                    version = "0.1.0";
+                    dependencies = [
+                     "rand 0.7.0-pre.1 (registry+https://github.com/rust-lang/crates.io-index)"
+                    ];
+                  }];
+              };
+
+            srcc = runCommand "simple-dep" {}
+            ''
+              mkdir -p $out
+              cp ${libb.writeTOML randCargoToml} $out/Cargo.toml
+              cp ${libb.writeTOML rcl} $out/Cargo.lock
+
+              mkdir -p $out/src
+              touch $out/src/main.rs
+            '';
+
+
+            rand = buildPackage srcc
+              { cargoBuild = "cargo build --release --frozen -p rand:0.7.0-pre.1 -j $NIX_BUILD_CORES";
                 doCheck = false;
-                #override = _oldAttrs:
-                  #{ installPhase = "echo no install"; };
+                override = _oldAttrs:
+                  { preConfigure =
+                      ''
+                        cat Cargo.toml
+                        cp ${libb.writeTOML randCargoToml} Cargo.toml
+                        cargo --version
+                        exit 1
+
+                        echo
+
+                        echo
+                        cat Cargo.toml
+                        cp ${libb.writeTOML rcl} Cargo.lock
+                      '';
+                    preBuild = "echo $PWD";
+                  };
+
               };
 
           };
           buildPackage ./test/simple-dep
             { builtDependencies = [ rand ];
               cargoBuild = "cargo build --release --frozen -j $NIX_BUILD_CORES";
-              #override = _oldAttrs:
-                #{ preBuild =
-                    #''
-                    #echo $PWD
-                    #sleep infinity
-
-
-                    #'';
-                #};
+              override = _oldAttrs:
+                { # CARGO_LOG = "cargo::core::compiler::fingerprint=trace";
+                  preBuild = "echo $PWD";
+                };
             };
       };
   };
