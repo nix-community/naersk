@@ -37,19 +37,16 @@ rec
       { inherit name version sha256; }
       ));
 
-    # turns "<package> <version> ..." into { name = <package>, version = <version>; }
-    parseDependency' = str:
-      with { components = lib.splitString " " str; };
-      { name = lib.elemAt components 0; version = lib.elemAt components 1; };
-
 
     # crafts the key used to look up the sha256 in the cargo lock; no
     # robustness guarantee
     mkMetadataKey = name: version:
       "checksum ${name} ${version} (registry+https://github.com/rust-lang/crates.io-index)";
 
-    cargolockFor = cargolock: _: _: cargolock;
-    cargolockFor' = cargolock: name: version:
+    # A cargo lock that only includes the transitive dependencies of the
+    # package (and the package itself). This package is Nix-generated and thus
+    # only the transitive dependencies contribute to the package's derivation.
+    cargolockFor = cargolock: name: version:
       with rec
         { tdeps = transitiveDeps cargolock name version;
           tdepPrefix = dep: "checksum ${dep.name} ${dep.version}";
@@ -68,15 +65,41 @@ rec
             cargolock.metadata;
         };
 
+    #depsFor = cargolock: name: version:
+      #if builtins.hasAttr "dependencies"
+
+    # A stripped down Cargo.toml, similar to cargolockFor
+    cargotomlFor = name: version:
+      { package =
+          { name = "dummy";
+            version = "0.1.0";
+            edition = "2018";
+          };
+        dependencies =
+          { ${name} = version; };
+      };
+
+    # A very minimal 'src' which makes cargo happy nonetheless
+    dummySrc = name: version: runCommand "dummy-${name}-${version}" {}
+      ''
+        mkdir -p $out/src
+        touch $out/src/main.rs
+      '';
+
+    mkPackages = cargolock:
+      lib.foldl' lib.recursiveUpdate {} (
+            map (p: { ${p.name} = { ${p.version} = p; } ; })
+              cargolock.package);
+
     transitiveDeps = cargolock: name: version:
       with
         { wrap = p:
             { key = "${p.name}-${p.version}";
               package = p;
             };
-          packages = lib.foldl' lib.recursiveUpdate {} (
-            map (p: { ${p.name} = { ${p.version} = p; } ; })
-              cargolock.package);
+          packages = mkPackages cargolock;
+            #map (p: { ${p.name} = { ${p.version} = p; } ; })
+              #cargolock.package);
         };
       builtins.genericClosure
       { startSet = [ (wrap packages.${name}.${version}) ];
@@ -85,8 +108,24 @@ rec
             (map parseDependency' p.package.dependencies)));
       };
 
+    # turns "<package> <version> ..." into { name = <package>, version = <version>; }
+    parseDependency' = str:
+      with { components = lib.splitString " " str; };
+      { name = lib.elemAt components 0; version = lib.elemAt components 1; };
 
-    readTOML = f: builtins.fromTOML (builtins.readFile f);
+    # Nix < 2.3 cannot parse all TOML files
+    # https://github.com/NixOS/nix/issues/2901
+    # can then be replaced with:
+    #   readTOML = f: builtins.fromTOML (builtins.readFile f);
+    readTOML = f: builtins.fromJSON (builtins.readFile (runCommand "read-toml"
+      { buildInputs = [ remarshal ]; }
+      ''
+        remarshal \
+          -if toml \
+          -i ${f} \
+          -of json \
+          -o $out
+      ''));
     writeTOML = attrs: runCommand "write-toml"
       { buildInputs = [ remarshal ]; }
       ''

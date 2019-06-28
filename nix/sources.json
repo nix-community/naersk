@@ -1,4 +1,28 @@
 {
+    "cargo": {
+        "branch": "nm/canonicalize-path-args",
+        "description": "The Rust package manager",
+        "homepage": "https://doc.rust-lang.org/cargo",
+        "owner": "nmattia",
+        "repo": "cargo",
+        "rev": "87d48b01ed21b0c90ce081273cd7a0eb70673342",
+        "sha256": "1v68v40px7p7w6wmbvls6x3my3jyvl5m22ll9bz3vfwwdv5r4fcq",
+        "type": "tarball",
+        "url": "https://github.com/nmattia/cargo/archive/87d48b01ed21b0c90ce081273cd7a0eb70673342.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    },
+    "gitignore": {
+        "branch": "master",
+        "description": "Nix function for filtering local git sources",
+        "homepage": "",
+        "owner": "hercules-ci",
+        "repo": "gitignore",
+        "rev": "ec5dd0536a5e4c3a99c797b86180f7261197c124",
+        "sha256": "0k2r8y21rn4kr5dmddd3906x0733fs3bb8hzfpabkdav3wcy3klv",
+        "type": "tarball",
+        "url": "https://github.com/hercules-ci/gitignore/archive/ec5dd0536a5e4c3a99c797b86180f7261197c124.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    },
     "lorri": {
         "branch": "master",
         "description": "foo",
@@ -33,6 +57,18 @@
         "sha256": "11cnhj62ah38f079694n4pkvfbv82qj92l2qd2hil24qq3gjw591",
         "type": "tarball",
         "url": "https://github.com/nmattia/niv/archive/13e316e6153df2695b76b3a449a1fded5764d5ae.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    },
+    "nix": {
+        "branch": "master",
+        "description": "Nix, the purely functional package manager",
+        "homepage": "http://nixos.org/nix/",
+        "owner": "NixOS",
+        "repo": "nix",
+        "rev": "324a5dc92f8e50e6b637c5e67dea48c80be10837",
+        "sha256": "1g8gbam585q4kx8ilbx23ip64jw0r829i374qy0l8kvr8mhvj55r",
+        "type": "tarball",
+        "url": "https://github.com/NixOS/nix/archive/324a5dc92f8e50e6b637c5e67dea48c80be10837.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "nixpkgs": {
@@ -88,10 +124,10 @@
         "homepage": "https://www.rust-lang.org",
         "owner": "rust-lang",
         "repo": "rust",
-        "rev": "03769411561f3d282bfeb0e86ca38d898f02cbdb",
-        "sha256": "0d2gpsj870hi7wd1hklcsgwgf6vs7ygw3fjjbdf7p93rjdll6x91",
+        "rev": "8ebd67e4ee394cad9441a801f2022724ae7e07db",
+        "sha256": "10r5q5vgpmqkgq942qzajfgz5fwm3m9jbg8h22ykb62nsi35wv02",
         "type": "tarball",
-        "url": "https://github.com/rust-lang/rust/archive/03769411561f3d282bfeb0e86ca38d898f02cbdb.tar.gz",
+        "url": "https://github.com/rust-lang/rust/archive/8ebd67e4ee394cad9441a801f2022724ae7e07db.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "rust-nightly": {

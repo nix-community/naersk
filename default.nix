@@ -6,6 +6,7 @@
 #
 with rec
   { sources = import ./nix/sources.nix;
+    gitignore = _pkgs.callPackage sources.gitignore {};
     _pkgs = import sources.nixpkgs {};
   };
 
@@ -48,11 +49,72 @@ with rec
               } ;
           };
         import ./build.nix src (defaultAttrs // attrs);
+
+      buildPackageIncremental = src: attrs:
+        with
+          { defaultAttrs =
+              { inherit
+                  llvmPackages
+                  jq
+                  runCommand
+                  rustPackages
+                  lib
+                  darwin
+                  writeText
+                  stdenv
+                  rsync
+                  remarshal
+                  symlinkJoin ;
+              } ;
+          };
+        import ./build.nix src (defaultAttrs // attrs);
   };
 
-with
+with rec
+  { # patched version of cargo that fixes
+    #   https://github.com/rust-lang/cargo/issues/7078
+    # which is needed for incremental builds
+    patchedCargo =
+      with rec
+        { cargoSrc = sources.cargo ;
+          cargoCargoToml = libb.readTOML "${cargoSrc}/Cargo.toml";
+          cargoCargoToml' = cargoCargoToml //
+            { dependencies = lib.filterAttrs (k: _:
+                k != "rustc-workspace-hack")
+                cargoCargoToml.dependencies;
+            };
+
+          cargoCargoLock = "${sources.rust}/Cargo.lock";
+        };
+      buildPackage cargoSrc
+        { cargolockPath = cargoCargoLock;
+          cargotomlPath = libb.writeTOML cargoCargoToml';
+
+          # Tests fail, although cargo seems to operate normally
+          doCheck = false;
+
+          # cannot pass in --frozen because cargo fails (unsure why).
+          # Nonetheless, cargo doesn't try to hit the network, so we're fine.
+          cargoBuild = "cargo build --release -j $NIX_BUILD_CORES";
+
+          override = oldAttrs:
+            { buildInputs = oldAttrs.buildInputs ++
+                [ _pkgs.pkgconfig
+                  _pkgs.openssl
+                  _pkgs.libgit2
+                  _pkgs.libiconv
+                  _pkgs.curl
+                  _pkgs.git
+                ];
+              NIX_LDFLAGS="-F${_pkgs.darwin.apple_sdk.frameworks.CoreFoundation}/Library/Frameworks -framework CoreFoundation ";
+              LIBGIT2_SYS_USE_PKG_CONFIG = 1;
+            };
+        };
+  };
+
+with rec
   { crates =
-      { lorri = buildPackage sources.lorri
+      { lorri = buildPackageIncremental sources.lorri
           { override = _oldAttrs:
               { BUILD_REV_COUNT = 1;
                 RUN_TIME_CLOSURE = "${sources.lorri}/nix/runtime.nix";
@@ -60,60 +122,31 @@ with
             doCheck = false;
           };
 
-        #cargo = buildPackage (lib.cleanSource ../cargo) {};
-
         ripgrep-all = buildPackage sources.ripgrep-all {};
 
         rustfmt = buildPackage sources.rustfmt {};
 
         simple-dep =
           with rec
-          { randCargoToml =
-              { package =
-                  { name = "dummy";
-                    version = "0.1.0";
-                    edition = "2018";
-                  };
-                dependencies =
-                  { rand = "0.7.0-pre.1"; };
-              };
-            randCargoLock =
+          { depName = "rand";
+            depVersion = "0.7.0-pre.1";
+            depCargoToml = libb.cargotomlFor depName depVersion;
+            depCargoLock =
               libb.cargolockFor (libb.readTOML ./test/simple-dep/Cargo.lock)
-              "rand" "0.7.0-pre.1";
+              depName depVersion;
 
-            rcl = randCargoLock //
-              { package = randCargoLock.package ++
-                  [
-                  { name = "dummy";
-                    version = "0.1.0";
-                    dependencies = [
-                     "rand 0.7.0-pre.1 (registry+https://github.com/rust-lang/crates.io-index)"
-                    ];
-                  }];
-              };
-
-            srcc = runCommand "simple-dep" {}
-            ''
-              mkdir -p $out/src
-              touch $out/src/main.rs
-            '';
-
-
-            rand = buildPackage srcc
-              { cargoBuild = "cargo build --release --frozen -p rand:0.7.0-pre.1 -j $NIX_BUILD_CORES";
+            dep = buildPackage (libb.dummySrc depName depVersion)
+              { cargoBuild = "cargo build --release -p ${depName}:${depVersion} -j $NIX_BUILD_CORES";
+                cargo = patchedCargo;
                 doCheck = false;
-                cargotomlPath = libb.writeTOML randCargoToml;
-                cargolockPath = libb.writeTOML rcl;
+                cargotomlPath = libb.writeTOML depCargoToml;
+                cargolockPath = libb.writeTOML depCargoLock;
               };
 
           };
           buildPackage ./test/simple-dep
-            { builtDependencies = [ rand ];
-              cargoBuild = "cargo build --release --frozen -j $NIX_BUILD_CORES";
-              override = _oldAttrs:
-                { # CARGO_LOG = "cargo::core::compiler::fingerprint=trace";
-                  preBuild = "echo $PWD";
-                };
+            { builtDependencies = [ dep ];
+              cargo = patchedCargo;
             };
       };
   };

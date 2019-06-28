@@ -104,7 +104,7 @@ with rec
               then
                 echo "WARNING: replacing existing Cargo.lock"
               fi
-              cp "$cargolockPath" Cargo.lock
+              cp --no-preserve mode "$cargolockPath" Cargo.lock
             fi
 
             if [ -n "$cargotomlPath" ]
