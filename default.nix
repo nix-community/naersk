@@ -50,24 +50,28 @@ with rec
           };
         import ./build.nix src (defaultAttrs // attrs);
 
-      buildPackageIncremental = src: attrs:
-        with
-          { defaultAttrs =
-              { inherit
-                  llvmPackages
-                  jq
-                  runCommand
-                  rustPackages
-                  lib
-                  darwin
-                  writeText
-                  stdenv
-                  rsync
-                  remarshal
-                  symlinkJoin ;
-              } ;
+      buildPackageIncremental = cargolock: name: version: src: attrs:
+        with rec
+          { buildDependency = depName: depVersion:
+              # Really this should be 'buildPackageIncremental' but that makes
+              # Nix segfault
+              buildPackage (libb.dummySrc depName depVersion)
+                { cargoBuild = "cargo build --release -p ${depName}:${depVersion} -j $NIX_BUILD_CORES";
+                  inherit (attrs) cargo;
+                  cargotomlPath = libb.writeTOML (libb.cargotomlFor depName depVersion);
+                  cargolockPath = libb.writeTOML (
+                    libb.cargolockFor cargolock depName depVersion
+                    );
+                  doCheck = false;
+                };
           };
-        import ./build.nix src (defaultAttrs // attrs);
+        buildPackage src (attrs //
+          {
+            builtDependencies = map (x: buildDependency x.name x.version)
+              (libb.directDependencies cargolock name version) ;
+          }
+          );
+
   };
 
 with rec
@@ -127,26 +131,9 @@ with rec
         rustfmt = buildPackage sources.rustfmt {};
 
         simple-dep =
-          with rec
-          { depName = "rand";
-            depVersion = "0.7.0-pre.1";
-            depCargoToml = libb.cargotomlFor depName depVersion;
-            depCargoLock =
-              libb.cargolockFor (libb.readTOML ./test/simple-dep/Cargo.lock)
-              depName depVersion;
-
-            dep = buildPackage (libb.dummySrc depName depVersion)
-              { cargoBuild = "cargo build --release -p ${depName}:${depVersion} -j $NIX_BUILD_CORES";
-                cargo = patchedCargo;
-                doCheck = false;
-                cargotomlPath = libb.writeTOML depCargoToml;
-                cargolockPath = libb.writeTOML depCargoLock;
-              };
-
-          };
-          buildPackage ./test/simple-dep
-            { builtDependencies = [ dep ];
-              cargo = patchedCargo;
+          buildPackageIncremental (libb.readTOML ./test/simple-dep/Cargo.lock)
+            "simple-dep" "0.1.0" ./test/simple-dep
+            { cargo = patchedCargo;
             };
       };
   };

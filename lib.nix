@@ -91,6 +91,15 @@ rec
             map (p: { ${p.name} = { ${p.version} = p; } ; })
               cargolock.package);
 
+    directDependencies = cargolock: name: version:
+      with rec
+        { packages = mkPackages cargolock;
+          package = packages.${name}.${version};
+        } ;
+
+      lib.optionals (builtins.hasAttr "dependencies" package)
+        (map parseDependency' package.dependencies);
+
     transitiveDeps = cargolock: name: version:
       with
         { wrap = p:
@@ -98,8 +107,6 @@ rec
               package = p;
             };
           packages = mkPackages cargolock;
-            #map (p: { ${p.name} = { ${p.version} = p; } ; })
-              #cargolock.package);
         };
       builtins.genericClosure
       { startSet = [ (wrap packages.${name}.${version}) ];
