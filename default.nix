@@ -60,6 +60,8 @@ with
             doCheck = false;
           };
 
+        #cargo = buildPackage (lib.cleanSource ../cargo) {};
+
         ripgrep-all = buildPackage sources.ripgrep-all {};
 
         rustfmt = buildPackage sources.rustfmt {};
@@ -92,10 +94,6 @@ with
 
             srcc = runCommand "simple-dep" {}
             ''
-              mkdir -p $out
-              cp ${libb.writeTOML randCargoToml} $out/Cargo.toml
-              cp ${libb.writeTOML rcl} $out/Cargo.lock
-
               mkdir -p $out/src
               touch $out/src/main.rs
             '';
@@ -104,23 +102,8 @@ with
             rand = buildPackage srcc
               { cargoBuild = "cargo build --release --frozen -p rand:0.7.0-pre.1 -j $NIX_BUILD_CORES";
                 doCheck = false;
-                override = _oldAttrs:
-                  { preConfigure =
-                      ''
-                        cat Cargo.toml
-                        cp ${libb.writeTOML randCargoToml} Cargo.toml
-                        cargo --version
-                        exit 1
-
-                        echo
-
-                        echo
-                        cat Cargo.toml
-                        cp ${libb.writeTOML rcl} Cargo.lock
-                      '';
-                    preBuild = "echo $PWD";
-                  };
-
+                cargotomlPath = libb.writeTOML randCargoToml;
+                cargolockPath = libb.writeTOML rcl;
               };
 
           };

@@ -1,6 +1,8 @@
 src:
-{ cargoBuild ?  "cargo build --frozen --release -j $NIX_BUILD_CORES"
-, cargoTest ?  "cargo test --release"
+{ #| What command to run during the build phase
+  cargoBuild ?  "cargo build --frozen --release -j $NIX_BUILD_CORES"
+, #| What command to run during the test phase
+  cargoTest ? "cargo test --release"
 , doCheck ? true
 , name ? null
 , rustc ? rustPackages
@@ -9,7 +11,8 @@ src:
 , buildInputs ? []
 , nativeBuildInputs ? []
 , builtDependencies ? []
-, cargolock ? null
+, cargolockPath ? null
+, cargotomlPath ? null
 , rustPackages
 , stdenv
 , lib
@@ -27,10 +30,23 @@ with
   { libb = import ./lib.nix { inherit lib writeText runCommand remarshal; };
   };
 
+with
+  { cargolock =
+      if isNull cargolockPath then
+        libb.readTOML "${src}/Cargo.lock"
+      else
+        libb.readTOML cargolockPath;
+    cargotoml =
+      if isNull cargotomlPath then
+        libb.readTOML "${src}/Cargo.toml"
+      else
+        libb.readTOML cargotomlPath;
+  };
+
 with rec
   {
     drv = stdenv.mkDerivation
-      { inherit src doCheck nativeBuildInputs;
+      { inherit src doCheck nativeBuildInputs cargolockPath cargotomlPath;
 
         # The list of paths to Cargo.tomls. If this is a workspace, the paths
         # are the members. Otherwise, there is a single path, ".".
@@ -80,6 +96,26 @@ with rec
         configurePhase =
           ''
             runHook preConfigure
+
+            if [ -n "$cargolockPath" ]
+            then
+              echo "Setting Cargo.lock"
+              if [ -f "Cargo.lock" ]
+              then
+                echo "WARNING: replacing existing Cargo.lock"
+              fi
+              cp "$cargolockPath" Cargo.lock
+            fi
+
+            if [ -n "$cargotomlPath" ]
+            then
+              echo "Setting Cargo.toml"
+              if [ -f "Cargo.toml" ]
+              then
+                echo "WARNING: replacing existing Cargo.toml"
+              fi
+              cp "$cargotomlPath" Cargo.toml
+            fi
 
             mkdir -p target
 
@@ -173,20 +209,12 @@ with rec
     # pretty fast so this is not too bad. In the future we'll want to pre-build
     # the crates and give cargo a pre-populated ./target directory.
     # TODO: this should most likely take more than one packageName
-    mkSnapshotForest = packageName: cargolock:
+    mkSnapshotForest = packageName:
       symlinkJoin
         { name = "crates-io";
           paths = map (v: unpackCrate v.name v.version v.sha256)
             (libb.mkVersions packageName cargolock);
         };
-
-    cargolock = libb.readTOML "${src}/Cargo.lock";
-
-    #cargolockFor = name: version:
-
-
-    # The top-level Cargo.toml
-    cargotoml = libb.readTOML "${src}/Cargo.toml";
 
     # All the Cargo.tomls, including the top-level one
     cargotomls =
@@ -202,13 +230,12 @@ with rec
     crateNames = builtins.filter (pname: ! isNull pname) (
         map (ctoml: ctoml.package.name or null) cargotomls);
 
-    cargoconfig = writeText "cargo-config"
-      ''
-        [source.crates-io]
-        replace-with = 'nix-sources'
-
-        [source.nix-sources]
-        directory = '${mkSnapshotForest (lib.head crateNames) cargolock}'
-      '';
+    cargoconfig = libb.writeTOML
+      { source =
+          { crates-io = { replace-with = "nix-sources"; } ;
+            nix-sources =
+              { directory = mkSnapshotForest (lib.head crateNames) ; };
+          };
+      };
   };
 if isNull override then drv else drv.overrideAttrs override
