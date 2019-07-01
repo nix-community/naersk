@@ -118,12 +118,13 @@ with rec
 
 with rec
   { crates =
-      { lorri = buildPackageIncremental sources.lorri
+      { lorri = buildPackageIncremental (libb.readTOML "${sources.lorri}/Cargo.lock") "lorri" "0.1.0" sources.lorri
           { override = _oldAttrs:
               { BUILD_REV_COUNT = 1;
                 RUN_TIME_CLOSURE = "${sources.lorri}/nix/runtime.nix";
               };
             doCheck = false;
+            cargo = patchedCargo;
           };
 
         ripgrep-all = buildPackage sources.ripgrep-all {};
