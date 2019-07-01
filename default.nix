@@ -6,6 +6,7 @@
 #
 with rec
   { sources = import ./nix/sources.nix;
+    gitignore = _pkgs.callPackage sources.gitignore {};
     _pkgs = import sources.nixpkgs {};
   };
 
@@ -15,264 +16,109 @@ with rec
 , stdenv ? _pkgs.stdenv
 , writeText ? _pkgs.writeText
 , llvmPackages ? _pkgs.llvmPackages
+, jq ? _pkgs.jq
+, rsync ? _pkgs.rsync
 , darwin ? _pkgs.darwin
+, remarshal ? _pkgs.remarshal
 , rustPackages ?
     with sources;
     (_pkgs.callPackage rust-nightly {}).rust {inherit (rust-nightly) date; }
 }:
 
+with
+  { libb = import ./lib.nix { inherit lib writeText runCommand remarshal; }; };
+
 # Crate building
 with rec
-  { # creates an attrset from package name to package version + sha256
-    # (note: this includes the package's dependencies)
-    mkVersions = packageName: cargolock:
-      if builtins.hasAttr "metadata" cargolock then
-
-        # TODO: this should nub by <pkg-name>-<pkg-version>
-        (lib.concatMap (x:
-          with { mdk = mkMetadataKey x.name x.version; };
-          ( lib.optional (builtins.hasAttr mdk cargolock.metadata)
-              { inherit (x) version name;
-                sha256 = cargolock.metadata.${mkMetadataKey x.name x.version};
-              }
-          ) ++ (lib.concatMap (parseDependency cargolock) (x.dependencies or []))
-
-        )
-        (builtins.filter (v: v.name != packageName) cargolock.package))
-      else [];
-
-    # Turns "lib-name lib-ver (registry+...)" to [ { name = "lib-name", etc } ]
-    # iff the package is present in the Cargo.lock (otherwise returns [])
-    parseDependency = cargolock: str:
-      with rec
-        { components = lib.splitString " " str;
-          name = lib.elemAt components 0;
-          version = lib.elemAt components 1;
-          mdk = mkMetadataKey name version;
-        };
-      ( lib.optional (builtins.hasAttr mdk cargolock.metadata)
-      (
-      with
-        { sha256 = cargolock.metadata.${mkMetadataKey name version};
-        };
-      { inherit name version sha256; }
-      ));
-
-    # crafts the key used to look up the sha256 in the cargo lock; no
-    # robustness guarantee
-    mkMetadataKey = name: version:
-      "checksum ${name} ${version} (registry+https://github.com/rust-lang/crates.io-index)";
-
-    # XXX: the actual crate format is not documented but in practice is a
-    # gzipped tar; we simply unpack it and introduce a ".cargo-checksum.json"
-    # file that cargo itself uses to double check the sha256
-    unpackCrate = name: version: sha256:
-      with
-      { src = builtins.fetchurl
-          { url = "https://crates.io/api/v1/crates/${name}/${version}/download";
-            inherit sha256;
+  {
+      buildPackage = src: attrs:
+        with
+          { defaultAttrs =
+              { inherit
+                  llvmPackages
+                  jq
+                  runCommand
+                  rustPackages
+                  lib
+                  darwin
+                  writeText
+                  stdenv
+                  rsync
+                  remarshal
+                  symlinkJoin ;
+              } ;
           };
-      };
-      runCommand "unpack-${name}-${version}" {}
-      ''
-        mkdir -p $out
-        tar -xvzf ${src} -C $out
-        echo '{"package":"${sha256}","files":{}}' > $out/${name}-${version}/.cargo-checksum.json
-      '';
+        import ./build.nix src (defaultAttrs // attrs);
 
-    # creates a forest of symlinks of all the dependencies XXX: this is very
-    # basic and means that we have very little incrementality; e.g. when
-    # anything changes all the deps will be rebuilt.  The rustc compiler is
-    # pretty fast so this is not too bad. In the future we'll want to pre-build
-    # the crates and give cargo a pre-populated ./target directory.
-    # TODO: this should most likely take more than one packageName
-    mkSnapshotForest = patchCrate: packageName: cargolock:
-      symlinkJoin
-        { name = "crates-io";
-          paths =
-            map
-              (v: patchCrate v.name v (unpackCrate v.name v.version v.sha256))
-              (mkVersions packageName cargolock);
-        };
-
-    buildPackage =
-      src:
-      { cargoBuildCommands ? [ "cargo build --frozen --release" ]
-      , cargoTestCommands ? [ "cargo test --release" ]
-      , doCheck ? true
-      , patchCrate ? (_: _: x: x)
-      , name ? null
-      , rustc ? rustPackages
-      , cargo ? rustPackages
-      , override ? null
-      , buildInputs ? []
-      , nativeBuildInputs ? []
-      }:
-
-      with rec
-        {
-          readTOML = f: builtins.fromTOML (builtins.readFile f);
-          cargolock = readTOML "${src}/Cargo.lock";
-
-          # The top-level Cargo.toml
-          cargotoml = readTOML "${src}/Cargo.toml";
-
-          # All the Cargo.tomls, including the top-level one
-          cargotomls =
-            with rec
-              { workspaceMembers = cargotoml.workspace.members or [];
-              };
-
-            [cargotoml] ++ (
-              map (member: (builtins.fromTOML (builtins.readFile
-                "${src}/${member}/Cargo.toml")))
-              workspaceMembers);
-
-          crateNames = builtins.filter (pname: ! isNull pname) (
-              map (ctoml: ctoml.package.name or null) cargotomls);
-
-          # The list of potential binaries
-          # TODO: is this even worth it or shall we simply copy all the
-          # executables to bin/?
-          bins = crateNames ++
-              map (bin: bin.name) (
-              lib.concatMap (ctoml: ctoml.bin or []) cargotomls);
-
-          cargoconfig = writeText "cargo-config"
-            ''
-              [source.crates-io]
-              replace-with = 'nix-sources'
-
-              [source.nix-sources]
-              directory = '${mkSnapshotForest patchCrate (lib.head crateNames) cargolock}'
-            '';
-          drv = stdenv.mkDerivation
-            { inherit src doCheck nativeBuildInputs;
-
-              # Otherwise specifying CMake as a dep breaks the build
-              dontUseCmakeConfigure = true;
-
-              name =
-                if ! isNull name then
-                  name
-                else if lib.length crateNames == 0 then
-                  abort "No crate names"
-                else if lib.length crateNames == 1 then
-                  lib.head crateNames
-                else
-                  lib.head crateNames + "-et-al";
-              buildInputs =
-                [ cargo
-
-                  # needed for "dsymutil"
-                  llvmPackages.stdenv.cc.bintools
-
-                  # needed for "cc"
-                  llvmPackages.stdenv.cc
-
-                ] ++ (stdenv.lib.optionals stdenv.isDarwin
-                [ darwin.Security
-                  darwin.apple_sdk.frameworks.CoreServices
-                  darwin.cf-private
-                ]) ++ buildInputs;
-              LIBCLANG_PATH="${llvmPackages.libclang.lib}/lib";
-              CXX="clang++";
-              RUSTC="${rustc}/bin/rustc";
-
-              cargoBuildCommands = lib.concatStringsSep "\n" cargoBuildCommands;
-              cargoTestCommands = lib.concatStringsSep "\n" cargoTestCommands;
-              crateNames = lib.concatStringsSep "\n" crateNames;
-              bins = lib.concatStringsSep "\n" bins;
-
-              configurePhase =
-                ''
-                  runHook preConfigure
-
-                  export CARGO_HOME=''${CARGO_HOME:-$PWD/.cargo-home}
-                  mkdir -p $CARGO_HOME
-
-                  cp ${cargoconfig} $CARGO_HOME/config
-
-                  runHook postConfigure
-                '';
-
-              buildPhase =
-                ''
-                  runHook preBuild
-
-                  ## Build commands
-                  echo "$cargoBuildCommands" | \
-                    while IFS= read -r c
-                    do
-                      echo "Running cargo command: $c"
-                      $c
-                    done
-
-                  runHook postBuild
-                '';
-
-              checkPhase =
-                ''
-                  runHook preCheck
-
-                  ## test commands
-                  echo "$cargoTestCommands" | \
-                    while IFS= read -r c
-                    do
-                      echo "Running cargo (test) command: $c"
-                      $c
-                    done
-
-                  runHook postCheck
-                '';
-
-              installPhase =
-                # TODO: this should also copy <foo> for every src/bin/<foo.rs>
-                ''
-                  runHook preInstall
-                  mkdir -p $out/bin
-                  echo "$bins" | \
-                    while IFS= read -r c
-                    do
-                      echo "Installing executable: $c"
-                      cp "target/release/$c" $out/bin \
-                        || echo "No executable $c to install"
-                    done
-
-                  runHook postInstall
-                '';
-            };
+      buildPackageIncremental = cargolock: name: version: src: attrs:
+        with rec
+          { buildDependency = depName: depVersion:
+              # Really this should be 'buildPackageIncremental' but that makes
+              # Nix segfault
+              buildPackage (libb.dummySrc depName depVersion)
+                { cargoBuild = "cargo build --release -p ${depName}:${depVersion} -j $NIX_BUILD_CORES";
+                  inherit (attrs) cargo;
+                  cargotomlPath = libb.writeTOML (libb.cargotomlFor depName depVersion);
+                  cargolockPath = libb.writeTOML (
+                    libb.cargolockFor cargolock depName depVersion
+                    );
+                  doCheck = false;
+                };
           };
-      if isNull override then drv else drv.overrideAttrs override;
+        buildPackage src (attrs //
+          {
+            builtDependencies = map (x: buildDependency x.name x.version)
+              (libb.directDependencies cargolock name version) ;
+          }
+          );
+
   };
 
-# lib-like helpers
-# These come in handy when cargo manifests must be patched
 with rec
-  { # Enables the cargo feature "edition" in the cargo manifest
-    fixupEdition = name: v: src: fixupFeatures name v src ["edition"];
+  { # patched version of cargo that fixes
+    #   https://github.com/rust-lang/cargo/issues/7078
+    # which is needed for incremental builds
+    patchedCargo =
+      with rec
+        { cargoSrc = sources.cargo ;
+          cargoCargoToml = libb.readTOML "${cargoSrc}/Cargo.toml";
+          cargoCargoToml' = cargoCargoToml //
+            { dependencies = lib.filterAttrs (k: _:
+                k != "rustc-workspace-hack")
+                cargoCargoToml.dependencies;
+            };
 
-    # Generates a sed expression that enables the given features
-    fixupFeaturesSed = feats:
-      with
-        { features = ''["'' + lib.concatStringsSep ''","'' feats + ''"]'';
+          cargoCargoLock = "${sources.rust}/Cargo.lock";
         };
-      ''/\[package\]/i cargo-features = ${features}'';
+      buildPackage cargoSrc
+        { cargolockPath = cargoCargoLock;
+          cargotomlPath = libb.writeTOML cargoCargoToml';
 
-    # Patches the cargo manifest to enable the list of features
-    fixupFeatures = name: v: src: feats:
-      runCommand "fixup-editions-${name}" {}
-        ''
-          mkdir -p $out
-          cp -r --no-preserve=mode ${src}/* $out
-          sed -i '${fixupFeaturesSed feats}' \
-            $out/${name}-${v.version}/Cargo.toml
-        '';
+          # Tests fail, although cargo seems to operate normally
+          doCheck = false;
+
+          # cannot pass in --frozen because cargo fails (unsure why).
+          # Nonetheless, cargo doesn't try to hit the network, so we're fine.
+          cargoBuild = "cargo build --release -j $NIX_BUILD_CORES";
+
+          override = oldAttrs:
+            { buildInputs = oldAttrs.buildInputs ++
+                [ _pkgs.pkgconfig
+                  _pkgs.openssl
+                  _pkgs.libgit2
+                  _pkgs.libiconv
+                  _pkgs.curl
+                  _pkgs.git
+                ];
+              NIX_LDFLAGS="-F${_pkgs.darwin.apple_sdk.frameworks.CoreFoundation}/Library/Frameworks -framework CoreFoundation ";
+              LIBGIT2_SYS_USE_PKG_CONFIG = 1;
+            };
+        };
   };
 
-with
+with rec
   { crates =
-      { lorri = buildPackage sources.lorri
+      { lorri = buildPackageIncremental sources.lorri
           { override = _oldAttrs:
               { BUILD_REV_COUNT = 1;
                 RUN_TIME_CLOSURE = "${sources.lorri}/nix/runtime.nix";
@@ -283,10 +129,16 @@ with
         ripgrep-all = buildPackage sources.ripgrep-all {};
 
         rustfmt = buildPackage sources.rustfmt {};
+
+        simple-dep =
+          buildPackageIncremental (libb.readTOML ./test/simple-dep/Cargo.lock)
+            "simple-dep" "0.1.0" ./test/simple-dep
+            { cargo = patchedCargo;
+            };
       };
   };
 
-{ inherit buildPackage fixupEdition fixupFeatures fixupFeaturesSed crates;
+{ inherit buildPackage crates;
 
   test_lorri = runCommand "lorri" { buildInputs = [ crates.lorri ]; }
     "lorri --help && touch $out";
@@ -295,7 +147,7 @@ with
   test_talent-plan-2 = buildPackage "${sources.talent-plan}/rust/projects/project-2" {};
   test_talent-plan-3 = buildPackage
     "${sources.talent-plan}/rust/projects/project-3"
-    { cargoTestCommands = [] ; };
+    { doCheck = false; };
 
   # TODO: support for git deps
   #test_talent-plan-4 = buildPackage "${sources.talent-plan}/rust/projects/project-4" {};
@@ -336,16 +188,15 @@ with
         };
       buildPackage lucetGit
         { nativeBuildInputs = [ _pkgs.cmake _pkgs.python3 ] ;
-          cargoBuildCommands =
-            [ (lib.concatStringsSep " "
+          doCheck = false;
+          cargoBuild =
+            lib.concatStringsSep " "
               [ "cargo build"
                 "-p lucetc"
                 "-p lucet-runtime"
                 "-p lucet-runtime-internals"
                 "-p lucet-module-data"
-              ])
-            ];
-          cargoTestCommands = [];
+              ];
         };
 
   test_rustlings = buildPackage sources.rustlings {};
@@ -358,4 +209,10 @@ with
       cargo-fmt --help
       touch $out
     '';
+
+    #test_git-dep = buildPackage (lib.cleanSource ./test/git-dep)
+      #{ override = oldAttrs:
+          #{};
+
+      #};
 }
