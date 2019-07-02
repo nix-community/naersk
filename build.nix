@@ -5,15 +5,14 @@ src:
   cargoTest ? "cargo test --release"
 , doCheck ? true
 , name ? null
-, rustc ? rustPackages
-, cargo ? rustPackages
+, rustc
+, cargo
 , override ? null
 , buildInputs ? []
 , nativeBuildInputs ? []
 , builtDependencies ? []
 , cargolockPath ? null
 , cargotomlPath ? null
-, rustPackages
 , stdenv
 , lib
 , llvmPackages
@@ -31,16 +30,23 @@ with
   };
 
 with
+  { builtinz =
+      builtins //
+      import ./builtins.nix
+        { inherit writeText remarshal runCommand ; };
+  };
+
+with
   { cargolock =
       if isNull cargolockPath then
-        libb.readTOML "${src}/Cargo.lock"
+        builtinz.readTOML "${src}/Cargo.lock"
       else
-        libb.readTOML cargolockPath;
+        builtinz.readTOML cargolockPath;
     cargotoml =
       if isNull cargotomlPath then
-        libb.readTOML "${src}/Cargo.toml"
+        builtinz.readTOML "${src}/Cargo.toml"
       else
-        libb.readTOML cargotomlPath;
+        builtinz.readTOML cargotomlPath;
   };
 
 with rec
@@ -223,13 +229,13 @@ with rec
         };
 
       [cargotoml] ++ (
-        map (member: (libb.readTOML "${src}/${member}/Cargo.toml"))
+        map (member: (builtinz.readTOML "${src}/${member}/Cargo.toml"))
         workspaceMembers);
 
     crateNames = builtins.filter (pname: ! isNull pname) (
         map (ctoml: ctoml.package.name or null) cargotomls);
 
-    cargoconfig = libb.writeTOML
+    cargoconfig = builtinz.writeTOML
       { source =
           { crates-io = { replace-with = "nix-sources"; } ;
             nix-sources =
