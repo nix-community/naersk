@@ -223,8 +223,7 @@ with rec
         };
 
       [cargotoml] ++ (
-        map (member: (builtins.fromTOML (builtins.readFile
-          "${src}/${member}/Cargo.toml")))
+        map (member: (libb.readTOML "${src}/${member}/Cargo.toml"))
         workspaceMembers);
 
     crateNames = builtins.filter (pname: ! isNull pname) (
