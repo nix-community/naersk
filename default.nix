@@ -128,6 +128,7 @@ with rec
           };
 
         ripgrep-all = buildPackage sources.ripgrep-all {};
+        ripgrep = buildPackage sources.ripgrep {};
 
         rustfmt = buildPackage sources.rustfmt {};
 
@@ -158,15 +159,6 @@ with rec
   test_ripgrep-all = runCommand "ripgrep-all"
     { buildInputs = [ crates.ripgrep-all ]; }
     "touch $out";
-
-  # TODO: Nix error:
-  # error: while parsing a TOML string at default.nix:80:25:
-  #   Bare key 'cfg(all(target_env = "musl", target_pointer_width = "64"))'
-  #   cannot contain whitespace at line 64
-  # and this is the culprit:
-  #  https://github.com/BurntSushi/ripgrep/blob/d1389db2e39802d5e04dc7b902fd2b1f9f615b01/Cargo.toml#L64
-  # TODO: update Nix: https://github.com/NixOS/nix/pull/2902
-  #test_ripgrep = buildPackage sources.ripgrep {};
 
   # TODO: (workspace)
   # error: while parsing a TOML string at ...:115:25:
@@ -210,10 +202,4 @@ with rec
       cargo-fmt --help
       touch $out
     '';
-
-    #test_git-dep = buildPackage (lib.cleanSource ./test/git-dep)
-      #{ override = oldAttrs:
-          #{};
-
-      #};
 }
