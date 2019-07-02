@@ -155,10 +155,9 @@ with rec
   #test_talent-plan-4 = buildPackage "${sources.talent-plan}/rust/projects/project-4" {};
   #test_talent-plan-5 = buildPackage "${sources.talent-plan}/rust/projects/project-5" {};
 
-  # TODO: figure out executables from src/bin/*.rs
   test_ripgrep-all = runCommand "ripgrep-all"
     { buildInputs = [ crates.ripgrep-all ]; }
-    "touch $out";
+    "rga --help && touch $out";
 
   # TODO: (workspace)
   # error: while parsing a TOML string at ...:115:25:
