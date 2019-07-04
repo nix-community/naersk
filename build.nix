@@ -1,8 +1,8 @@
 src:
 { #| What command to run during the build phase
-  cargoBuild ?  "cargo build --frozen --release -j $NIX_BUILD_CORES"
+  cargoBuild ?  "cargo build --frozen --$CARGO_BUILD_PROFILE -j $NIX_BUILD_CORES"
 , #| What command to run during the test phase
-  cargoTest ? "cargo test --release"
+  cargoTest ? "cargo test --$CARGO_BUILD_PROFILE"
 , doCheck ? true
 , name ? null
 , rustc
@@ -13,6 +13,7 @@ src:
 , builtDependencies ? []
 , cargolockPath ? null
 , cargotomlPath ? null
+, release ? true
 , stdenv
 , lib
 , llvmPackages
@@ -54,6 +55,8 @@ with rec
     drv = stdenv.mkDerivation
       { inherit src doCheck nativeBuildInputs cargolockPath cargotomlPath;
 
+        CARGO_BUILD_PROFILE = if release then "release" else "debug";
+
         # The list of paths to Cargo.tomls. If this is a workspace, the paths
         # are the members. Otherwise, there is a single path, ".".
         cratePaths =
@@ -61,7 +64,8 @@ with rec
             { workspaceMembers = cargotoml.workspace.members or null;
             };
 
-          if isNull workspaceMembers then "." else lib.concatStringsSep "\n" workspaceMembers;
+          if isNull workspaceMembers then "."
+          else lib.concatStringsSep "\n" workspaceMembers;
 
         # Otherwise specifying CMake as a dep breaks the build
         dontUseCmakeConfigure = true;
@@ -171,18 +175,27 @@ with rec
           ''
             runHook preInstall
 
+            # cargo install defaults to "release", but it doesn't have a
+            # "--release" flag, only "--debug", so we can't just pass
+            # "--$CARGO_BUILD_PROFILE" like we do with "cargo build" and "cargo
+            # test"
+            install_arg=""
+            if "$CARGO_BUILD_PROFILE" == "debug"
+            then
+              install_arg="--debug"
+            fi
+
             mkdir -p $out/bin
-            # XXX: should have --debug if mode is "debug"
-            # TODO: figure out how to not install everything
-            for p in $cratePaths; do
-              cargo install --path $p --bins --root $out ||\
+            for p in "$cratePaths"; do
+              # XXX: we don't quote install_arg to avoid passing an empty arg
+              # to cargo
+              cargo install --path $p $install_arg --bins --root $out ||\
                 echo "WARNING: Member wasn't installed: $p"
             done
 
             mkdir -p $out/lib
 
-            # TODO: .../debug if debug
-            cp -vr target/release/deps/* $out/lib ||\
+            cp -vr target/$CARGO_BUILD_PROFILE/deps/* $out/lib ||\
               echo "WARNING: couldn't copy libs"
 
             mkdir -p $out

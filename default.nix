@@ -19,24 +19,22 @@ with
 with rec
   {
       buildPackage = src: attrs:
-        with
-          { defaultAttrs =
-              { inherit
-                  llvmPackages
-                  jq
-                  runCommand
-                  lib
-                  darwin
-                  writeText
-                  stdenv
-                  rsync
-                  remarshal
-                  symlinkJoin
-                  cargo
-                  rustc;
-              } ;
-          };
-        import ./build.nix src (defaultAttrs // attrs);
+        import ./build.nix src
+          ( { inherit
+                llvmPackages
+                jq
+                runCommand
+                lib
+                darwin
+                writeText
+                stdenv
+                rsync
+                remarshal
+                symlinkJoin
+                cargo
+                rustc;
+            } // attrs
+          );
 
 # XXX: not quite working yet
 #      buildPackageIncremental = cargolock: name: version: src: attrs:
