@@ -43,7 +43,7 @@ with rec
 #              # Really this should be 'buildPackageIncremental' but that makes
 #              # Nix segfault
 #              buildPackage (libb.dummySrc depName depVersion)
-#                { cargoBuild = "cargo build --release -p ${depName}:${depVersion} -j $NIX_BUILD_CORES";
+#                { cargoBuild = "cargo build --$CARGO_BUILD_PROFILE -p ${depName}:${depVersion} -j $NIX_BUILD_CORES";
 #                  inherit (attrs) cargo;
 #                  cargotomlPath = libb.writeTOML (libb.cargotomlFor depName depVersion);
 #                  cargolockPath = libb.writeTOML (

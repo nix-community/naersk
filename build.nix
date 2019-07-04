@@ -227,12 +227,11 @@ with rec
     # anything changes all the deps will be rebuilt.  The rustc compiler is
     # pretty fast so this is not too bad. In the future we'll want to pre-build
     # the crates and give cargo a pre-populated ./target directory.
-    # TODO: this should most likely take more than one packageName
-    mkSnapshotForest = packageName:
+    mkSnapshotForest =
       symlinkJoin
         { name = "crates-io";
           paths = map (v: unpackCrate v.name v.version v.sha256)
-            (libb.mkVersions packageName cargolock);
+            (libb.mkVersions cargolock);
         };
 
     # All the Cargo.tomls, including the top-level one
@@ -252,7 +251,7 @@ with rec
       { source =
           { crates-io = { replace-with = "nix-sources"; } ;
             nix-sources =
-              { directory = mkSnapshotForest (lib.head crateNames) ; };
+              { directory = mkSnapshotForest; };
           };
       };
   };

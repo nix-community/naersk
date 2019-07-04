@@ -3,7 +3,7 @@ rec
 {
     # creates an attrset from package name to package version + sha256
     # (note: this includes the package's dependencies)
-    mkVersions = packageName: cargolock:
+    mkVersions = cargolock:
       if builtins.hasAttr "metadata" cargolock then
 
         # TODO: this should nub by <pkg-name>-<pkg-version>
@@ -16,7 +16,7 @@ rec
           ) ++ (lib.concatMap (parseDependency cargolock) (x.dependencies or []))
 
         )
-        (builtins.filter (v: v.name != packageName) cargolock.package))
+        cargolock.package)
       else [];
 
     # Turns "lib-name lib-ver (registry+...)" to [ { name = "lib-name", etc } ]
