@@ -77,14 +77,21 @@ rec
   #   Error: Cannot parse as TOML (<string>(92, 14): msg)
   #rust = naersk.buildPackage sources.rust {};
 
-  rustlings = naersk.buildPackage sources.rustlings {};
+  rustlings = naersk.buildPackageIncremental sources.rustlings {};
 
-  simple-dep = naersk.buildPackage ./test/simple-dep {};
+  simple-dep = naersk.buildPackageIncremental
+    (pkgs.lib.cleanSource ./test/simple-dep)
+    { inherit cargo; };
 
+  # TODO: figure out why 'cargo install' rebuilds some deps
   cargo =
     with rec
       { cargoSrc = sources.cargo ;
         cargoCargoToml = builtinz.readTOML "${cargoSrc}/Cargo.toml";
+
+        # XXX: this works around some hack that breaks the build. For more info
+        # on the hack, see
+        # https://github.com/rust-lang/rust/blob/b43eb4235ac43c822d903ad26ed806f34cc1a14a/Cargo.toml#L63-L65
         cargoCargoToml' = cargoCargoToml //
           { dependencies = pkgs.lib.filterAttrs (k: _:
               k != "rustc-workspace-hack")
@@ -99,10 +106,6 @@ rec
 
         # Tests fail, although cargo seems to operate normally
         doCheck = false;
-
-        # cannot pass in --frozen because cargo fails (unsure why).
-        # Nonetheless, cargo doesn't try to hit the network, so we're fine.
-        cargoBuild = "cargo build --release -j $NIX_BUILD_CORES";
 
         override = oldAttrs:
           { buildInputs = oldAttrs.buildInputs ++

@@ -15,6 +15,7 @@
           -of json \
           -o $out
       ''));
+
     writeTOML = attrs: runCommand "write-toml"
       { buildInputs = [ remarshal ]; }
       ''
@@ -24,4 +25,7 @@
           -of toml \
           -o $out
       '';
+
+    writeJSON = name: attrs: writeText name
+      (builtins.toJSON attrs);
 }

@@ -79,7 +79,7 @@ rec
       };
 
     # A very minimal 'src' which makes cargo happy nonetheless
-    dummySrc = name: version: runCommand "dummy-${name}-${version}" {}
+    dummySrc = runCommand "dummy-src" {}
       ''
         mkdir -p $out/src
         touch $out/src/main.rs
@@ -118,4 +118,7 @@ rec
     parseDependency' = str:
       with { components = lib.splitString " " str; };
       { name = lib.elemAt components 0; version = lib.elemAt components 1; };
+
+    allRemoteDependencies = cargolock:
+        [];
 }

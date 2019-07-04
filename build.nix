@@ -1,10 +1,10 @@
 src:
 { #| What command to run during the build phase
-  cargoBuild ?  "cargo build --frozen --$CARGO_BUILD_PROFILE -j $NIX_BUILD_CORES"
+  cargoBuild ?  "cargo build --$CARGO_BUILD_PROFILE -j $NIX_BUILD_CORES"
 , #| What command to run during the test phase
   cargoTest ? "cargo test --$CARGO_BUILD_PROFILE"
 , doCheck ? true
-, name ? null
+, name
 , rustc
 , cargo
 , override ? null
@@ -24,11 +24,9 @@ src:
 , symlinkJoin
 , runCommand
 , remarshal
+, crateDependencies
+, cratePaths
 }:
-
-with
-  { libb = import ./lib.nix { inherit lib writeText runCommand remarshal; };
-  };
 
 with
   { builtinz =
@@ -37,48 +35,22 @@ with
         { inherit writeText remarshal runCommand ; };
   };
 
-with
-  { cargolock =
-      if isNull cargolockPath then
-        builtinz.readTOML "${src}/Cargo.lock"
-      else
-        builtinz.readTOML cargolockPath;
-    cargotoml =
-      if isNull cargotomlPath then
-        builtinz.readTOML "${src}/Cargo.toml"
-      else
-        builtinz.readTOML cargotomlPath;
-  };
-
 with rec
   {
     drv = stdenv.mkDerivation
-      { inherit src doCheck nativeBuildInputs cargolockPath cargotomlPath;
+      { inherit
+          src
+          doCheck
+          nativeBuildInputs
+          cargolockPath
+          cargotomlPath
+          cratePaths
+          name;
 
         CARGO_BUILD_PROFILE = if release then "release" else "debug";
 
-        # The list of paths to Cargo.tomls. If this is a workspace, the paths
-        # are the members. Otherwise, there is a single path, ".".
-        cratePaths =
-          with rec
-            { workspaceMembers = cargotoml.workspace.members or null;
-            };
-
-          if isNull workspaceMembers then "."
-          else lib.concatStringsSep "\n" workspaceMembers;
-
         # Otherwise specifying CMake as a dep breaks the build
         dontUseCmakeConfigure = true;
-
-        name =
-          if ! isNull name then
-            name
-          else if lib.length crateNames == 0 then
-            abort "No crate names"
-          else if lib.length crateNames == 1 then
-            lib.head crateNames
-          else
-            lib.head crateNames + "-et-al";
 
         buildInputs =
           [ cargo
@@ -89,9 +61,8 @@ with rec
             # needed for "cc"
             llvmPackages.stdenv.cc
 
-            # needed for "cc"
+            # needed at various steps in the build
             jq
-
             rsync
           ] ++ (stdenv.lib.optionals stdenv.isDarwin
           [ darwin.Security
@@ -129,7 +100,7 @@ with rec
 
             mkdir -p target
 
-            cat ${writeText "deps" (builtins.toJSON builtDependencies)} |\
+            cat ${builtinz.writeJSON "deps" builtDependencies} |\
               jq -r '.[]' |\
               while IFS= read -r dep
               do
@@ -180,7 +151,7 @@ with rec
             # "--$CARGO_BUILD_PROFILE" like we do with "cargo build" and "cargo
             # test"
             install_arg=""
-            if "$CARGO_BUILD_PROFILE" == "debug"
+            if [ "$CARGO_BUILD_PROFILE" == "debug" ]
             then
               install_arg="--debug"
             fi
@@ -189,7 +160,11 @@ with rec
             for p in "$cratePaths"; do
               # XXX: we don't quote install_arg to avoid passing an empty arg
               # to cargo
-              cargo install --path $p $install_arg --bins --root $out ||\
+              cargo install \
+                --path $p \
+                $install_arg \
+                --bins \
+                --root $out ||\
                 echo "WARNING: Member wasn't installed: $p"
             done
 
@@ -222,36 +197,16 @@ with rec
         echo '{"package":"${sha256}","files":{}}' > $out/${name}-${version}/.cargo-checksum.json
       '';
 
-    # creates a forest of symlinks of all the dependencies XXX: this is very
-    # basic and means that we have very little incrementality; e.g. when
-    # anything changes all the deps will be rebuilt.  The rustc compiler is
-    # pretty fast so this is not too bad. In the future we'll want to pre-build
-    # the crates and give cargo a pre-populated ./target directory.
-    mkSnapshotForest =
-      symlinkJoin
-        { name = "crates-io";
-          paths = map (v: unpackCrate v.name v.version v.sha256)
-            (libb.mkVersions cargolock);
-        };
-
-    # All the Cargo.tomls, including the top-level one
-    cargotomls =
-      with rec
-        { workspaceMembers = cargotoml.workspace.members or [];
-        };
-
-      [cargotoml] ++ (
-        map (member: (builtinz.readTOML "${src}/${member}/Cargo.toml"))
-        workspaceMembers);
-
-    crateNames = builtins.filter (pname: ! isNull pname) (
-        map (ctoml: ctoml.package.name or null) cargotomls);
-
     cargoconfig = builtinz.writeTOML
       { source =
           { crates-io = { replace-with = "nix-sources"; } ;
             nix-sources =
-              { directory = mkSnapshotForest; };
+              { directory = symlinkJoin
+                  { name = "crates-io";
+                    paths = map (v: unpackCrate v.name v.version v.sha256)
+                      crateDependencies;
+                  };
+              };
           };
       };
   };
