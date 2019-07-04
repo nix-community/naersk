@@ -60,9 +60,10 @@ rec
       fetchSubmodules = true;
       sha256 = "1vwz7gijq4pcs2dvaazmzcdyb8d64y5qss6s4j2wwigsgqmpfdvs";
     } ;
-  lucet = naersk.buildPackage lucetSrc
+  lucet = naersk.buildPackageIncremental lucetSrc
     { nativeBuildInputs = [ pkgs.cmake pkgs.python3 ] ;
       doCheck = false;
+      inherit cargo;
       cargoBuild =
         pkgs.lib.concatStringsSep " "
           [ "cargo build"
@@ -70,6 +71,8 @@ rec
             "-p lucet-runtime"
             "-p lucet-runtime-internals"
             "-p lucet-module-data"
+            "--$CARGO_BUILD_PROFILE"
+            "-j $NIX_BUILD_CORES"
           ];
     };
 
@@ -77,7 +80,8 @@ rec
   #   Error: Cannot parse as TOML (<string>(92, 14): msg)
   #rust = naersk.buildPackage sources.rust {};
 
-  rustlings = naersk.buildPackageIncremental sources.rustlings {};
+  rustlings = naersk.buildPackageIncremental sources.rustlings
+    { inherit cargo; };
 
   simple-dep = naersk.buildPackageIncremental
     (pkgs.lib.cleanSource ./test/simple-dep)
