@@ -174,7 +174,7 @@ with rec
             mkdir -p $out/bin
             # XXX: should have --debug if mode is "debug"
             # TODO: figure out how to not install everything
-            for p in "$cratePaths"; do
+            for p in $cratePaths; do
               cargo install --path $p --bins --root $out ||\
                 echo "WARNING: Member wasn't installed: $p"
             done
