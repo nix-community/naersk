@@ -1,10 +1,11 @@
 src:
 { #| What command to run during the build phase
-  cargoBuild ?  "cargo build --$CARGO_BUILD_PROFILE -j $NIX_BUILD_CORES"
+  cargoBuild
 , #| What command to run during the test phase
   cargoTest ? "cargo test --$CARGO_BUILD_PROFILE"
 , doCheck ? true
 , name
+, version
 , rustc
 , cargo
 , override ? null
@@ -45,7 +46,8 @@ with rec
           cargolockPath
           cargotomlPath
           cratePaths
-          name;
+          name
+          version;
 
         CARGO_BUILD_PROFILE = if release then "release" else "debug";
 
@@ -105,7 +107,12 @@ with rec
               while IFS= read -r dep
               do
                 echo pre-installing dep $dep
-                rsync -rl --executability $dep/target/ target
+                rsync -rl \
+                  --no-perms \
+                  --no-owner \
+                  --no-group \
+                  --chmod=+w \
+                  --executability $dep/target/ target
                 chmod +w -R target
               done
 
@@ -125,7 +132,7 @@ with rec
             runHook preBuild
 
             echo "Running build command:"
-            echo '  ${cargoBuild}'
+            echo "  ${cargoBuild}"
             ${cargoBuild}
 
             runHook postBuild
@@ -136,7 +143,7 @@ with rec
             runHook preCheck
 
             echo "Running test command:"
-            echo '  ${cargoTest}'
+            echo "  ${cargoTest}"
             ${cargoTest}
 
             runHook postCheck
@@ -157,7 +164,7 @@ with rec
             fi
 
             mkdir -p $out/bin
-            for p in "$cratePaths"; do
+            for p in $cratePaths; do
               # XXX: we don't quote install_arg to avoid passing an empty arg
               # to cargo
               cargo install \

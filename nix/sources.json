@@ -155,6 +155,18 @@
         "url": "https://github.com/rust-lang/rustlings/archive/b8d59d699bed76b6be95d1ed41881d00d4b0d533.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
+    "servo": {
+        "branch": "master",
+        "description": "The Servo Browser Engine",
+        "homepage": "https://servo.org/",
+        "owner": "servo",
+        "repo": "servo",
+        "rev": "a2b76b0169bbc7691fe2dc173ce7948ee1aca876",
+        "sha256": "0a9p5hd8aq07ygdgjmhlmy7xajaz6ahnj38c2xipbhzyp6wfmd4y",
+        "type": "tarball",
+        "url": "https://github.com/servo/servo/archive/a2b76b0169bbc7691fe2dc173ce7948ee1aca876.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    },
     "talent-plan": {
         "branch": "master",
         "description": "PingCAP training courses",

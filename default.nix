@@ -63,9 +63,13 @@ with rec
               [rootCargotoml]
             else
               with { members = rootCargotoml.workspace.members or []; };
-              map
+              lib.filter (cargotoml:
+                if builtins.hasAttr "targets" attrs then
+                  lib.elem cargotoml.package.name attrs.targets
+                else true
+              ) ( map
                 (member: (builtinz.readTOML "${src}/${member}/Cargo.toml"))
-                members;
+                members );
 
           # The list of paths to Cargo.tomls. If this is a workspace, the paths
           # are the members. Otherwise, there is a single path, ".".
@@ -77,15 +81,28 @@ with rec
             if isNull workspaceMembers then "."
             else lib.concatStringsSep "\n" workspaceMembers;
           crateDependencies = libb.mkVersions cargolock;
+          targetInstructions =
+            if builtins.hasAttr "targets" attrs then
+              lib.concatMapStringsSep " " (target: "-p ${target}") attrs.targets
+            else "";
+          cargoBuild = attrs.cargoBuild or
+            "cargo build ${targetInstructions} --$CARGO_BUILD_PROFILE -j $NIX_BUILD_CORES";
         };
       buildPackage = src: attrs:
         with (commonAttrs src attrs);
         import ./build.nix src
           ( defaultBuildAttrs //
-            { name = "foo";  # TODO: infer from toml
-              inherit cratePaths crateDependencies;
+            { name =
+                if lib.length cargotomls == 0 then
+                  abort "Found no cargotomls"
+                else if lib.length cargotomls == 1 then
+                  (lib.head cargotomls).package.name
+                else
+                  "${(lib.head cargotomls).package.name}-and-others";
+              version = (lib.head cargotomls).package.version;
+              inherit cratePaths crateDependencies cargoBuild;
             } //
-            attrs
+            (removeAttrs attrs [ "targets"])
           );
 
       buildPackageIncremental = src: attrs:
@@ -95,70 +112,72 @@ with rec
           # All dependencies are not available in every member.
           # Also, if a dependency is shared between two cargotomls, there's
           # (most of the time) no point recompiling it
-          { buildDepsScript = cargotoml: writeText "prebuild-script"
+          { buildDepsScript = writeText "prebuild-script"
               ''
-                cat ${builtinz.writeJSON "crates" ((directDependencies cargotoml))} |\
+                cat ${builtinz.writeJSON "crates" ((directDependenciesList))} |\
                   jq -r \
                     --arg cbp $CARGO_BUILD_PROFILE \
                     --arg nbc $NIX_BUILD_CORES \
                     '.[] | "cargo build --\($cbp) -j \($nbc) -p \(.name):\(.version)"' |\
                     while IFS= read -r c
                     do
-                      echo "Running build command $c"
-                      cat Cargo.toml
+                      echo "Running build command '$c'"
                       $c || echo "WARNING: one some dependencies failed to build: $c"
                     done
               '';
             isMember = name:
               lib.elem name (map (ctoml: ctoml.package.name) cargotomls);
-            directDependencies = cargotoml: lib.filter
-              (v:
-                (builtins.hasAttr "dependencies" cargotoml &&
-                  lib.elem v.name (builtins.attrNames cargotoml.dependencies) &&
-                  ! isMember v.name
-                ) ||
-                (builtins.hasAttr "dev-dependencies" cargotoml &&
-                  lib.elem v.name (builtins.attrNames cargotoml.dev-dependencies) &&
-                  ! isMember v.name
-                )
-              )
-              (libb.mkVersions cargolock);
+
+            isLocal = v:
+              ! builtins.hasAttr "path" v;
+
+            versions =
+              lib.listToAttrs (
+              map (v: { name = v.name; value = v.version; })
+                crateDependencies);
+
+            directDependenciesList =
+              lib.filter (c:
+                builtins.hasAttr c.name directDependencies) crateDependencies;
+
+            directDependencies =
+              lib.filterAttrs (_: v:
+                lib.isString v ||
+                (! builtins.hasAttr "path" v)
+                ) (
+              lib.foldr (x: y: x // y) {}
+              (map (cargotoml:
+                (lib.optionalAttrs (builtins.hasAttr "dependencies" cargotoml)
+                  cargotoml.dependencies) //
+                (lib.optionalAttrs (builtins.hasAttr "dev-dependencies" cargotoml)
+                  cargotoml.dev-dependencies)
+                ) cargotomls
+              ));
           };
         buildPackage src
-          (attrs //
-          { builtDependencies = map (cargotoml:
+          ((attrs) //
+          { builtDependencies =
+              [(
               buildPackage libb.dummySrc
                 (attrs //
-                { cargoBuild = "source ${buildDepsScript cargotoml}";
+                { cargoBuild = "source ${buildDepsScript}";
                   doCheck = false;
                   cargolockPath = builtinz.writeTOML cargolock;
                   cargotomlPath = builtinz.writeTOML
                     (
                     { package = { name = "dummy"; version = "0.0.0"; }; } //
-                      (
-                      #lib.filterAttrs (k: v: ! isMember k) (
-                      (lib.optionalAttrs
-                        (builtins.hasAttr "dependencies" cargotoml)
-                          { dependencies = lib.filterAttrs
-                              (k: _: ! isMember k)
-                              cargotoml.dependencies;
-                          }
-                      )) //
-                      (
-                      #lib.filterAttrs (k: v: ! isMember k) (
-                      (lib.optionalAttrs
-                        (builtins.hasAttr "dev-dependencies" cargotoml)
-                          { dev-dependencies = lib.filterAttrs
-                              (k: _: ! isMember k)
-                              cargotoml.dev-dependencies;
-                          }
-                          #{ inherit (cargotoml) dev-dependencies; }
-                      ))
+                        { dependencies = directDependencies; }
                     )
                     ;
-                  name = "${cargotoml.package.name}-deps";
+                name =
+                if lib.length cargotomls == 0 then
+                  abort "Found no cargotomls"
+                else if lib.length cargotomls == 1 then
+                  "${(lib.head cargotomls).package.name}-deps"
+                else
+                  "${(lib.head cargotomls).package.name}-and-others-deps";
                 })
-              ) cargotomls;
+              )];
           });
   };
 

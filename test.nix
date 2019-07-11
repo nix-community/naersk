@@ -34,12 +34,13 @@ rec
     { buildInputs = [ ripgrep-all ]; }
     "rga --help && touch $out";
 
-  lorri = naersk.buildPackage sources.lorri
+  lorri = naersk.buildPackageIncremental sources.lorri
     { override = _oldAttrs:
         { BUILD_REV_COUNT = 1;
           RUN_TIME_CLOSURE = "${sources.lorri}/nix/runtime.nix";
         };
       doCheck = false;
+      inherit cargo;
     };
   lorri_test = pkgs.runCommand "lorri-test" { buildInputs = [ lorri ]; }
     "lorri --help && touch $out";
@@ -64,28 +65,35 @@ rec
     { nativeBuildInputs = [ pkgs.cmake pkgs.python3 ] ;
       doCheck = false;
       inherit cargo;
-      cargoBuild =
-        pkgs.lib.concatStringsSep " "
-          [ "cargo build"
-            "-p lucetc"
-            "-p lucet-runtime"
-            "-p lucet-runtime-internals"
-            "-p lucet-module-data"
-            "--$CARGO_BUILD_PROFILE"
-            "-j $NIX_BUILD_CORES"
-          ];
+      targets =
+        [ "lucetc"
+          "lucet-runtime"
+          "lucet-runtime-internals"
+          "lucet-module-data"
+        ];
     };
 
   # error in readTOML (remarshal):
   #   Error: Cannot parse as TOML (<string>(92, 14): msg)
   #rust = naersk.buildPackage sources.rust {};
 
-  rustlings = naersk.buildPackageIncremental sources.rustlings
-    { inherit cargo; };
+  rustlingsInc = naersk.buildPackageIncremental sources.rustlings
+    { inherit cargo; doCheck = false; };
+
+  rustlings = naersk.buildPackage sources.rustlings {};
 
   simple-dep = naersk.buildPackageIncremental
     (pkgs.lib.cleanSource ./test/simple-dep)
     { inherit cargo; };
+
+  workspace = naersk.buildPackageIncremental
+    (pkgs.lib.cleanSource ./test/workspace)
+    { inherit cargo; };
+
+  # Fails with some remarshal error
+  #servo = naersk.buildPackageIncremental
+    #sources.servo
+    #{ inherit cargo; };
 
   # TODO: figure out why 'cargo install' rebuilds some deps
   cargo =
