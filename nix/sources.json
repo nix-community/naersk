@@ -5,10 +5,10 @@
         "homepage": "https://doc.rust-lang.org/cargo",
         "owner": "nmattia",
         "repo": "cargo",
-        "rev": "87d48b01ed21b0c90ce081273cd7a0eb70673342",
-        "sha256": "1v68v40px7p7w6wmbvls6x3my3jyvl5m22ll9bz3vfwwdv5r4fcq",
+        "rev": "979904e092b39bb6aafe62a3ff3d994d3d8b6247",
+        "sha256": "078hhwii2qhdsm179xl249p0c2445yiyl5dv48kvx2372mc0g2gd",
         "type": "tarball",
-        "url": "https://github.com/nmattia/cargo/archive/87d48b01ed21b0c90ce081273cd7a0eb70673342.tar.gz",
+        "url": "https://github.com/nmattia/cargo/archive/979904e092b39bb6aafe62a3ff3d994d3d8b6247.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "lorri": {
@@ -153,6 +153,18 @@
         "sha256": "1rqn9rbgxs8vxqm4y29kvrgri22cgkb7jczwx19f9vlfphj7lkvm",
         "type": "tarball",
         "url": "https://github.com/rust-lang/rustlings/archive/b8d59d699bed76b6be95d1ed41881d00d4b0d533.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    },
+    "servo": {
+        "branch": "master",
+        "description": "The Servo Browser Engine",
+        "homepage": "https://servo.org/",
+        "owner": "servo",
+        "repo": "servo",
+        "rev": "a2b76b0169bbc7691fe2dc173ce7948ee1aca876",
+        "sha256": "0a9p5hd8aq07ygdgjmhlmy7xajaz6ahnj38c2xipbhzyp6wfmd4y",
+        "type": "tarball",
+        "url": "https://github.com/servo/servo/archive/a2b76b0169bbc7691fe2dc173ce7948ee1aca876.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "talent-plan": {

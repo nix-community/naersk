@@ -34,12 +34,13 @@ rec
     { buildInputs = [ ripgrep-all ]; }
     "rga --help && touch $out";
 
-  lorri = naersk.buildPackage sources.lorri
+  lorri = naersk.buildPackageIncremental sources.lorri
     { override = _oldAttrs:
         { BUILD_REV_COUNT = 1;
           RUN_TIME_CLOSURE = "${sources.lorri}/nix/runtime.nix";
         };
       doCheck = false;
+      inherit cargo;
     };
   lorri_test = pkgs.runCommand "lorri-test" { buildInputs = [ lorri ]; }
     "lorri --help && touch $out";
@@ -60,31 +61,49 @@ rec
       fetchSubmodules = true;
       sha256 = "1vwz7gijq4pcs2dvaazmzcdyb8d64y5qss6s4j2wwigsgqmpfdvs";
     } ;
-  lucet = naersk.buildPackage lucetSrc
+  lucet = naersk.buildPackageIncremental lucetSrc
     { nativeBuildInputs = [ pkgs.cmake pkgs.python3 ] ;
       doCheck = false;
-      cargoBuild =
-        pkgs.lib.concatStringsSep " "
-          [ "cargo build"
-            "-p lucetc"
-            "-p lucet-runtime"
-            "-p lucet-runtime-internals"
-            "-p lucet-module-data"
-          ];
+      inherit cargo;
+      targets =
+        [ "lucetc"
+          "lucet-runtime"
+          "lucet-runtime-internals"
+          "lucet-module-data"
+        ];
     };
 
   # error in readTOML (remarshal):
   #   Error: Cannot parse as TOML (<string>(92, 14): msg)
   #rust = naersk.buildPackage sources.rust {};
 
+  rustlingsInc = naersk.buildPackageIncremental sources.rustlings
+    { inherit cargo; doCheck = false; };
+
   rustlings = naersk.buildPackage sources.rustlings {};
 
-  simple-dep = naersk.buildPackage ./test/simple-dep {};
+  simple-dep = naersk.buildPackageIncremental
+    (pkgs.lib.cleanSource ./test/simple-dep)
+    { inherit cargo; };
 
+  workspace = naersk.buildPackageIncremental
+    (pkgs.lib.cleanSource ./test/workspace)
+    { inherit cargo; };
+
+  # Fails with some remarshal error
+  #servo = naersk.buildPackageIncremental
+    #sources.servo
+    #{ inherit cargo; };
+
+  # TODO: figure out why 'cargo install' rebuilds some deps
   cargo =
     with rec
       { cargoSrc = sources.cargo ;
         cargoCargoToml = builtinz.readTOML "${cargoSrc}/Cargo.toml";
+
+        # XXX: this works around some hack that breaks the build. For more info
+        # on the hack, see
+        # https://github.com/rust-lang/rust/blob/b43eb4235ac43c822d903ad26ed806f34cc1a14a/Cargo.toml#L63-L65
         cargoCargoToml' = cargoCargoToml //
           { dependencies = pkgs.lib.filterAttrs (k: _:
               k != "rustc-workspace-hack")
@@ -99,10 +118,6 @@ rec
 
         # Tests fail, although cargo seems to operate normally
         doCheck = false;
-
-        # cannot pass in --frozen because cargo fails (unsure why).
-        # Nonetheless, cargo doesn't try to hit the network, so we're fine.
-        cargoBuild = "cargo build --release -j $NIX_BUILD_CORES";
 
         override = oldAttrs:
           { buildInputs = oldAttrs.buildInputs ++
