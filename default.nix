@@ -162,6 +162,7 @@ with rec
                 (attrs //
                 { cargoBuild = "source ${buildDepsScript}";
                   doCheck = false;
+                  doDoc = false;
                   cargolockPath = builtinz.writeTOML cargolock;
                   cargotomlPath = builtinz.writeTOML
                     (
