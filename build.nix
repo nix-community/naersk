@@ -3,7 +3,10 @@ src:
   cargoBuild
 , #| What command to run during the test phase
   cargoTest ? "cargo test --$CARGO_BUILD_PROFILE"
+, #| What command to run during the optional doc phase
+  cargoDoc ? "cargo doc --offline"
 , doCheck ? true
+, doDoc ? true
 , name
 , version
 , rustc
@@ -48,6 +51,9 @@ with rec
           cratePaths
           name
           version;
+
+        outputs = [ "out" ] ++ lib.optional doDoc "doc";
+        preInstallPhases = lib.optional doDoc [ "docPhase" ];
 
         CARGO_BUILD_PROFILE = if release then "release" else "debug";
 
@@ -149,6 +155,17 @@ with rec
             runHook postCheck
           '';
 
+
+        docPhase = lib.optionalString doDoc ''
+          runHook preDoc
+
+          echo "Running doc command:"
+          echo "  ${cargoDoc}"
+          ${cargoDoc}
+
+          runHook postDoc
+        '';
+
         installPhase =
           ''
             runHook preInstall
@@ -182,6 +199,10 @@ with rec
 
             mkdir -p $out
             cp -r target $out
+
+            ${lib.optionalString doDoc ''
+            mv $out/target/doc $doc
+            ''}
 
             runHook postInstall
           '';
