@@ -88,7 +88,7 @@ rec
 
   workspace = naersk.buildPackageIncremental
     (pkgs.lib.cleanSource ./test/workspace)
-    { inherit cargo; };
+    { inherit cargo; doDoc = false; };
 
   # Fails with some remarshal error
   #servo = naersk.buildPackageIncremental
