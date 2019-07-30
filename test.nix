@@ -34,13 +34,12 @@ rec
     { buildInputs = [ ripgrep-all ]; }
     "rga --help && touch $out";
 
-  lorri = naersk.buildPackageIncremental sources.lorri
+  lorri = naersk.buildPackage sources.lorri
     { override = _oldAttrs:
         { BUILD_REV_COUNT = 1;
           RUN_TIME_CLOSURE = "${sources.lorri}/nix/runtime.nix";
         };
       doCheck = false;
-      inherit cargo;
     };
   lorri_test = pkgs.runCommand "lorri-test" { buildInputs = [ lorri ]; }
     "lorri --help && touch $out";
@@ -61,10 +60,10 @@ rec
       fetchSubmodules = true;
       sha256 = "1vwz7gijq4pcs2dvaazmzcdyb8d64y5qss6s4j2wwigsgqmpfdvs";
     } ;
-  lucet = naersk.buildPackageIncremental lucetSrc
+  lucet = naersk.buildPackage lucetSrc
     { nativeBuildInputs = [ pkgs.cmake pkgs.python3 ] ;
+      doDoc = false;
       doCheck = false;
-      inherit cargo;
       targets =
         [ "lucetc"
           "lucet-runtime"
@@ -77,28 +76,28 @@ rec
   #   Error: Cannot parse as TOML (<string>(92, 14): msg)
   #rust = naersk.buildPackage sources.rust {};
 
-  rustlingsInc = naersk.buildPackageIncremental sources.rustlings
-    { inherit cargo; doCheck = false; };
+  rustlingsInc = naersk.buildPackage sources.rustlings
+    { doCheck = false; };
 
   rustlings = naersk.buildPackage sources.rustlings {};
 
-  simple-dep = naersk.buildPackageIncremental
+  simple-dep = naersk.buildPackage
     (pkgs.lib.cleanSource ./test/simple-dep)
-    { inherit cargo; };
+    {};
 
-  workspace = naersk.buildPackageIncremental
+  workspace = naersk.buildPackage
     (pkgs.lib.cleanSource ./test/workspace)
-    { inherit cargo; doDoc = false; };
+    { doDoc = false; };
 
   # Fails with some remarshal error
-  #servo = naersk.buildPackageIncremental
+  #servo = naersk.buildPackage
     #sources.servo
     #{ inherit cargo; };
 
   # TODO: figure out why 'cargo install' rebuilds some deps
   cargo =
     with rec
-      { cargoSrc = sources.cargo ;
+      { cargoSrc = sources.cargo;
         cargoCargoToml = builtinz.readTOML "${cargoSrc}/Cargo.toml";
 
         # XXX: this works around some hack that breaks the build. For more info

@@ -37,7 +37,7 @@ with
   { builtinz =
       builtins //
       import ./builtins.nix
-        { inherit writeText remarshal runCommand ; };
+        { inherit lib writeText remarshal runCommand ; };
   };
 
 # Crate building
@@ -88,7 +88,7 @@ with rec
           cargoBuild = attrs.cargoBuild or
             "cargo build ${targetInstructions} --$CARGO_BUILD_PROFILE -j $NIX_BUILD_CORES";
         };
-      buildPackage = src: attrs:
+      buildPackageSingleStep = src: attrs:
         with (commonAttrs src attrs);
         import ./build.nix src
           ( defaultBuildAttrs //
@@ -154,15 +154,15 @@ with rec
                 ) cargotomls
               ));
           };
-        buildPackage src
+        buildPackageSingleStep src
           ((attrs) //
           { builtDependencies =
               [(
-              buildPackage libb.dummySrc
+              buildPackageSingleStep (libb.dummySrc src)
                 (attrs //
                 { cargoBuild = "source ${buildDepsScript}";
                   doCheck = false;
-                  doDoc = false;
+                  copyBuildArtifacts = true;
                   cargolockPath = builtinz.writeTOML cargolock;
                   cargotomlPath = builtinz.writeTOML
                     (
@@ -182,5 +182,6 @@ with rec
           });
   };
 
-{ inherit buildPackage buildPackageIncremental crates;
+{ inherit buildPackageSingleStep buildPackageIncremental crates;
+  buildPackage = buildPackageIncremental;
 }

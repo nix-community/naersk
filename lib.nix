@@ -1,4 +1,10 @@
 { lib, writeText, runCommand, remarshal }:
+with
+  { builtinz =
+      builtins //
+      import ./builtins.nix
+        { inherit lib writeText remarshal runCommand ; };
+  };
 rec
 {
     # creates an attrset from package name to package version + sha256
@@ -64,9 +70,6 @@ rec
             cargolock.metadata;
         };
 
-    #depsFor = cargolock: name: version:
-      #if builtins.hasAttr "dependencies"
-
     # A stripped down Cargo.toml, similar to cargolockFor
     cargotomlFor = name: version:
       { package =
@@ -79,8 +82,18 @@ rec
       };
 
     # A very minimal 'src' which makes cargo happy nonetheless
-    dummySrc = runCommand "dummy-src" {}
+    dummySrc = src:
+      let
+        configContent =
+          if builtinz.pathExists "${src}/.cargo/config"
+          then builtins.readFile "${src}/.cargo/config" else "";
+        config = writeText "config" configContent;
+      in
+      runCommand "dummy-src" {}
       ''
+        mkdir -p $out/.cargo
+        cp -r ${config} $out/.cargo/config
+
         mkdir -p $out/src
         touch $out/src/main.rs
       '';

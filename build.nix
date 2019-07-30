@@ -5,6 +5,8 @@ src:
   cargoTest ? "cargo test --$CARGO_BUILD_PROFILE"
 , #| What command to run during the optional doc phase
   cargoDoc ? "cargo doc --offline"
+  #| Whether or not to forward build artifacts to $out
+, copyBuildArtifacts ? false
 , doCheck ? true
 , doDoc ? true
 , name
@@ -36,7 +38,7 @@ with
   { builtinz =
       builtins //
       import ./builtins.nix
-        { inherit writeText remarshal runCommand ; };
+        { inherit lib writeText remarshal runCommand ; };
   };
 
 with rec
@@ -108,7 +110,7 @@ with rec
 
             mkdir -p target
 
-            cat ${builtinz.writeJSON "deps" builtDependencies} |\
+            cat ${builtinz.writeJSON "dependencies-json" builtDependencies} |\
               jq -r '.[]' |\
               while IFS= read -r dep
               do
@@ -192,16 +194,17 @@ with rec
                 echo "WARNING: Member wasn't installed: $p"
             done
 
+            mkdir -p $out
             mkdir -p $out/lib
 
+            ${lib.optionalString copyBuildArtifacts ''
             cp -vr target/$CARGO_BUILD_PROFILE/deps/* $out/lib ||\
               echo "WARNING: couldn't copy libs"
-
-            mkdir -p $out
             cp -r target $out
+            ''}
 
             ${lib.optionalString doDoc ''
-            mv $out/target/doc $doc
+            cp -r target/doc $doc
             ''}
 
             runHook postInstall
