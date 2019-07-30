@@ -7,7 +7,10 @@
     # can then be replaced with:
     #   readTOML = f: builtins.fromTOML (builtins.readFile f);
     readTOML = f: builtins.fromJSON (builtins.readFile (runCommand "read-toml"
-      { buildInputs = [ remarshal ]; }
+      { buildInputs = [ remarshal ];
+        allowSubstitutes = false;
+        preferLocalBuild = true;
+      }
       ''
         remarshal \
           -if toml \
@@ -17,7 +20,10 @@
       ''));
 
     writeTOML = attrs: runCommand "write-toml"
-      { buildInputs = [ remarshal ]; }
+      { buildInputs = [ remarshal ];
+        allowSubstitutes = false;
+        preferLocalBuild = true;
+      }
       ''
         remarshal \
           -if json \
