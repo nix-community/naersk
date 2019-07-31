@@ -17,8 +17,8 @@ src:
 , buildInputs ? []
 , nativeBuildInputs ? []
 , builtDependencies ? []
-, cargolockPath ? null
-, cargotomlPath ? null
+, cargolock ? null
+, cargotoml ? null
 , release ? true
 , stdenv
 , lib
@@ -43,13 +43,11 @@ with
 
 with rec
   {
-    drv = stdenv.mkDerivation
+    drv = stdenv.mkDerivation (
       { inherit
           src
           doCheck
           nativeBuildInputs
-          cargolockPath
-          cargotomlPath
           cratePaths
           name
           version;
@@ -88,24 +86,24 @@ with rec
           ''
             runHook preConfigure
 
-            if [ -n "$cargolockPath" ]
+            if [ -n "$cargolock" ]
             then
               echo "Setting Cargo.lock"
               if [ -f "Cargo.lock" ]
               then
                 echo "WARNING: replacing existing Cargo.lock"
               fi
-              cp --no-preserve mode "$cargolockPath" Cargo.lock
+              echo "$cargolock" > Cargo.lock
             fi
 
-            if [ -n "$cargotomlPath" ]
+            if [ -n "$cargotoml" ]
             then
               echo "Setting Cargo.toml"
               if [ -f "Cargo.toml" ]
               then
                 echo "WARNING: replacing existing Cargo.toml"
               fi
-              cp "$cargotomlPath" Cargo.toml
+              echo "$cargotoml" > Cargo.toml
             fi
 
             mkdir -p target
@@ -209,7 +207,13 @@ with rec
 
             runHook postInstall
           '';
-      };
+      } //
+      lib.optionalAttrs (! isNull cargolock )
+        { cargolock = builtinz.toTOML cargolock; } //
+      lib.optionalAttrs (! isNull cargotoml )
+        { cargotoml = builtinz.toTOML cargotoml; }
+      )
+      ;
 
     # XXX: the actual crate format is not documented but in practice is a
     # gzipped tar; we simply unpack it and introduce a ".cargo-checksum.json"

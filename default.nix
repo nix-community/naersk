@@ -45,18 +45,16 @@ with rec
   {
       commonAttrs = src: attrs: rec
         { usePureFromTOML = attrs.usePureFromTOML or true;
-          cargolockPath = attrs.cargolockPath or null;
-          cargotomlPath = attrs.cargotomlPath or null;
-          cargolock =
-            if isNull cargolockPath then
+          cargolock = attrs.cargolock or null;
+          cargotoml = attrs.cargotoml or null;
+          cargolock' =
+            if isNull cargolock then
               builtinz.readTOML usePureFromTOML "${src}/Cargo.lock"
-            else
-              builtinz.readTOML usePureFromTOML cargolockPath;
+            else cargolock;
           rootCargotoml =
-            if isNull cargotomlPath then
+            if isNull cargotoml then
               builtinz.readTOML usePureFromTOML "${src}/Cargo.toml"
-            else
-              builtinz.readTOML usePureFromTOML cargotomlPath;
+            else cargotoml;
 
           # All the Cargo.tomls, including the top-level one
           cargotomls =
@@ -81,7 +79,7 @@ with rec
 
             if isNull workspaceMembers then "."
             else lib.concatStringsSep "\n" workspaceMembers;
-          crateDependencies = libb.mkVersions cargolock;
+          crateDependencies = libb.mkVersions cargolock';
           targetInstructions =
             if builtins.hasAttr "targets" attrs then
               lib.concatMapStringsSep " " (target: "-p ${target}") attrs.targets
@@ -164,12 +162,10 @@ with rec
                 { cargoBuild = "source ${buildDepsScript}";
                   doCheck = false;
                   copyBuildArtifacts = true;
-                  cargolockPath = builtinz.writeTOML cargolock;
-                  cargotomlPath = builtinz.writeTOML
-                    (
+                  cargolock = cargolock';
+                  cargotoml =
                     { package = { name = "dummy"; version = "0.0.0"; }; } //
                         { dependencies = directDependencies; }
-                    )
                     ;
                 name =
                 if lib.length cargotomls == 0 then

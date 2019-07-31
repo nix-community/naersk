@@ -5,10 +5,10 @@
 , remarshal
 }:
 
+rec
 {
-    writeTOML = attrs:
-        let toTOML = import ./to-toml.nix { inherit lib; }; in
-        writeText "write-toml" (toTOML attrs);
+    toTOML = import ./to-toml.nix { inherit lib; };
+    writeTOML = attrs: writeText "write-toml" (toTOML attrs);
 
     readTOML = usePure: f:
       if usePure then
