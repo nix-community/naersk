@@ -36,7 +36,7 @@ with
 with
   { builtinz =
       builtins //
-      import ./builtins.nix
+      import ./builtins
         { inherit lib writeText remarshal runCommand ; };
   };
 

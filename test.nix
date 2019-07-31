@@ -15,7 +15,7 @@ with rec
   };
 
 with
-  { builtinz = builtins // pkgs.callPackage ./builtins.nix {}; };
+  { builtinz = builtins // pkgs.callPackage ./builtins {}; };
 
 rec
 { rustfmt = naersk.buildPackage sources.rustfmt {};
