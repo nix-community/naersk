@@ -44,18 +44,19 @@ with
 with rec
   {
       commonAttrs = src: attrs: rec
-        { cargolockPath = attrs.cargolockPath or null;
+        { usePureFromTOML = attrs.usePureFromTOML or true;
+          cargolockPath = attrs.cargolockPath or null;
           cargotomlPath = attrs.cargotomlPath or null;
           cargolock =
             if isNull cargolockPath then
-              builtinz.readTOML "${src}/Cargo.lock"
+              builtinz.readTOML usePureFromTOML "${src}/Cargo.lock"
             else
-              builtinz.readTOML cargolockPath;
+              builtinz.readTOML usePureFromTOML cargolockPath;
           rootCargotoml =
             if isNull cargotomlPath then
-              builtinz.readTOML "${src}/Cargo.toml"
+              builtinz.readTOML usePureFromTOML "${src}/Cargo.toml"
             else
-              builtinz.readTOML cargotomlPath;
+              builtinz.readTOML usePureFromTOML cargotomlPath;
 
           # All the Cargo.tomls, including the top-level one
           cargotomls =
@@ -68,7 +69,7 @@ with rec
                   lib.elem cargotoml.package.name attrs.targets
                 else true
               ) ( map
-                (member: (builtinz.readTOML "${src}/${member}/Cargo.toml"))
+                (member: (builtinz.readTOML usePureFromTOML "${src}/${member}/Cargo.toml"))
                 members );
 
           # The list of paths to Cargo.tomls. If this is a workspace, the paths
@@ -102,7 +103,7 @@ with rec
               version = (lib.head cargotomls).package.version;
               inherit cratePaths crateDependencies cargoBuild;
             } //
-            (removeAttrs attrs [ "targets"])
+            (removeAttrs attrs [ "targets" "usePureFromTOML" ])
           );
 
       buildPackageIncremental = src: attrs:
