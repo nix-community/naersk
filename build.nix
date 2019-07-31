@@ -52,6 +52,19 @@ with rec
           name
           version;
 
+      cargoconfig = builtinz.toTOML
+        { source =
+            { crates-io = { replace-with = "nix-sources"; } ;
+              nix-sources =
+                { directory = symlinkJoin
+                    { name = "crates-io";
+                      paths = map (v: unpackCrate v.name v.version v.sha256)
+                        crateDependencies;
+                    };
+                };
+            };
+        };
+
         outputs = [ "out" ] ++ lib.optional doDoc "doc";
         preInstallPhases = lib.optional doDoc [ "docPhase" ];
 
@@ -125,7 +138,7 @@ with rec
             export CARGO_HOME=''${CARGO_HOME:-$PWD/.cargo-home}
             mkdir -p $CARGO_HOME
 
-            cp --no-preserve mode ${cargoconfig} $CARGO_HOME/config
+            echo "$cargoconfig" > $CARGO_HOME/config
 
             # TODO: figure out why "1" works whereas "0" doesn't
             find . -type f -exec touch --date=@1 {} +
@@ -231,18 +244,5 @@ with rec
         tar -xvzf ${crate} -C $out
         echo '{"package":"${sha256}","files":{}}' > $out/${name}-${version}/.cargo-checksum.json
       '';
-
-    cargoconfig = builtinz.writeTOML
-      { source =
-          { crates-io = { replace-with = "nix-sources"; } ;
-            nix-sources =
-              { directory = symlinkJoin
-                  { name = "crates-io";
-                    paths = map (v: unpackCrate v.name v.version v.sha256)
-                      crateDependencies;
-                  };
-              };
-          };
-      };
   };
 if isNull override then drv else drv.overrideAttrs override
