@@ -110,11 +110,11 @@ rec
               cargoCargoToml.dependencies;
           };
 
-        cargoCargoLock = "${sources.rust}/Cargo.lock";
+        cargoCargoLock = builtinz.readTOML true "${sources.rust}/Cargo.lock";
       };
     naersk.buildPackage cargoSrc
-      { cargolockPath = cargoCargoLock;
-        cargotomlPath = builtinz.writeTOML cargoCargoToml';
+      { cargolock = cargoCargoLock;
+        cargotoml = cargoCargoToml';
 
         # Tests fail, although cargo seems to operate normally
         doCheck = false;
