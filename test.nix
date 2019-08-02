@@ -15,7 +15,7 @@ with rec
   };
 
 with
-  { builtinz = builtins // pkgs.callPackage ./builtins.nix {}; };
+  { builtinz = builtins // pkgs.callPackage ./builtins {}; };
 
 rec
 { rustfmt = naersk.buildPackage sources.rustfmt {};
@@ -23,7 +23,7 @@ rec
     { buildInputs = [ rustfmt ]; }
     "rustfmt --help && cargo-fmt --help && touch $out";
 
-  ripgrep = naersk.buildPackage sources.ripgrep {};
+  ripgrep = naersk.buildPackage sources.ripgrep { usePureFromTOML = false; };
   # XXX: executables are missing
   #ripgrep_test = pkgs.runCommand "ripgrep-test"
     #{ buildInputs = [ ripgrep ]; }
@@ -98,7 +98,8 @@ rec
   cargo =
     with rec
       { cargoSrc = sources.cargo;
-        cargoCargoToml = builtinz.readTOML "${cargoSrc}/Cargo.toml";
+        # cannot use the pure readTOML
+        cargoCargoToml = builtinz.readTOML false "${cargoSrc}/Cargo.toml";
 
         # XXX: this works around some hack that breaks the build. For more info
         # on the hack, see
@@ -109,11 +110,11 @@ rec
               cargoCargoToml.dependencies;
           };
 
-        cargoCargoLock = "${sources.rust}/Cargo.lock";
+        cargoCargoLock = builtinz.readTOML true "${sources.rust}/Cargo.lock";
       };
     naersk.buildPackage cargoSrc
-      { cargolockPath = cargoCargoLock;
-        cargotomlPath = builtinz.writeTOML cargoCargoToml';
+      { cargolock = cargoCargoLock;
+        cargotoml = cargoCargoToml';
 
         # Tests fail, although cargo seems to operate normally
         doCheck = false;

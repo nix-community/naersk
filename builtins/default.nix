@@ -1,36 +1,33 @@
 # some extra "builtins"
-{ lib, writeText, runCommand, remarshal }:
+{ lib
+, writeText
+, runCommand
+, remarshal
+}:
 
+rec
 {
-    # Nix < 2.3 cannot parse all TOML files
-    # https://github.com/NixOS/nix/issues/2901
-    # can then be replaced with:
-    #   readTOML = f: builtins.fromTOML (builtins.readFile f);
-    readTOML = f: builtins.fromJSON (builtins.readFile (runCommand "read-toml"
-      { buildInputs = [ remarshal ];
-        allowSubstitutes = false;
-        preferLocalBuild = true;
-      }
-      ''
-        remarshal \
-          -if toml \
-          -i ${f} \
-          -of json \
-          -o $out
-      ''));
+    toTOML = import ./to-toml.nix { inherit lib; };
+    writeTOML = attrs: writeText "write-toml" (toTOML attrs);
 
-    writeTOML = attrs: runCommand "write-toml"
-      { buildInputs = [ remarshal ];
-        allowSubstitutes = false;
-        preferLocalBuild = true;
-      }
-      ''
-        remarshal \
-          -if json \
-          -i ${writeText "toml-json" (builtins.toJSON attrs)} \
-          -of toml \
-          -o $out
-      '';
+    readTOML = usePure: f:
+      if usePure then
+        builtins.fromTOML (builtins.readFile f)
+      else
+        builtins.fromJSON (builtins.readFile (
+          runCommand "from-toml"
+          { buildInputs = [ remarshal ];
+            allowSubstitutes = false;
+            preferLocalBuild = true;
+          }
+          ''
+            echo "$from_toml_in" > in.toml
+            remarshal \
+              -if toml \
+              -i ${f} \
+              -of json \
+              -o $out
+          ''));
 
     writeJSON = name: attrs: writeText name
       (builtins.toJSON attrs);

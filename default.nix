@@ -36,7 +36,7 @@ with
 with
   { builtinz =
       builtins //
-      import ./builtins.nix
+      import ./builtins
         { inherit lib writeText remarshal runCommand ; };
   };
 
@@ -44,18 +44,17 @@ with
 with rec
   {
       commonAttrs = src: attrs: rec
-        { cargolockPath = attrs.cargolockPath or null;
-          cargotomlPath = attrs.cargotomlPath or null;
-          cargolock =
-            if isNull cargolockPath then
-              builtinz.readTOML "${src}/Cargo.lock"
-            else
-              builtinz.readTOML cargolockPath;
+        { usePureFromTOML = attrs.usePureFromTOML or true;
+          cargolock = attrs.cargolock or null;
+          cargotoml = attrs.cargotoml or null;
+          cargolock' =
+            if isNull cargolock then
+              builtinz.readTOML usePureFromTOML "${src}/Cargo.lock"
+            else cargolock;
           rootCargotoml =
-            if isNull cargotomlPath then
-              builtinz.readTOML "${src}/Cargo.toml"
-            else
-              builtinz.readTOML cargotomlPath;
+            if isNull cargotoml then
+              builtinz.readTOML usePureFromTOML "${src}/Cargo.toml"
+            else cargotoml;
 
           # All the Cargo.tomls, including the top-level one
           cargotomls =
@@ -68,7 +67,7 @@ with rec
                   lib.elem cargotoml.package.name attrs.targets
                 else true
               ) ( map
-                (member: (builtinz.readTOML "${src}/${member}/Cargo.toml"))
+                (member: (builtinz.readTOML usePureFromTOML "${src}/${member}/Cargo.toml"))
                 members );
 
           # The list of paths to Cargo.tomls. If this is a workspace, the paths
@@ -80,7 +79,7 @@ with rec
 
             if isNull workspaceMembers then "."
             else lib.concatStringsSep "\n" workspaceMembers;
-          crateDependencies = libb.mkVersions cargolock;
+          crateDependencies = libb.mkVersions cargolock';
           targetInstructions =
             if builtins.hasAttr "targets" attrs then
               lib.concatMapStringsSep " " (target: "-p ${target}") attrs.targets
@@ -102,7 +101,7 @@ with rec
               version = (lib.head cargotomls).package.version;
               inherit cratePaths crateDependencies cargoBuild;
             } //
-            (removeAttrs attrs [ "targets"])
+            (removeAttrs attrs [ "targets" "usePureFromTOML" ])
           );
 
       buildPackageIncremental = src: attrs:
@@ -163,12 +162,10 @@ with rec
                 { cargoBuild = "source ${buildDepsScript}";
                   doCheck = false;
                   copyBuildArtifacts = true;
-                  cargolockPath = builtinz.writeTOML cargolock;
-                  cargotomlPath = builtinz.writeTOML
-                    (
+                  cargolock = cargolock';
+                  cargotoml =
                     { package = { name = "dummy"; version = "0.0.0"; }; } //
                         { dependencies = directDependencies; }
-                    )
                     ;
                 name =
                 if lib.length cargotomls == 0 then
