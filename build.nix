@@ -9,6 +9,22 @@ src:
 , copyBuildArtifacts ? false
 , doCheck ? true
 , doDoc ? true
+  #| Whether to remove references to source code from the generated cargo docs
+  #  to reduce Nix closure size. By default cargo doc includes snippets like the
+  #  following in the generated highlighted source code in files like: src/rand/lib.rs.html:
+  #
+  #    <meta name="description" content="Source to the Rust file `/nix/store/mdwpqciww926xayfasl85i4wvvpbgb9a-crates-io/rand-0.7.0/src/lib.rs`.">
+  #
+  #  The reference to /nix/store/...-crates-io/... causes a run-time dependency
+  #  to the complete source code blowing up the Nix closure size for no good
+  #  reason. If this argument is set to true (which is the default) the latter
+  #  will be replaced by:
+  #
+  #    <meta name="description" content="Source to the Rust file removed to reduce Nix closure size.">
+  #
+  #  Which drops the run-time dependency on the crates-io source thereby
+  #  significantly reducing the Nix closure size.
+, removeReferencesToSrcFromDocs ? true
 , name
 , version
 , rustc
@@ -175,6 +191,13 @@ with rec
           echo "Running doc command:"
           echo "  ${cargoDoc}"
           ${cargoDoc}
+
+          ${lib.optionalString removeReferencesToSrcFromDocs ''
+          # Remove references to the source derivation to reduce closure size
+                match='<meta name="description" content="Source to the Rust file `${builtins.storeDir}[^`]*`.">'
+          replacement='<meta name="description" content="Source to the Rust file removed to reduce Nix closure size.">'
+          find target/doc -name "*\.rs\.html" -exec sed -i "s|$match|$replacement|" {} +
+          ''}
 
           runHook postDoc
         '';
