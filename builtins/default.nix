@@ -8,7 +8,7 @@
 rec
 {
     toTOML = import ./to-toml.nix { inherit lib; };
-    writeTOML = attrs: writeText "write-toml" (toTOML attrs);
+    writeTOML = name: attrs: writeText name (toTOML attrs);
 
     readTOML = usePure: f:
       if usePure then
