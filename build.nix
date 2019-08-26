@@ -4,7 +4,7 @@ src:
 , #| What command to run during the test phase
   cargoTest ? "cargo test --$CARGO_BUILD_PROFILE"
 , #| What command to run during the optional doc phase
-  cargoDoc ? "cargo doc --offline"
+  cargoDoc ? ''cargo doc --offline "$doc_arg"''
   #| Whether or not to forward build artifacts to $out
 , copyBuildArtifacts ? false
 , doCheck ? true
@@ -187,6 +187,16 @@ with rec
 
         docPhase = lib.optionalString doDoc ''
           runHook preDoc
+
+          # cargo doc defaults to "debug", but it doesn't have a
+          # "--debug" flag, only "--release", so we can't just pass
+          # "--$CARGO_BUILD_PROFILE" like we do with "cargo build" and "cargo
+          # test"
+          doc_arg=""
+          if [ "$CARGO_BUILD_PROFILE" == "release" ]
+          then
+            doc_arg="--release"
+          fi
 
           echo "Running doc command:"
           echo "  ${cargoDoc}"
