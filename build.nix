@@ -122,7 +122,7 @@ with rec
               then
                 echo "WARNING: replacing existing Cargo.lock"
               fi
-              echo "$cargolock" > Cargo.lock
+              install -m 644 "$cargolock" Cargo.lock
             fi
 
             if [ -n "$cargotoml" ]
@@ -132,7 +132,7 @@ with rec
               then
                 echo "WARNING: replacing existing Cargo.toml"
               fi
-              echo "$cargotoml" > Cargo.toml
+              install -m 644 "$cargotoml" Cargo.toml
             fi
 
             mkdir -p target
@@ -245,9 +245,9 @@ with rec
           '';
       } //
       lib.optionalAttrs (! isNull cargolock )
-        { cargolock = builtinz.toTOML cargolock; } //
+        { cargolock = builtinz.writeTOML "Cargo.lock" cargolock; } //
       lib.optionalAttrs (! isNull cargotoml )
-        { cargotoml = builtinz.toTOML cargotoml; }
+        { cargotoml = builtinz.writeTOML "Cargo.toml" cargotoml; }
       )
       ;
 
