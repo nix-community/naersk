@@ -7,6 +7,7 @@ src:
 , copyBuildArtifacts ? false
 , doCheck ? true
 , doDoc ? true
+, copyDocsToSeparateOutput ? true
   #| Whether to remove references to source code from the generated cargo docs
   #  to reduce Nix closure size. By default cargo doc includes snippets like the
   #  following in the generated highlighted source code in files like: src/rand/lib.rs.html:
@@ -79,7 +80,7 @@ with rec
             };
         };
 
-        outputs = [ "out" ] ++ lib.optional doDoc "doc";
+        outputs = [ "out" ] ++ lib.optional (doDoc && copyDocsToSeparateOutput) "doc";
         preInstallPhases = lib.optional doDoc [ "docPhase" ];
 
         CARGO_BUILD_PROFILE = if release then "release" else "debug";
@@ -246,7 +247,7 @@ with rec
             cp -r target $out
             ''}
 
-            ${lib.optionalString doDoc ''
+            ${lib.optionalString (doDoc && copyDocsToSeparateOutput) ''
             cp -r target/doc $doc
             ''}
 

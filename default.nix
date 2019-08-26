@@ -162,6 +162,7 @@ with rec
                 { cargoBuild = "source ${buildDepsScript}";
                   doCheck = false;
                   copyBuildArtifacts = true;
+                  copyDocsToSeparateOutput = false;
                   cargolock = cargolock';
                   cargotoml =
                     { package = { name = "dummy"; version = "0.0.0"; }; } //
