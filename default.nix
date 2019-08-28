@@ -78,14 +78,20 @@ with rec
               };
 
             if isNull workspaceMembers then "."
-            else lib.concatStringsSep "\n" workspaceMembers;
+            else
+              let pred = if builtins.hasAttr "targets" attrs then
+                (member: lib.elem member attrs.targets)
+                else (_member: true);
+              in lib.concatStringsSep "\n" (lib.filter pred workspaceMembers);
           crateDependencies = libb.mkVersions cargolock';
-          targetInstructions =
-            if builtins.hasAttr "targets" attrs then
-              lib.concatMapStringsSep " " (target: "-p ${target}") attrs.targets
-            else "";
           cargoBuild = attrs.cargoBuild or
-            "cargo build ${targetInstructions} --$CARGO_BUILD_PROFILE -j $NIX_BUILD_CORES";
+          ''
+            for p in $cratePaths; do
+              pushd "$p"
+              cargo build --$CARGO_BUILD_PROFILE -j $NIX_BUILD_CORES
+              popd
+            done
+          '';
         };
       buildPackageSingleStep = src: attrs:
         with (commonAttrs src attrs);

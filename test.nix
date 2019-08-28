@@ -24,10 +24,11 @@ rec
     "rustfmt --help && cargo-fmt --help && touch $out";
 
   ripgrep = naersk.buildPackage sources.ripgrep { usePureFromTOML = false; };
-  # XXX: executables are missing
-  #ripgrep_test = pkgs.runCommand "ripgrep-test"
-    #{ buildInputs = [ ripgrep ]; }
-    #"rg --help && touch $out";
+  # XXX: the `rg` executable is missing because we don't do `cargo install
+  # --path`.
+  # ripgrep_test = pkgs.runCommand "ripgrep-test"
+  #   { buildInputs = [ ripgrep ]; }
+  #   "rg --help && touch $out";
 
   ripgrep-all = naersk.buildPackage sources.ripgrep-all {};
   ripgrep-all_test = pkgs.runCommand "ripgrep-all-test"
@@ -75,9 +76,6 @@ rec
   # error in readTOML (remarshal):
   #   Error: Cannot parse as TOML (<string>(92, 14): msg)
   #rust = naersk.buildPackage sources.rust {};
-
-  rustlingsInc = naersk.buildPackage sources.rustlings
-    { doCheck = false; };
 
   rustlings = naersk.buildPackage sources.rustlings {};
 
