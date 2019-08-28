@@ -15,8 +15,8 @@
 with
   { libb = import ./lib.nix { inherit lib writeText runCommand remarshal; }; };
 
-with
-  { defaultBuildAttrs =
+let
+  defaultBuildAttrs =
       { inherit
           llvmPackages
           jq
@@ -30,65 +30,84 @@ with
           symlinkJoin
           cargo
           rustc;
-      };
-  };
+      }; in
 
-with
-  { builtinz =
+let
+  builtinz =
       builtins //
       import ./builtins
-        { inherit lib writeText remarshal runCommand ; };
-  };
+        { inherit lib writeText remarshal runCommand ; }; in
 
 # Crate building
 with rec
   {
       commonAttrs = src: attrs: rec
         { usePureFromTOML = attrs.usePureFromTOML or true;
-          cargolock = attrs.cargolock or null;
-          cargotoml = attrs.cargotoml or null;
-          cargolock' =
-            if isNull cargolock then
-              builtinz.readTOML usePureFromTOML "${src}/Cargo.lock"
-            else cargolock;
-          rootCargotoml =
-            if isNull cargotoml then
-              builtinz.readTOML usePureFromTOML "${src}/Cargo.toml"
-            else cargotoml;
+          readTOML = builtinz.readTOML usePureFromTOML;
 
-          # All the Cargo.tomls, including the top-level one
+          # The members we want to build
+          wantedMembers =
+            lib.mapAttrsToList (member: _cargotoml: member) wantedMemberCargotomls;
+
+          # Member path to cargotoml
+          wantedMemberCargotomls =
+            let pred =
+              if ! isWorkspace
+              then (_member: _cargotoml: true)
+              else
+                if builtins.hasAttr "targets" attrs
+                then (_member: cargotoml: lib.elem cargotoml.package.name attrs.targets)
+                else (member: _cargotoml: member != "."); in
+            lib.filterAttrs pred cargotomls;
+
+          # All cargotoml, from path to nix object
           cargotomls =
-            if builtins.hasAttr "package" rootCargotoml then
-              [rootCargotoml]
-            else
-              with { members = rootCargotoml.workspace.members or []; };
-              lib.filter (cargotoml:
-                if builtins.hasAttr "targets" attrs then
-                  lib.elem cargotoml.package.name attrs.targets
-                else true
-              ) ( map
-                (member: (builtinz.readTOML usePureFromTOML "${src}/${member}/Cargo.toml"))
-                members );
+            let readTOML = builtinz.readTOML usePureFromTOML; in
+
+            { "." = toplevelCargotoml; } //
+            lib.optionalAttrs isWorkspace
+            (lib.listToAttrs
+              (map
+                (member:
+                  { name = member;
+                    value = readTOML (src + "/${member}/Cargo.toml");
+                  }
+                )
+                (toplevelCargotoml.workspace.members or [])
+              )
+            );
+
+          # Are we building a workspace (or is this a simple crate) ?
+          isWorkspace = builtins.hasAttr "workspace" toplevelCargotoml;
+
+          # The top level Cargo.toml, either a workspace or package
+          toplevelCargotoml = readTOML (src + "/Cargo.toml");
+
+          # The cargo lock
+          cargolock = readTOML (src + "/Cargo.lock");
 
           # The list of paths to Cargo.tomls. If this is a workspace, the paths
           # are the members. Otherwise, there is a single path, ".".
-          cratePaths =
-            with rec
-              { workspaceMembers = rootCargotoml.workspace.members or null;
-              };
-
-            if isNull workspaceMembers then "."
-            else
-              let pred = if builtins.hasAttr "targets" attrs then
-                (member: lib.elem member attrs.targets)
-                else (_member: true);
-              in lib.concatStringsSep "\n" (lib.filter pred workspaceMembers);
-          crateDependencies = libb.mkVersions cargolock';
+          cratePaths = lib.concatStringsSep "\n" wantedMembers;
+          crateDependencies = libb.mkVersions cargolock;
           cargoBuild = attrs.cargoBuild or
+          ''
+            # Cargo uses mtime, and we write `src/main.rs` in the dep build
+            # step, so make sure cargo rebuilds stuff
+            find . -type f -name '*.rs' -exec touch {} +
+            for p in $cratePaths; do
+              pushd "$p"
+              echo "Building $p"
+              cargo build --$CARGO_BUILD_PROFILE -j $NIX_BUILD_CORES
+              popd
+            done
+          '';
+          cargoTest = attrs.cargoTest or
           ''
             for p in $cratePaths; do
               pushd "$p"
-              cargo build --$CARGO_BUILD_PROFILE -j $NIX_BUILD_CORES
+              echo "Running tests for $p"
+              cargo test --$CARGO_BUILD_PROFILE -j $NIX_BUILD_CORES
               popd
             done
           '';
@@ -97,93 +116,58 @@ with rec
         with (commonAttrs src attrs);
         import ./build.nix src
           ( defaultBuildAttrs //
-            { name =
-                if lib.length cargotomls == 0 then
-                  abort "Found no cargotomls"
-                else if lib.length cargotomls == 1 then
-                  (lib.head cargotomls).package.name
-                else
-                  "${(lib.head cargotomls).package.name}-and-others";
-              version = (lib.head cargotomls).package.version;
-              inherit cratePaths crateDependencies cargoBuild;
+            { name = "some-name";
+              version = "some-version";
+              inherit cratePaths crateDependencies cargoBuild cargoTest;
             } //
-            (removeAttrs attrs [ "targets" "usePureFromTOML" ])
+            (removeAttrs attrs [ "targets" "usePureFromTOML" "cargotomls" ])
           );
 
       buildPackageIncremental = src: attrs:
         with (commonAttrs src attrs);
-        with rec
-          # FIXME: directDependencies should be built on a per-cargotoml basis.
-          # All dependencies are not available in every member.
-          # Also, if a dependency is shared between two cargotomls, there's
-          # (most of the time) no point recompiling it
-          { buildDepsScript = writeText "prebuild-script"
-              ''
-                cat ${builtinz.writeJSON "crates" ((directDependenciesList))} |\
-                  jq -r \
-                    --arg cbp $CARGO_BUILD_PROFILE \
-                    --arg nbc $NIX_BUILD_CORES \
-                    '.[] | "cargo build --\($cbp) -j \($nbc) -p \(.name):\(.version)"' |\
-                    while IFS= read -r c
-                    do
-                      echo "Running build command '$c'"
-                      $c || echo "WARNING: one some dependencies failed to build: $c"
-                    done
-              '';
-            isMember = name:
-              lib.elem name (map (ctoml: ctoml.package.name) cargotomls);
-
-            isLocal = v:
-              ! builtins.hasAttr "path" v;
-
-            versions =
-              lib.listToAttrs (
-              map (v: { name = v.name; value = v.version; })
-                crateDependencies);
-
-            directDependenciesList =
-              lib.filter (c:
-                builtins.hasAttr c.name directDependencies) crateDependencies;
-
-            directDependencies =
-              lib.filterAttrs (_: v:
-                lib.isString v ||
-                (! builtins.hasAttr "path" v)
-                ) (
-              lib.foldr (x: y: x // y) {}
-              (map (cargotoml:
-                (lib.optionalAttrs (builtins.hasAttr "dependencies" cargotoml)
-                  cargotoml.dependencies) //
-                (lib.optionalAttrs (builtins.hasAttr "dev-dependencies" cargotoml)
-                  cargotoml.dev-dependencies)
-                ) cargotomls
-              ));
-          };
-        buildPackageSingleStep src
-          ((attrs) //
-          { builtDependencies =
-              [(
-              buildPackageSingleStep (libb.dummySrc src)
-                (attrs //
-                { cargoBuild = "source ${buildDepsScript}";
-                  doCheck = false;
-                  copyBuildArtifacts = true;
-                  copyDocsToSeparateOutput = false;
-                  cargolock = cargolock';
-                  cargotoml =
-                    { package = { name = "dummy"; version = "0.0.0"; }; } //
-                        { dependencies = directDependencies; }
-                    ;
-                name =
-                if lib.length cargotomls == 0 then
-                  abort "Found no cargotomls"
-                else if lib.length cargotomls == 1 then
-                  "${(lib.head cargotomls).package.name}-deps"
-                else
-                  "${(lib.head cargotomls).package.name}-and-others-deps";
-                })
-              )];
-          });
+        import ./build.nix src
+          (defaultBuildAttrs //
+            { name = "foo";
+              version = "bar";
+              inherit cratePaths crateDependencies cargoBuild cargoTest;
+            } //
+            (removeAttrs attrs [ "targets" "usePureFromTOML" "cargotomls" ]) //
+            { builtDependencies =
+                [(
+                  import ./build.nix
+                  (libb.dummySrc
+                    { cargoconfig =
+                        if builtinz.pathExists (src + "/.cargo/config")
+                        then builtins.readFile (src + "/.cargo/config")
+                        else "";
+                      cargolock = cargolock;
+                      cargotomls = cargotomls;
+                    }
+                  )
+                  (defaultBuildAttrs //
+                    { name = "foo-deps";
+                      version = "bar";
+                      inherit cratePaths crateDependencies ;
+                    } //
+                  (removeAttrs attrs [ "targets" "usePureFromTOML" "cargotomls" ]) //
+                  { cargoBuild =
+                      ''
+                        for p in $cratePaths; do
+                          pushd "$p"
+                          cargo build --$CARGO_BUILD_PROFILE -j $NIX_BUILD_CORES || true
+                          cargo test --$CARGO_BUILD_PROFILE -j $NIX_BUILD_CORES || true
+                          popd
+                        done
+                      '';
+                    cargoTest = "echo no tests for deps";
+                    doCheck = false;
+                    copyBuildArtifacts = true;
+                    copyDocsToSeparateOutput = false;
+                    name = "some-name";
+                  }
+                  )
+                )];
+            });
   };
 
 { inherit buildPackageSingleStep buildPackageIncremental crates;

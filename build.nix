@@ -2,11 +2,13 @@ src:
 { #| What command to run during the build phase
   cargoBuild
 , #| What command to run during the test phase
-  cargoTest ? "cargo test --$CARGO_BUILD_PROFILE"
+  cargoTest
   #| Whether or not to forward build artifacts to $out
 , copyBuildArtifacts ? false
 , doCheck ? true
 , doDoc ? true
+  #| Whether or not the rustdoc can fail the build
+, doDocFail ? false
 , copyDocsToSeparateOutput ? true
   #| Whether to remove references to source code from the generated cargo docs
   #  to reduce Nix closure size. By default cargo doc includes snippets like the
@@ -32,8 +34,7 @@ src:
 , buildInputs ? []
 , nativeBuildInputs ? []
 , builtDependencies ? []
-, cargolock ? null
-, cargotoml ? null
+, replaceToml ? true
 , release ? true
 , stdenv
 , lib
@@ -46,6 +47,7 @@ src:
 , runCommand
 , remarshal
 , crateDependencies
+# TODO: rename to "members"
 , cratePaths
 }:
 
@@ -67,18 +69,18 @@ with rec
           name
           version;
 
-      cargoconfig = builtinz.toTOML
-        { source =
-            { crates-io = { replace-with = "nix-sources"; } ;
-              nix-sources =
-                { directory = symlinkJoin
-                    { name = "crates-io";
-                      paths = map (v: unpackCrate v.name v.version v.sha256)
-                        crateDependencies;
-                    };
-                };
-            };
-        };
+        cargoconfig = builtinz.toTOML
+          { source =
+              { crates-io = { replace-with = "nix-sources"; } ;
+                nix-sources =
+                  { directory = symlinkJoin
+                      { name = "crates-io";
+                        paths = map (v: unpackCrate v.name v.version v.sha256)
+                          crateDependencies;
+                      };
+                  };
+              };
+          };
 
         outputs = [ "out" ] ++ lib.optional (doDoc && copyDocsToSeparateOutput) "doc";
         preInstallPhases = lib.optional doDoc [ "docPhase" ];
@@ -114,26 +116,6 @@ with rec
           ''
             runHook preConfigure
 
-            if [ -n "$cargolock" ]
-            then
-              echo "Setting Cargo.lock"
-              if [ -f "Cargo.lock" ]
-              then
-                echo "WARNING: replacing existing Cargo.lock"
-              fi
-              install -m 644 "$cargolock" Cargo.lock
-            fi
-
-            if [ -n "$cargotoml" ]
-            then
-              echo "Setting Cargo.toml"
-              if [ -f "Cargo.toml" ]
-              then
-                echo "WARNING: replacing existing Cargo.toml"
-              fi
-              install -m 644 "$cargotoml" Cargo.toml
-            fi
-
             mkdir -p target
 
             cat ${builtinz.writeJSON "dependencies-json" builtDependencies} |\
@@ -165,8 +147,7 @@ with rec
           ''
             runHook preBuild
 
-            echo "Running build command:"
-            echo "  ${cargoBuild}"
+            echo "Building..."
             ${cargoBuild}
 
             runHook postBuild
@@ -176,8 +157,7 @@ with rec
           ''
             runHook preCheck
 
-            echo "Running test command:"
-            echo "  ${cargoTest}"
+            echo "Testing..."
             ${cargoTest}
 
             runHook postCheck
@@ -200,7 +180,7 @@ with rec
           cargoDoc="cargo doc --offline $doc_arg"
           echo "Running doc command:"
           echo "  $cargoDoc"
-          $cargoDoc
+          $cargoDoc || ${if doDocFail then "false" else "true" }
 
           ${lib.optionalString removeReferencesToSrcFromDocs ''
           # Remove references to the source derivation to reduce closure size
@@ -253,11 +233,7 @@ with rec
 
             runHook postInstall
           '';
-      } //
-      lib.optionalAttrs (! isNull cargolock )
-        { cargolock = builtinz.writeTOML "Cargo.lock" cargolock; } //
-      lib.optionalAttrs (! isNull cargotoml )
-        { cargotoml = builtinz.writeTOML "Cargo.toml" cargotoml; }
+      }
       )
       ;
 

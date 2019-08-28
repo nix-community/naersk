@@ -82,20 +82,62 @@ rec
       };
 
     # A very minimal 'src' which makes cargo happy nonetheless
-    dummySrc = src:
+    dummySrc =
+      { cargoconfig   # string
+      , cargotomls   # attrset
+      , cargolock   # attrset
+      }:
       let
-        configContent =
-          if builtinz.pathExists "${src}/.cargo/config"
-          then builtins.readFile "${src}/.cargo/config" else "";
-        config = writeText "config" configContent;
+        config = writeText "config" cargoconfig;
+        cargolock' = builtinz.writeTOML "Cargo.toml" cargolock;
+        cargotomlss = writeText "foo"
+          (lib.concatStrings (lib.mapAttrsToList
+            (k: v: "${k}\n${builtinz.writeTOML "Cargo.toml-ds-aa" v}\n")
+            cargotomls
+          ));
+
       in
       runCommand "dummy-src" {}
       ''
         mkdir -p $out/.cargo
         cp -r ${config} $out/.cargo/config
+        cp ${cargolock'} $out/Cargo.lock
 
-        mkdir -p $out/src
-        touch $out/src/main.rs
+        cat ${cargotomlss} | \
+          while IFS= read -r member; do
+            read -r cargotoml
+            final_dir="$out/$member"
+            mkdir -p "$final_dir"
+            final_path="$final_dir/Cargo.toml"
+            cp $cargotoml "$final_path"
+
+            # make sure cargo is happy
+            pushd $out/$member > /dev/null
+
+            # TODO: get rid of all these hacks
+
+            sed -i '/.*=\s*{.*path\s*=.*/d' Cargo.toml
+            sed -i '/^build\s*=/d' Cargo.toml
+
+            mkdir -p src
+            touch src/main.rs
+            touch src/lib.rs
+            # Dirty hack to "touch" any bench, test, etc path.
+            cat Cargo.toml | \
+              grep -oP '^path\s*=\s*"\K\w+.rs' | \
+              while IFS= read -r path; do
+                mkdir -p $(dirname $path)
+                touch $path
+              done || true
+            cat Cargo.toml | \
+              grep -oP '^name\s*=\s*"\K\w+' | \
+              while IFS= read -r name; do
+                mkdir -p $name
+                mkdir -p benches
+                touch benches/$name.rs
+              done || true
+            popd > /dev/null
+          done
       '';
 
     mkPackages = cargolock:

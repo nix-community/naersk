@@ -18,14 +18,14 @@ with
   { builtinz = builtins // pkgs.callPackage ./builtins {}; };
 
 rec
-{ rustfmt = naersk.buildPackage sources.rustfmt {};
+{ rustfmt = naersk.buildPackage sources.rustfmt { doDocFail = false; };
   rustfmt_test = pkgs.runCommand "rustfmt-test"
     { buildInputs = [ rustfmt ]; }
     "rustfmt --help && cargo-fmt --help && touch $out";
 
   ripgrep = naersk.buildPackage sources.ripgrep { usePureFromTOML = false; };
   # XXX: the `rg` executable is missing because we don't do `cargo install
-  # --path`.
+  # --path .`.
   # ripgrep_test = pkgs.runCommand "ripgrep-test"
   #   { buildInputs = [ ripgrep ]; }
   #   "rg --help && touch $out";
