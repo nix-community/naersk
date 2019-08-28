@@ -128,8 +128,11 @@ rec
                 pkgs.curl
                 pkgs.git
               ];
-            NIX_LDFLAGS="-F${pkgs.darwin.apple_sdk.frameworks.CoreFoundation}/Library/Frameworks -framework CoreFoundation ";
             LIBGIT2_SYS_USE_PKG_CONFIG = 1;
+          } // pkgs.lib.optionalAttrs pkgs.stdenv.isDarwin
+          {
+            NIX_LDFLAGS="-F${pkgs.darwin.apple_sdk.frameworks.CoreFoundation}/Library/Frameworks -framework CoreFoundation ";
+
           };
       };
 }
