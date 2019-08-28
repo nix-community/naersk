@@ -92,7 +92,7 @@ rec
     #sources.servo
     #{ inherit cargo; };
 
-  # TODO: figure out why 'cargo install' rebuilds some deps
+  # TODO: fix toml
   cargo =
     with rec
       { cargoSrc = sources.cargo;
