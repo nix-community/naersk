@@ -227,8 +227,6 @@ with rec
             mkdir -p $out/lib
 
             ${lib.optionalString copyBuildArtifacts ''
-            cp -vr target/$CARGO_BUILD_PROFILE/deps/* $out/lib ||\
-              echo "WARNING: couldn't copy libs"
             cp -r target $out
             ''}
 
