@@ -177,10 +177,12 @@ with rec
             doc_arg="--release"
           fi
 
-          cargoDoc="cargo doc --offline $doc_arg"
-          echo "Running doc command:"
-          echo "  $cargoDoc"
-          $cargoDoc || ${if doDocFail then "false" else "true" }
+          for p in $cratePaths; do
+            pushd "$p"
+            echo "Documenting $p"
+            cargo doc --offline $doc_arg || ${if doDocFail then "false" else "true" }
+            popd
+          done
 
           ${lib.optionalString removeReferencesToSrcFromDocs ''
           # Remove references to the source derivation to reduce closure size
@@ -208,14 +210,17 @@ with rec
 
             mkdir -p $out/bin
             for p in $cratePaths; do
+              pushd "$p"
+              echo "Installing $p"
               # XXX: we don't quote install_arg to avoid passing an empty arg
               # to cargo
               cargo install \
-                --path $p \
+                --path . \
                 $install_arg \
                 --bins \
                 --root $out ||\
                 echo "WARNING: Member wasn't installed: $p"
+              popd
             done
 
             mkdir -p $out
