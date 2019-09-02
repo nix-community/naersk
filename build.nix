@@ -224,7 +224,6 @@ with rec
             done
 
             mkdir -p $out
-            mkdir -p $out/lib
 
             ${lib.optionalString copyBuildArtifacts ''
             cp -r target $out
