@@ -120,7 +120,7 @@ rec
             sed -i '/^build\s*=/d' Cargo.toml
 
             mkdir -p src
-            touch src/main.rs
+            echo "fn main() {}" > src/main.rs
             touch src/lib.rs
             # Dirty hack to "touch" any bench, test, etc path.
             cat Cargo.toml | \

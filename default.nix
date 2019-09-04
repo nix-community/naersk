@@ -96,7 +96,7 @@ with rec
             find . -type f -name '*.rs' -exec touch {} +
           '';
           cargoBuild = attrs.cargoBuild or ''
-            cargo build --$CARGO_BUILD_PROFILE -j $NIX_BUILD_CORES
+            cargo build --$CARGO_BUILD_PROFILE -j $NIX_BUILD_CORES -Z unstable-options --out-dir out
           '';
           cargoTest = attrs.cargoTest or ''
             cargo test --$CARGO_BUILD_PROFILE -j $NIX_BUILD_CORES
@@ -149,7 +149,8 @@ with rec
                       '';
                     cargoTest = "echo no tests for deps";
                     doCheck = false;
-                    copyBuildArtifacts = true;
+                    copyTarget = true;
+                    copyBins = false;
                     copyDocsToSeparateOutput = false;
                     name = "some-name";
                   }

@@ -4,8 +4,10 @@ src:
 , cargoBuild
 , #| What command to run during the test phase
   cargoTest
-  #| Whether or not to forward build artifacts to $out
-, copyBuildArtifacts ? false
+  #| Whether or not to forward intermediate build artifacts to $out
+, copyTarget ? false
+  #| Whether or not to copy binaries to $out/bin
+, copyBins ? true
 , doCheck ? true
 , doDoc ? true
   #| Whether or not the rustdoc can fail the build
@@ -154,12 +156,7 @@ with rec
               eval "$@"
             }
 
-            for p in $cratePaths; do
-              pushd "$p"
-              echo "Building $p"
-              logRun ${cargoBuild}
-              popd
-            done
+            logRun ${cargoBuild}
 
             runHook postBuild
           '';
@@ -168,12 +165,7 @@ with rec
           ''
             runHook preCheck
 
-            for p in $cratePaths; do
-              pushd "$p"
-              echo "Testing $p"
-              logRun ${cargoTest}
-              popd
-            done
+            logRun ${cargoTest}
 
             runHook postCheck
           '';
@@ -192,13 +184,7 @@ with rec
             doc_arg="--release"
           fi
 
-          # TODO: Figure out why building docs per crate adds an extra 3m to the build.
-          # for p in $cratePaths; do
-          #   pushd "$p"
-          #   echo "Documenting $p"
           logRun cargo doc --offline $doc_arg || ${if doDocFail then "false" else "true" }
-          #   popd
-          # done
 
           ${lib.optionalString removeReferencesToSrcFromDocs ''
           # Remove references to the source derivation to reduce closure size
@@ -214,34 +200,13 @@ with rec
           ''
             runHook preInstall
 
-            # cargo install defaults to "release", but it doesn't have a
-            # "--release" flag, only "--debug", so we can't just pass
-            # "--$CARGO_BUILD_PROFILE" like we do with "cargo build" and "cargo
-            # test"
-            install_arg=""
-            if [ "$CARGO_BUILD_PROFILE" == "debug" ]
-            then
-              install_arg="--debug"
-            fi
-
+            ${lib.optionalString copyBins ''
             mkdir -p $out/bin
-            for p in $cratePaths; do
-              pushd "$p"
-              echo "Installing $p"
-              # XXX: we don't quote install_arg to avoid passing an empty arg
-              # to cargo
-              logRun cargo install \
-                --path . \
-                $install_arg \
-                --bins \
-                --root $out ||\
-                echo "WARNING: Member wasn't installed: $p"
-              popd
-            done
+            find out -type f -executable -exec cp {} $out/bin \;
+            ''}
 
+            ${lib.optionalString copyTarget ''
             mkdir -p $out
-
-            ${lib.optionalString copyBuildArtifacts ''
             cp -r target $out
             ''}
 
