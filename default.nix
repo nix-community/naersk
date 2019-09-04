@@ -144,6 +144,7 @@ with rec
                     cargoBuild =
                       ''
                         cargo build --$CARGO_BUILD_PROFILE -j $NIX_BUILD_CORES || true
+                        cargo clippy -- -D clippy::all || true
                         cargo test --$CARGO_BUILD_PROFILE -j $NIX_BUILD_CORES || true
                       '';
                     cargoTest = "echo no tests for deps";
