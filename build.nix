@@ -1,6 +1,7 @@
 src:
-{ #| What command to run during the build phase
-  cargoBuild
+{ preBuild
+  #| What command to run during the build phase
+, cargoBuild
 , #| What command to run during the test phase
   cargoTest
   #| Whether or not to forward build artifacts to $out
@@ -67,7 +68,8 @@ with rec
           nativeBuildInputs
           cratePaths
           name
-          version;
+          version
+          preBuild;
 
         cargoconfig = builtinz.toTOML
           { source =
@@ -147,8 +149,17 @@ with rec
           ''
             runHook preBuild
 
-            echo "Building..."
-            ${cargoBuild}
+            logRun() {
+              echo "$@"
+              eval "$@"
+            }
+
+            for p in $cratePaths; do
+              pushd "$p"
+              echo "Building $p"
+              logRun ${cargoBuild}
+              popd
+            done
 
             runHook postBuild
           '';
@@ -157,8 +168,12 @@ with rec
           ''
             runHook preCheck
 
-            echo "Testing..."
-            ${cargoTest}
+            for p in $cratePaths; do
+              pushd "$p"
+              echo "Testing $p"
+              logRun ${cargoTest}
+              popd
+            done
 
             runHook postCheck
           '';
@@ -181,7 +196,7 @@ with rec
           # for p in $cratePaths; do
           #   pushd "$p"
           #   echo "Documenting $p"
-          cargo doc --offline $doc_arg || ${if doDocFail then "false" else "true" }
+          logRun cargo doc --offline $doc_arg || ${if doDocFail then "false" else "true" }
           #   popd
           # done
 
@@ -215,7 +230,7 @@ with rec
               echo "Installing $p"
               # XXX: we don't quote install_arg to avoid passing an empty arg
               # to cargo
-              cargo install \
+              logRun cargo install \
                 --path . \
                 $install_arg \
                 --bins \

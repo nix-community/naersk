@@ -90,26 +90,16 @@ with rec
           # are the members. Otherwise, there is a single path, ".".
           cratePaths = lib.concatStringsSep "\n" wantedMembers;
           crateDependencies = libb.mkVersions cargolock;
-          cargoBuild = attrs.cargoBuild or
-          ''
+          preBuild = ''
             # Cargo uses mtime, and we write `src/main.rs` in the dep build
             # step, so make sure cargo rebuilds stuff
             find . -type f -name '*.rs' -exec touch {} +
-            for p in $cratePaths; do
-              pushd "$p"
-              echo "Building $p"
-              cargo build --$CARGO_BUILD_PROFILE -j $NIX_BUILD_CORES
-              popd
-            done
           '';
-          cargoTest = attrs.cargoTest or
-          ''
-            for p in $cratePaths; do
-              pushd "$p"
-              echo "Running tests for $p"
-              cargo test --$CARGO_BUILD_PROFILE -j $NIX_BUILD_CORES
-              popd
-            done
+          cargoBuild = attrs.cargoBuild or ''
+            cargo build --$CARGO_BUILD_PROFILE -j $NIX_BUILD_CORES
+          '';
+          cargoTest = attrs.cargoTest or ''
+            cargo test --$CARGO_BUILD_PROFILE -j $NIX_BUILD_CORES
           '';
         };
       buildPackageSingleStep = src: attrs:
@@ -129,7 +119,7 @@ with rec
           (defaultBuildAttrs //
             { name = "foo";
               version = "bar";
-              inherit cratePaths crateDependencies cargoBuild cargoTest;
+              inherit cratePaths crateDependencies preBuild cargoBuild cargoTest;
             } //
             (removeAttrs attrs [ "targets" "usePureFromTOML" "cargotomls" ]) //
             { builtDependencies =
@@ -150,14 +140,11 @@ with rec
                       inherit cratePaths crateDependencies ;
                     } //
                   (removeAttrs attrs [ "targets" "usePureFromTOML" "cargotomls" ]) //
-                  { cargoBuild =
+                  { preBuild = "";
+                    cargoBuild =
                       ''
-                        for p in $cratePaths; do
-                          pushd "$p"
-                          cargo build --$CARGO_BUILD_PROFILE -j $NIX_BUILD_CORES || true
-                          cargo test --$CARGO_BUILD_PROFILE -j $NIX_BUILD_CORES || true
-                          popd
-                        done
+                        cargo build --$CARGO_BUILD_PROFILE -j $NIX_BUILD_CORES || true
+                        cargo test --$CARGO_BUILD_PROFILE -j $NIX_BUILD_CORES || true
                       '';
                     cargoTest = "echo no tests for deps";
                     doCheck = false;
