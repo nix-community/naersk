@@ -177,12 +177,13 @@ with rec
             doc_arg="--release"
           fi
 
-          for p in $cratePaths; do
-            pushd "$p"
-            echo "Documenting $p"
-            cargo doc --offline $doc_arg || ${if doDocFail then "false" else "true" }
-            popd
-          done
+          # TODO: Figure out why building docs per crate adds an extra 3m to the build.
+          # for p in $cratePaths; do
+          #   pushd "$p"
+          #   echo "Documenting $p"
+          cargo doc --offline $doc_arg || ${if doDocFail then "false" else "true" }
+          #   popd
+          # done
 
           ${lib.optionalString removeReferencesToSrcFromDocs ''
           # Remove references to the source derivation to reduce closure size
