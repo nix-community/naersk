@@ -235,6 +235,10 @@ with rec
 
             runHook postInstall
           '';
+        passthru = {
+          # Handy for debugging
+          inherit builtDependencies;
+        };
       }
       )
       ;
