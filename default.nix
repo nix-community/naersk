@@ -98,9 +98,9 @@ with rec
           cargoBuild = attrs.cargoBuild or ''
             cargo build --$CARGO_BUILD_PROFILE -j $NIX_BUILD_CORES -Z unstable-options --out-dir out
           '';
-          cargoTest = attrs.cargoTest or ''
-            cargo test --$CARGO_BUILD_PROFILE -j $NIX_BUILD_CORES
-          '';
+          cargoTestCommands = attrs.cargoTestCommands or [
+            "cargo test --$CARGO_BUILD_PROFILE -j $NIX_BUILD_CORES"
+          ];
         };
       buildPackageSingleStep = src: attrs:
         with (commonAttrs src attrs);
@@ -108,7 +108,7 @@ with rec
           ( defaultBuildAttrs //
             { name = "some-name";
               version = "some-version";
-              inherit cratePaths crateDependencies cargoBuild cargoTest;
+              inherit cratePaths crateDependencies cargoBuild cargoTestCommands;
             } //
             (removeAttrs attrs [ "targets" "usePureFromTOML" "cargotomls" ])
           );
@@ -119,7 +119,7 @@ with rec
           (defaultBuildAttrs //
             { name = "foo";
               version = "bar";
-              inherit cratePaths crateDependencies preBuild cargoBuild cargoTest;
+              inherit cratePaths crateDependencies preBuild cargoBuild cargoTestCommands;
             } //
             (removeAttrs attrs [ "targets" "usePureFromTOML" "cargotomls" ]) //
             { builtDependencies =
@@ -137,18 +137,11 @@ with rec
                   (defaultBuildAttrs //
                     { name = "foo-deps";
                       version = "bar";
-                      inherit cratePaths crateDependencies ;
+                      inherit cratePaths crateDependencies cargoBuild;
                     } //
                   (removeAttrs attrs [ "targets" "usePureFromTOML" "cargotomls" ]) //
                   { preBuild = "";
-                    cargoBuild =
-                      ''
-                        cargo build --$CARGO_BUILD_PROFILE -j $NIX_BUILD_CORES || true
-                        cargo clippy -- -D clippy::all || true
-                        cargo test --$CARGO_BUILD_PROFILE -j $NIX_BUILD_CORES || true
-                      '';
-                    cargoTest = "echo no tests for deps";
-                    doCheck = false;
+                    cargoTestCommands = map (cmd: "${cmd} || true") cargoTestCommands;
                     copyTarget = true;
                     copyBins = false;
                     copyDocsToSeparateOutput = false;

@@ -3,7 +3,7 @@ src:
   #| What command to run during the build phase
 , cargoBuild
 , #| What command to run during the test phase
-  cargoTest
+  cargoTestCommands
   #| Whether or not to forward intermediate build artifacts to $out
 , copyTarget ? false
   #| Whether or not to copy binaries to $out/bin
@@ -165,7 +165,7 @@ with rec
           ''
             runHook preCheck
 
-            logRun ${cargoTest}
+            ${lib.concatMapStringsSep "\n" (cmd: "logRun ${cmd}") cargoTestCommands}
 
             runHook postCheck
           '';
