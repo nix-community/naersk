@@ -96,10 +96,10 @@ with rec
             find . -type f -name '*.rs' -exec touch {} +
           '';
           cargoBuild = attrs.cargoBuild or ''
-            cargo build --$CARGO_BUILD_PROFILE -j $NIX_BUILD_CORES -Z unstable-options --out-dir out
+            cargo build "''${cargo_release}" -j $NIX_BUILD_CORES -Z unstable-options --out-dir out
           '';
           cargoTestCommands = attrs.cargoTestCommands or [
-            "cargo test --$CARGO_BUILD_PROFILE -j $NIX_BUILD_CORES"
+            ''cargo test "''${cargo_release}" -j $NIX_BUILD_CORES''
           ];
         };
       buildPackageSingleStep = src: attrs:

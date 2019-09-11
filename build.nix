@@ -89,8 +89,6 @@ with rec
         outputs = [ "out" ] ++ lib.optional (doDoc && copyDocsToSeparateOutput) "doc";
         preInstallPhases = lib.optional doDoc [ "docPhase" ];
 
-        CARGO_BUILD_PROFILE = if release then "release" else "debug";
-
         # Otherwise specifying CMake as a dep breaks the build
         dontUseCmakeConfigure = true;
 
@@ -118,6 +116,8 @@ with rec
 
         configurePhase =
           ''
+            cargo_release=( ${lib.optionalString release "--release" } )
+
             runHook preConfigure
 
             mkdir -p target
@@ -174,17 +174,7 @@ with rec
         docPhase = lib.optionalString doDoc ''
           runHook preDoc
 
-          # cargo doc defaults to "debug", but it doesn't have a
-          # "--debug" flag, only "--release", so we can't just pass
-          # "--$CARGO_BUILD_PROFILE" like we do with "cargo build" and "cargo
-          # test"
-          doc_arg=""
-          if [ "$CARGO_BUILD_PROFILE" == "release" ]
-          then
-            doc_arg="--release"
-          fi
-
-          logRun cargo doc --offline $doc_arg || ${if doDocFail then "false" else "true" }
+          logRun cargo doc --offline "''${cargo_release[*]}" || ${if doDocFail then "false" else "true" }
 
           ${lib.optionalString removeReferencesToSrcFromDocs ''
           # Remove references to the source derivation to reduce closure size
