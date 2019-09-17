@@ -120,6 +120,11 @@ with rec
 
             runHook preConfigure
 
+            logRun() {
+              echo "$@"
+              eval "$@"
+            }
+
             mkdir -p target
 
             cat ${builtinz.writeJSON "dependencies-json" builtDependencies} |\
@@ -150,11 +155,6 @@ with rec
         buildPhase =
           ''
             runHook preBuild
-
-            logRun() {
-              echo "$@"
-              eval "$@"
-            }
 
             logRun ${cargoBuild}
 
