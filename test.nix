@@ -118,6 +118,7 @@ rec
   #{ inherit cargo; };
 
   # TODO: figure out why 'cargo install' rebuilds some deps
+  /*
   cargo =
     with rec
     {
@@ -160,4 +161,5 @@ rec
           LIBGIT2_SYS_USE_PKG_CONFIG = 1;
         };
     };
+  */
 }
