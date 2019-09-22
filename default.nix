@@ -112,7 +112,8 @@ with rec
         } // (removeAttrs attrs [ "targets" "usePureFromTOML" ])
       );
 
-  buildPackageIncremental = src: attrs:
+  buildPackageIncremental = { src, ... }@attrs_:
+    with { attrs = removeAttrs attrs_ [ "src" ]; };
     with (commonAttrs src attrs);
     with rec
       # FIXME: directDependencies should be built on a per-cargotoml basis.

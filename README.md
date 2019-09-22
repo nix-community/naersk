@@ -14,10 +14,13 @@ And then
 
 ``` nix
 let
-    pkgs = import <nixpkgs> {};
-    sources = import ./nix/sources.nix;
-    naersk = pkgs.callPackage sources.naersk {};
-in naersk.buildPackage ./path/to/rust {}
+  pkgs = import <nixpkgs> {};
+  sources = import ./nix/sources.nix;
+  naersk = pkgs.callPackage sources.naersk {};
+in
+naersk.buildPackage {
+  src = ./path/to/rust;
+}
 ```
 
 _NOTE_: `./path/to/rust/` should contain a `Cargo.lock`.
