@@ -18,16 +18,17 @@ with
   { builtinz = builtins // pkgs.callPackage ./builtins {}; };
 
 rec
-{ rustfmt = naersk.buildPackage sources.rustfmt {};
+{ rustfmt = naersk.buildPackage sources.rustfmt { doDocFail = false; };
   rustfmt_test = pkgs.runCommand "rustfmt-test"
     { buildInputs = [ rustfmt ]; }
     "rustfmt --help && cargo-fmt --help && touch $out";
 
   ripgrep = naersk.buildPackage sources.ripgrep { usePureFromTOML = false; };
-  # XXX: executables are missing
-  #ripgrep_test = pkgs.runCommand "ripgrep-test"
-    #{ buildInputs = [ ripgrep ]; }
-    #"rg --help && touch $out";
+  # XXX: the `rg` executable is missing because we don't do `cargo install
+  # --path .`.
+  # ripgrep_test = pkgs.runCommand "ripgrep-test"
+  #   { buildInputs = [ ripgrep ]; }
+  #   "rg --help && touch $out";
 
   ripgrep-all = naersk.buildPackage sources.ripgrep-all {};
   ripgrep-all_test = pkgs.runCommand "ripgrep-all-test"
@@ -76,9 +77,6 @@ rec
   #   Error: Cannot parse as TOML (<string>(92, 14): msg)
   #rust = naersk.buildPackage sources.rust {};
 
-  rustlingsInc = naersk.buildPackage sources.rustlings
-    { doCheck = false; };
-
   rustlings = naersk.buildPackage sources.rustlings {};
 
   simple-dep = naersk.buildPackage
@@ -94,7 +92,7 @@ rec
     #sources.servo
     #{ inherit cargo; };
 
-  # TODO: figure out why 'cargo install' rebuilds some deps
+  # TODO: fix toml
   cargo =
     with rec
       { cargoSrc = sources.cargo;
@@ -128,8 +126,11 @@ rec
                 pkgs.curl
                 pkgs.git
               ];
-            NIX_LDFLAGS="-F${pkgs.darwin.apple_sdk.frameworks.CoreFoundation}/Library/Frameworks -framework CoreFoundation ";
             LIBGIT2_SYS_USE_PKG_CONFIG = 1;
+          } // pkgs.lib.optionalAttrs pkgs.stdenv.isDarwin
+          {
+            NIX_LDFLAGS="-F${pkgs.darwin.apple_sdk.frameworks.CoreFoundation}/Library/Frameworks -framework CoreFoundation ";
+
           };
       };
 }

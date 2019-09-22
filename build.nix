@@ -1,12 +1,17 @@
 src:
-{ #| What command to run during the build phase
-  cargoBuild
+{ preBuild
+  #| What command to run during the build phase
+, cargoBuild
 , #| What command to run during the test phase
-  cargoTest ? "cargo test --$CARGO_BUILD_PROFILE"
-  #| Whether or not to forward build artifacts to $out
-, copyBuildArtifacts ? false
+  cargoTestCommands
+  #| Whether or not to forward intermediate build artifacts to $out
+, copyTarget ? false
+  #| Whether or not to copy binaries to $out/bin
+, copyBins ? true
 , doCheck ? true
 , doDoc ? true
+  #| Whether or not the rustdoc can fail the build
+, doDocFail ? false
 , copyDocsToSeparateOutput ? true
   #| Whether to remove references to source code from the generated cargo docs
   #  to reduce Nix closure size. By default cargo doc includes snippets like the
@@ -32,8 +37,7 @@ src:
 , buildInputs ? []
 , nativeBuildInputs ? []
 , builtDependencies ? []
-, cargolock ? null
-, cargotoml ? null
+, replaceToml ? true
 , release ? true
 , stdenv
 , lib
@@ -46,6 +50,7 @@ src:
 , runCommand
 , remarshal
 , crateDependencies
+# TODO: rename to "members"
 , cratePaths
 }:
 
@@ -65,25 +70,24 @@ with rec
           nativeBuildInputs
           cratePaths
           name
-          version;
+          version
+          preBuild;
 
-      cargoconfig = builtinz.toTOML
-        { source =
-            { crates-io = { replace-with = "nix-sources"; } ;
-              nix-sources =
-                { directory = symlinkJoin
-                    { name = "crates-io";
-                      paths = map (v: unpackCrate v.name v.version v.sha256)
-                        crateDependencies;
-                    };
-                };
-            };
-        };
+        cargoconfig = builtinz.toTOML
+          { source =
+              { crates-io = { replace-with = "nix-sources"; } ;
+                nix-sources =
+                  { directory = symlinkJoin
+                      { name = "crates-io";
+                        paths = map (v: unpackCrate v.name v.version v.sha256)
+                          crateDependencies;
+                      };
+                  };
+              };
+          };
 
         outputs = [ "out" ] ++ lib.optional (doDoc && copyDocsToSeparateOutput) "doc";
         preInstallPhases = lib.optional doDoc [ "docPhase" ];
-
-        CARGO_BUILD_PROFILE = if release then "release" else "debug";
 
         # Otherwise specifying CMake as a dep breaks the build
         dontUseCmakeConfigure = true;
@@ -112,27 +116,14 @@ with rec
 
         configurePhase =
           ''
+            cargo_release=( ${lib.optionalString release "--release" } )
+
             runHook preConfigure
 
-            if [ -n "$cargolock" ]
-            then
-              echo "Setting Cargo.lock"
-              if [ -f "Cargo.lock" ]
-              then
-                echo "WARNING: replacing existing Cargo.lock"
-              fi
-              install -m 644 "$cargolock" Cargo.lock
-            fi
-
-            if [ -n "$cargotoml" ]
-            then
-              echo "Setting Cargo.toml"
-              if [ -f "Cargo.toml" ]
-              then
-                echo "WARNING: replacing existing Cargo.toml"
-              fi
-              install -m 644 "$cargotoml" Cargo.toml
-            fi
+            logRun() {
+              echo "$@"
+              eval "$@"
+            }
 
             mkdir -p target
 
@@ -165,9 +156,7 @@ with rec
           ''
             runHook preBuild
 
-            echo "Running build command:"
-            echo "  ${cargoBuild}"
-            ${cargoBuild}
+            logRun ${cargoBuild}
 
             runHook postBuild
           '';
@@ -176,9 +165,7 @@ with rec
           ''
             runHook preCheck
 
-            echo "Running test command:"
-            echo "  ${cargoTest}"
-            ${cargoTest}
+            ${lib.concatMapStringsSep "\n" (cmd: "logRun ${cmd}") cargoTestCommands}
 
             runHook postCheck
           '';
@@ -187,20 +174,7 @@ with rec
         docPhase = lib.optionalString doDoc ''
           runHook preDoc
 
-          # cargo doc defaults to "debug", but it doesn't have a
-          # "--debug" flag, only "--release", so we can't just pass
-          # "--$CARGO_BUILD_PROFILE" like we do with "cargo build" and "cargo
-          # test"
-          doc_arg=""
-          if [ "$CARGO_BUILD_PROFILE" == "release" ]
-          then
-            doc_arg="--release"
-          fi
-
-          cargoDoc="cargo doc --offline $doc_arg"
-          echo "Running doc command:"
-          echo "  $cargoDoc"
-          $cargoDoc
+          logRun cargo doc --offline "''${cargo_release[*]}" || ${if doDocFail then "false" else "true" }
 
           ${lib.optionalString removeReferencesToSrcFromDocs ''
           # Remove references to the source derivation to reduce closure size
@@ -216,34 +190,13 @@ with rec
           ''
             runHook preInstall
 
-            # cargo install defaults to "release", but it doesn't have a
-            # "--release" flag, only "--debug", so we can't just pass
-            # "--$CARGO_BUILD_PROFILE" like we do with "cargo build" and "cargo
-            # test"
-            install_arg=""
-            if [ "$CARGO_BUILD_PROFILE" == "debug" ]
-            then
-              install_arg="--debug"
-            fi
-
+            ${lib.optionalString copyBins ''
             mkdir -p $out/bin
-            for p in $cratePaths; do
-              # XXX: we don't quote install_arg to avoid passing an empty arg
-              # to cargo
-              cargo install \
-                --path $p \
-                $install_arg \
-                --bins \
-                --root $out ||\
-                echo "WARNING: Member wasn't installed: $p"
-            done
+            find out -type f -executable -exec cp {} $out/bin \;
+            ''}
 
+            ${lib.optionalString copyTarget ''
             mkdir -p $out
-            mkdir -p $out/lib
-
-            ${lib.optionalString copyBuildArtifacts ''
-            cp -vr target/$CARGO_BUILD_PROFILE/deps/* $out/lib ||\
-              echo "WARNING: couldn't copy libs"
             cp -r target $out
             ''}
 
@@ -253,11 +206,11 @@ with rec
 
             runHook postInstall
           '';
-      } //
-      lib.optionalAttrs (! isNull cargolock )
-        { cargolock = builtinz.writeTOML "Cargo.lock" cargolock; } //
-      lib.optionalAttrs (! isNull cargotoml )
-        { cargotoml = builtinz.writeTOML "Cargo.toml" cargotoml; }
+        passthru = {
+          # Handy for debugging
+          inherit builtDependencies;
+        };
+      }
       )
       ;
 
