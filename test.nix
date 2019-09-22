@@ -1,24 +1,28 @@
 with rec
-  { sources = import ./nix/sources.nix ;
-    pkgs = import sources.nixpkgs {};
-    rustPackages =
-      with sources;
-      (pkgs.callPackage rust-nightly {}).rust {inherit (rust-nightly) date; };
+{
+  sources = import ./nix/sources.nix;
+  pkgs = import sources.nixpkgs {};
+  rustPackages =
+    with sources;
+    (pkgs.callPackage rust-nightly {}).rust { inherit (rust-nightly) date; };
 
-    naersk = pkgs.callPackage ./default.nix
-      # We need a more recent rustc for building cargo:
-      #   error: internal compiler error: src/librustc/ty/subst.rs:491: Type
-      #   parameter `T/#1` (T/1) out of range when substituting (root type=Some(T))
-      #   substs=[T]
-      { cargo = rustPackages; rustc = rustPackages;
-      };
-  };
+  naersk = pkgs.callPackage ./default.nix
+    # We need a more recent rustc for building cargo:
+    #   error: internal compiler error: src/librustc/ty/subst.rs:491: Type
+    #   parameter `T/#1` (T/1) out of range when substituting (root type=Some(T))
+    #   substs=[T]
+    {
+      cargo = rustPackages;
+      rustc = rustPackages;
+    };
+};
 
 with
-  { builtinz = builtins // pkgs.callPackage ./builtins {}; };
+{ builtinz = builtins // pkgs.callPackage ./builtins {}; };
 
 rec
-{ rustfmt = naersk.buildPackage sources.rustfmt {};
+{
+  rustfmt = naersk.buildPackage sources.rustfmt {};
   rustfmt_test = pkgs.runCommand "rustfmt-test"
     { buildInputs = [ rustfmt ]; }
     "rustfmt --help && cargo-fmt --help && touch $out";
@@ -26,8 +30,8 @@ rec
   ripgrep = naersk.buildPackage sources.ripgrep { usePureFromTOML = false; };
   # XXX: executables are missing
   #ripgrep_test = pkgs.runCommand "ripgrep-test"
-    #{ buildInputs = [ ripgrep ]; }
-    #"rg --help && touch $out";
+  #{ buildInputs = [ ripgrep ]; }
+  #"rg --help && touch $out";
 
   ripgrep-all = naersk.buildPackage sources.ripgrep-all {};
   ripgrep-all_test = pkgs.runCommand "ripgrep-all-test"
@@ -35,8 +39,10 @@ rec
     "rga --help && touch $out";
 
   lorri = naersk.buildPackage sources.lorri
-    { override = _oldAttrs:
-        { BUILD_REV_COUNT = 1;
+    {
+      override = _oldAttrs:
+        {
+          BUILD_REV_COUNT = 1;
           RUN_TIME_CLOSURE = "${sources.lorri}/nix/runtime.nix";
         };
       doCheck = false;
@@ -56,16 +62,19 @@ rec
 
   # TODO: change this when niv finally supports submodules
   lucetSrc = pkgs.fetchFromGitHub
-    { inherit (sources.lucet) owner repo rev;
+    {
+      inherit (sources.lucet) owner repo rev;
       fetchSubmodules = true;
       sha256 = "1vwz7gijq4pcs2dvaazmzcdyb8d64y5qss6s4j2wwigsgqmpfdvs";
-    } ;
+    };
   lucet = naersk.buildPackage lucetSrc
-    { nativeBuildInputs = [ pkgs.cmake pkgs.python3 ] ;
+    {
+      nativeBuildInputs = [ pkgs.cmake pkgs.python3 ];
       doDoc = false;
       doCheck = false;
       targets =
-        [ "lucetc"
+        [
+          "lucetc"
           "lucet-runtime"
           "lucet-runtime-internals"
           "lucet-module-data"
@@ -91,44 +100,49 @@ rec
 
   # Fails with some remarshal error
   #servo = naersk.buildPackage
-    #sources.servo
-    #{ inherit cargo; };
+  #sources.servo
+  #{ inherit cargo; };
 
   # TODO: figure out why 'cargo install' rebuilds some deps
   cargo =
     with rec
-      { cargoSrc = sources.cargo;
-        # cannot use the pure readTOML
-        cargoCargoToml = builtinz.readTOML false "${cargoSrc}/Cargo.toml";
+    {
+      cargoSrc = sources.cargo;
+      # cannot use the pure readTOML
+      cargoCargoToml = builtinz.readTOML false "${cargoSrc}/Cargo.toml";
 
-        # XXX: this works around some hack that breaks the build. For more info
-        # on the hack, see
-        # https://github.com/rust-lang/rust/blob/b43eb4235ac43c822d903ad26ed806f34cc1a14a/Cargo.toml#L63-L65
-        cargoCargoToml' = cargoCargoToml //
-          { dependencies = pkgs.lib.filterAttrs (k: _:
-              k != "rustc-workspace-hack")
-              cargoCargoToml.dependencies;
-          };
-
-        cargoCargoLock = builtinz.readTOML true "${sources.rust}/Cargo.lock";
+      # XXX: this works around some hack that breaks the build. For more info
+      # on the hack, see
+      # https://github.com/rust-lang/rust/blob/b43eb4235ac43c822d903ad26ed806f34cc1a14a/Cargo.toml#L63-L65
+      cargoCargoToml' = cargoCargoToml // {
+        dependencies = pkgs.lib.filterAttrs (
+          k: _:
+            k != "rustc-workspace-hack"
+        )
+          cargoCargoToml.dependencies;
       };
+
+      cargoCargoLock = builtinz.readTOML true "${sources.rust}/Cargo.lock";
+    };
     naersk.buildPackage cargoSrc
-      { cargolock = cargoCargoLock;
+      {
+        cargolock = cargoCargoLock;
         cargotoml = cargoCargoToml';
 
         # Tests fail, although cargo seems to operate normally
         doCheck = false;
 
         override = oldAttrs:
-          { buildInputs = oldAttrs.buildInputs ++
-              [ pkgs.pkgconfig
-                pkgs.openssl
-                pkgs.libgit2
-                pkgs.libiconv
-                pkgs.curl
-                pkgs.git
-              ];
-            NIX_LDFLAGS="-F${pkgs.darwin.apple_sdk.frameworks.CoreFoundation}/Library/Frameworks -framework CoreFoundation ";
+          {
+            buildInputs = oldAttrs.buildInputs ++ [
+              pkgs.pkgconfig
+              pkgs.openssl
+              pkgs.libgit2
+              pkgs.libiconv
+              pkgs.curl
+              pkgs.git
+            ];
+            NIX_LDFLAGS = "-F${pkgs.darwin.apple_sdk.frameworks.CoreFoundation}/Library/Frameworks -framework CoreFoundation ";
             LIBGIT2_SYS_USE_PKG_CONFIG = 1;
           };
       };
