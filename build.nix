@@ -227,7 +227,7 @@ with rec
       runCommand "unpack-${name}-${version}" {}
       ''
         mkdir -p $out
-        tar -xvzf ${crate} -C $out
+        tar -xzf ${crate} -C $out
         echo '{"package":"${sha256}","files":{}}' > $out/${name}-${version}/.cargo-checksum.json
       '';
   };
