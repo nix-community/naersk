@@ -1,0 +1,47 @@
+version: 2
+
+jobs:
+  build-nix:
+
+    machine:
+        enabled: true
+
+    steps:
+
+      - run:
+          name: Prepare nix directories
+          command: |
+            sudo mkdir -p /nix
+            sudo chown circleci /nix
+
+            sudo mkdir -p /etc/nix
+
+            # Set a new TMP because /run/user is (1) pretty small and (2)
+            # mounted with noexec
+            new_tmp=$HOME/tmp
+            mkdir -p $new_tmp
+            echo "export TMPDIR=$new_tmp" >> $BASH_ENV
+
+      - run:
+          name: Install Nix
+          command: |
+            until bash <(curl https://nixos.org/nix/install)
+            do
+              echo "Nix install failed, retrying"
+              sudo rm -rf /nix
+              sudo mkdir -p /nix
+              sudo chown circleci /nix
+            done
+            echo '. /home/circleci/.nix-profile/etc/profile.d/nix.sh' >> $BASH_ENV
+
+      - checkout
+
+      - run:
+          name: Nix build
+          command: nix-build --sandbox --no-link --cores 0 ./test.nix
+
+workflows:
+  version: 2
+  build:
+    jobs:
+        - build-nix
