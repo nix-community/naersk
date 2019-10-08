@@ -2,16 +2,8 @@
 with rec
   { sources = import ./nix/sources.nix ;
     pkgs = import sources.nixpkgs { inherit system ; };
-    rustPackages =
-      with sources;
-      (pkgs.callPackage rust-nightly {}).rust {inherit (rust-nightly) date; };
-
     naersk = pkgs.callPackage ./default.nix
-      # We need a more recent rustc for building cargo:
-      #   error: internal compiler error: src/librustc/ty/subst.rs:491: Type
-      #   parameter `T/#1` (T/1) out of range when substituting (root type=Some(T))
-      #   substs=[T]
-      { cargo = rustPackages; rustc = rustPackages;
+      { inherit (pkgs.rustPackages) cargo rustc;
       };
   };
 
