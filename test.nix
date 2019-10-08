@@ -1,6 +1,7 @@
+{ system ? builtins.currentSystem }:
 with rec
   { sources = import ./nix/sources.nix ;
-    pkgs = import sources.nixpkgs {};
+    pkgs = import sources.nixpkgs { inherit system ; };
     rustPackages =
       with sources;
       (pkgs.callPackage rust-nightly {}).rust {inherit (rust-nightly) date; };
