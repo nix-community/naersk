@@ -34,13 +34,10 @@ src:
 , rustc
 , cargo
 , buildInputs ? []
-, nativeBuildInputs ? []
 , builtDependencies ? []
-, replaceToml ? true
 , release ? true
 , stdenv
 , lib
-, llvmPackages
 , rsync
 , jq
 , darwin
@@ -49,8 +46,6 @@ src:
 , runCommand
 , remarshal
 , crateDependencies
-# TODO: rename to "members"
-, cratePaths
 }:
 
 with
@@ -65,8 +60,6 @@ stdenv.mkDerivation
 { inherit
     src
     doCheck
-    nativeBuildInputs
-    cratePaths
     name
     version
     preBuild;
