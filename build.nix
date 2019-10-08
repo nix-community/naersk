@@ -29,19 +29,17 @@ src:
   #  Which drops the run-time dependency on the crates-io source thereby
   #  significantly reducing the Nix closure size.
 , removeReferencesToSrcFromDocs ? true
+, cratePaths
 , name
 , version
 , rustc
 , cargo
 , override ? null
 , buildInputs ? []
-, nativeBuildInputs ? []
 , builtDependencies ? []
-, replaceToml ? true
 , release ? true
 , stdenv
 , lib
-, llvmPackages
 , rsync
 , jq
 , darwin
@@ -50,8 +48,6 @@ src:
 , runCommand
 , remarshal
 , crateDependencies
-# TODO: rename to "members"
-, cratePaths
 }:
 
 with

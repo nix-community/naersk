@@ -3,7 +3,6 @@
 , symlinkJoin
 , stdenv
 , writeText
-, llvmPackages
 , jq
 , rsync
 , darwin
@@ -18,7 +17,6 @@ with
 let
   defaultBuildAttrs =
       { inherit
-          llvmPackages
           jq
           runCommand
           lib
