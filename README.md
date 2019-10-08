@@ -1,5 +1,7 @@
 # Naersk
 
+[![CircleCI](https://circleci.com/gh/nmattia/naersk.svg?style=svg)](https://circleci.com/gh/nmattia/naersk)
+
 Nix support for building [cargo] crates.
 
 ## Install
