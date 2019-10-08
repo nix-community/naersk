@@ -60,14 +60,15 @@
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "nixpkgs": {
-        "branch": "nixos-19.03",
+        "branch": "master",
         "description": "Nixpkgs/NixOS branches that track the Nixpkgs/NixOS channels",
+        "homepage": null,
         "owner": "NixOS",
-        "repo": "nixpkgs-channels",
-        "rev": "1601f559e89ba71091faa26888711d4dd24c2d4d",
-        "sha256": "0iayyz9617mz6424spwbi9qvmcl8hiql42czxg8mi4ycq4p1k0dx",
+        "repo": "nixpkgs",
+        "rev": "5a952d08220d4690d2d448e6776ddf5d6ac13e09",
+        "sha256": "01rbrvf3i8823kyy66s26qfg73ddlc4xs8ikb8afabl68k1d7lpr",
         "type": "tarball",
-        "url": "https://github.com/NixOS/nixpkgs-channels/archive/1601f559e89ba71091faa26888711d4dd24c2d4d.tar.gz",
+        "url": "https://github.com/NixOS/nixpkgs/archive/5a952d08220d4690d2d448e6776ddf5d6ac13e09.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "noria": {
@@ -116,19 +117,6 @@
         "sha256": "10r5q5vgpmqkgq942qzajfgz5fwm3m9jbg8h22ykb62nsi35wv02",
         "type": "tarball",
         "url": "https://github.com/rust-lang/rust/archive/8ebd67e4ee394cad9441a801f2022724ae7e07db.tar.gz",
-        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
-    },
-    "rust-nightly": {
-        "branch": "master",
-        "date": "2019-06-16",
-        "description": "A Nix expression for nightly Rust versions",
-        "homepage": "",
-        "owner": "solson",
-        "repo": "rust-nightly-nix",
-        "rev": "7081bacc88037d9e218f62767892102c96b0a321",
-        "sha256": "0dzqmbwl2fkrdhj3vqczk7fqah8q7mfn40wx9vqavcgcsss63m8p",
-        "type": "tarball",
-        "url": "https://github.com/solson/rust-nightly-nix/archive/7081bacc88037d9e218f62767892102c96b0a321.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "rustfmt": {
