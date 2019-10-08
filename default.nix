@@ -45,6 +45,8 @@ with rec
         { usePureFromTOML = attrs.usePureFromTOML or true;
           readTOML = builtinz.readTOML usePureFromTOML;
 
+          override = attrs.override or (_oldAttrs: {});
+
           # The members we want to build
           # (list of directory names)
           wantedMembers =
@@ -116,54 +118,57 @@ with rec
         };
       buildPackageSingleStep = src: attrs:
         with (commonAttrs src attrs);
-        import ./build.nix src
+        let finalDrv = import ./build.nix src
           ( defaultBuildAttrs //
             { name = "some-name";
               version = "some-version";
               inherit cratePaths crateDependencies cargoBuild cargoTestCommands;
             } //
-            (removeAttrs attrs [ "targets" "usePureFromTOML" "cargotomls" ])
+            (removeAttrs attrs [ "targets" "usePureFromTOML" "cargotomls" "override"])
           );
+        in finalDrv.overrideAttrs override;
 
       buildPackageIncremental = src: attrs:
         with (commonAttrs src attrs);
-        import ./build.nix src
-          (defaultBuildAttrs //
-            { name = "foo";
-              version = "bar";
-              inherit cratePaths crateDependencies preBuild cargoBuild cargoTestCommands;
-            } //
-            (removeAttrs attrs [ "targets" "usePureFromTOML" "cargotomls" ]) //
-            { builtDependencies =
-                [(
-                  import ./build.nix
-                  (libb.dummySrc
-                    { cargoconfig =
-                        if builtinz.pathExists (src + "/.cargo/config")
-                        then builtins.readFile (src + "/.cargo/config")
-                        else "";
-                      cargolock = cargolock;
-                      cargotomls = cargotomls;
-                    }
-                  )
-                  (defaultBuildAttrs //
-                    { name = "foo-deps";
-                      version = "bar";
-                      inherit cratePaths crateDependencies cargoBuild;
-                    } //
-                  (removeAttrs attrs [ "targets" "usePureFromTOML" "cargotomls" ]) //
-                  { preBuild = "";
-                    cargoTestCommands = map (cmd: "${cmd} || true") cargoTestCommands;
-                    copyTarget = true;
-                    copyBins = false;
-                    copyDocsToSeparateOutput = false;
-                    name = "some-name";
-                  }
-                  )
-                )];
-            });
+        let
+          someNameDrv =
+            import ./build.nix
+            (libb.dummySrc
+              { cargoconfig =
+                  if builtinz.pathExists (src + "/.cargo/config")
+                  then builtins.readFile (src + "/.cargo/config")
+                  else "";
+                cargolock = cargolock;
+                cargotomls = cargotomls;
+              }
+            )
+            (defaultBuildAttrs //
+              { name = "foo-deps";
+                version = "bar";
+                inherit cratePaths crateDependencies cargoBuild;
+              } //
+            (removeAttrs attrs [ "targets" "usePureFromTOML" "cargotomls" "override"]) //
+            { preBuild = "";
+              cargoTestCommands = map (cmd: "${cmd} || true") cargoTestCommands;
+              copyTarget = true;
+              copyBins = false;
+              copyDocsToSeparateOutput = false;
+              name = "some-name";
+            }
+            );
+          finalDrv =
+            import ./build.nix src
+              (defaultBuildAttrs //
+                { name = "foo";
+                  version = "bar";
+                  inherit cratePaths crateDependencies preBuild cargoBuild cargoTestCommands;
+                } //
+                (removeAttrs attrs [ "targets" "usePureFromTOML" "cargotomls" "override" ]) //
+                { builtDependencies = [ (someNameDrv.overrideAttrs override) ]; }
+                );
+        in finalDrv.overrideAttrs override;
   };
 
-{ inherit buildPackageSingleStep buildPackageIncremental crates;
+{ inherit buildPackageSingleStep buildPackageIncremental;
   buildPackage = buildPackageIncremental;
 }

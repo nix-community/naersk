@@ -181,4 +181,21 @@ rec
 
     allRemoteDependencies = cargolock:
         [];
+
+    # XXX: the actual crate format is not documented but in practice is a
+    # gzipped tar; we simply unpack it and introduce a ".cargo-checksum.json"
+    # file that cargo itself uses to double check the sha256
+    unpackCrate = name: version: sha256:
+      with
+      { crate = builtins.fetchurl
+          { url = "https://crates.io/api/v1/crates/${name}/${version}/download";
+            inherit sha256;
+          };
+      };
+      runCommand "unpack-${name}-${version}" {}
+      ''
+        mkdir -p $out
+        tar -xzf ${crate} -C $out
+        echo '{"package":"${sha256}","files":{}}' > $out/${name}-${version}/.cargo-checksum.json
+      '';
 }
