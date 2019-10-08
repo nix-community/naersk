@@ -1,7 +1,7 @@
 src:
 { preBuild
   #| What command to run during the build phase
-, cargoBuild ? "\ncargo build \"\${cargo_release}\" -j $NIX_BUILD_CORES -Z unstable-options --out-dir out\n"
+, cargoBuild ? "cargo build \"\${cargo_release}\" -j $NIX_BUILD_CORES -Z unstable-options --out-dir out"
 , #| What command to run during the test phase
   cargoTestCommands
   #| Whether or not to forward intermediate build artifacts to $out
