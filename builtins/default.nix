@@ -51,7 +51,7 @@ rec
         parts =
           let
             # [ "" "nix" "store" "123123" "foo" "bar" ]
-            parts = lib.splitString "/" path;
+            parts = lib.splitString "/" (toString path);
             len = lib.length parts;
           in
           map (n: lib.concatStringsSep "/" (lib.take n parts)) (lib.range 3 len);
