@@ -7,8 +7,10 @@ with
   };
 rec
 {
-    # creates an attrset from package name to package version + sha256
-    # (note: this includes the package's dependencies)
+    # The list of _all_ crates (incl. transitive dependencies) with name,
+    # version and sha256 of the crate
+    # Example:
+    #   [ { name = "wabt", version = "2.0.6", sha256 = "..." } ]
     mkVersions = cargolock:
       if builtins.hasAttr "metadata" cargolock then
 
@@ -90,7 +92,7 @@ rec
       }:
       let
         config = writeText "config" cargoconfig;
-        cargolock' = builtinz.writeTOML "Cargo.toml" cargolock;
+        cargolock' = builtinz.writeTOML "Cargo.lock" cargolock;
         fixupCargoToml = cargotoml:
           let attrs =
                 # Since we pretend everything is a lib, we remove any mentions
@@ -101,7 +103,7 @@ rec
                       };
         cargotomlss = writeText "foo"
           (lib.concatStrings (lib.mapAttrsToList
-            (k: v: "${k}\n${builtinz.writeTOML "Cargo.toml-ds-aa" (fixupCargoToml v)}\n")
+            (k: v: "${k}\n${builtinz.writeTOML "Cargo.toml" (fixupCargoToml v)}\n")
             cargotomls
           ));
 
