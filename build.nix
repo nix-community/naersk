@@ -94,13 +94,6 @@ with rec
 
         buildInputs =
           [ cargo
-
-            # needed for "dsymutil"
-            llvmPackages.stdenv.cc.bintools
-
-            # needed for "cc"
-            llvmPackages.stdenv.cc
-
             # needed at various steps in the build
             jq
             rsync
@@ -110,8 +103,6 @@ with rec
             darwin.cf-private
           ]) ++ buildInputs;
 
-        LIBCLANG_PATH="${llvmPackages.libclang.lib}/lib";
-        CXX="clang++";
         RUSTC="${rustc}/bin/rustc";
 
         configurePhase =
