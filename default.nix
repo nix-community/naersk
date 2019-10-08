@@ -45,6 +45,8 @@ with rec
 
           override = attrs.override or (_oldAttrs: {});
 
+          packageName = attrs.name or (if isWorkspace then "rust-workspace" else "rust-package");
+
           # The members we want to build
           # (list of directory names)
           wantedMembers =
@@ -89,10 +91,6 @@ with rec
           # The cargo lock
           cargolock = readTOML (src + "/Cargo.lock");
 
-          # The list of paths to Cargo.tomls. If this is a workspace, the paths
-          # are the members. Otherwise, there is a single path, ".".
-          cratePaths = lib.concatStringsSep "\n" wantedMembers;
-
 
           # The list of _all_ crates (incl. transitive dependencies) with name,
           # version and sha256 of the crate
@@ -107,9 +105,6 @@ with rec
             if [ -f src/main.rs ] ; then touch src/main.rs; fi
           '';
 
-          cargoBuild = attrs.cargoBuild or ''
-            cargo build "''${cargo_release}" -j $NIX_BUILD_CORES -Z unstable-options --out-dir out
-          '';
           cargoTestCommands = attrs.cargoTestCommands or [
             ''cargo test "''${cargo_release}" -j $NIX_BUILD_CORES''
           ];
@@ -118,9 +113,8 @@ with rec
         with (commonAttrs src attrs);
         let finalDrv = import ./build.nix src
           ( defaultBuildAttrs //
-            { name = "some-name";
-              version = "some-version";
-              inherit cratePaths crateDependencies cargoBuild cargoTestCommands;
+            { name = packageName;
+              inherit crateDependencies cargoTestCommands;
             } //
             (removeAttrs attrs [ "targets" "usePureFromTOML" "cargotomls" "override"])
           );
@@ -141,9 +135,8 @@ with rec
               }
             )
             (defaultBuildAttrs //
-              { name = "foo-deps";
-                version = "bar";
-                inherit cratePaths crateDependencies cargoBuild;
+              { name = "${packageName}-deps";
+                inherit crateDependencies ;
               } //
             (removeAttrs attrs [ "targets" "usePureFromTOML" "cargotomls" "override"]) //
             { preBuild = "";
@@ -151,15 +144,13 @@ with rec
               copyTarget = true;
               copyBins = false;
               copyDocsToSeparateOutput = false;
-              name = "some-name";
             }
             );
           finalDrv =
             import ./build.nix src
               (defaultBuildAttrs //
-                { name = "foo";
-                  version = "bar";
-                  inherit cratePaths crateDependencies preBuild cargoBuild cargoTestCommands;
+                { name = packageName;
+                  inherit crateDependencies preBuild cargoTestCommands;
                 } //
                 (removeAttrs attrs [ "targets" "usePureFromTOML" "cargotomls" "override" ]) //
                 { builtDependencies = [ (someNameDrv.overrideAttrs override) ]; }

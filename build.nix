@@ -1,7 +1,7 @@
 src:
 { preBuild
   #| What command to run during the build phase
-, cargoBuild
+, cargoBuild ? "\ncargo build \"\${cargo_release}\" -j $NIX_BUILD_CORES -Z unstable-options --out-dir out\n"
 , #| What command to run during the test phase
   cargoTestCommands
   #| Whether or not to forward intermediate build artifacts to $out
@@ -30,7 +30,6 @@ src:
   #  significantly reducing the Nix closure size.
 , removeReferencesToSrcFromDocs ? true
 , name
-, version
 , rustc
 , cargo
 , buildInputs ? []
@@ -59,9 +58,7 @@ with
 stdenv.mkDerivation
 { inherit
     src
-    doCheck
     name
-    version
     preBuild;
 
   cargoconfig = builtinz.toTOML
@@ -96,6 +93,8 @@ stdenv.mkDerivation
 
   RUSTC="${rustc}/bin/rustc";
 
+  inherit builtDependencies;
+
   configurePhase =
     ''
       cargo_release=( ${lib.optionalString release "--release" } )
@@ -109,10 +108,8 @@ stdenv.mkDerivation
 
       mkdir -p target
 
-      cat ${builtinz.writeJSON "dependencies-json" builtDependencies} |\
-        jq -r '.[]' |\
-        while IFS= read -r dep
-        do
+      for dep in $builtDependencies; do
+
           echo pre-installing dep $dep
           rsync -rl \
             --no-perms \
@@ -121,7 +118,7 @@ stdenv.mkDerivation
             --chmod=+w \
             --executability $dep/target/ target
           chmod +w -R target
-        done
+      done
 
       export CARGO_HOME=''${CARGO_HOME:-$PWD/.cargo-home}
       mkdir -p $CARGO_HOME
