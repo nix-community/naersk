@@ -46,10 +46,12 @@ with rec
           readTOML = builtinz.readTOML usePureFromTOML;
 
           # The members we want to build
+          # (list of directory names)
           wantedMembers =
             lib.mapAttrsToList (member: _cargotoml: member) wantedMemberCargotomls;
 
           # Member path to cargotoml
+          # (attrset from directory name to Nix object)
           wantedMemberCargotomls =
             let pred =
               if ! isWorkspace
@@ -60,7 +62,8 @@ with rec
                 else (member: _cargotoml: member != "."); in
             lib.filterAttrs pred cargotomls;
 
-          # All cargotoml, from path to nix object
+          # All cargotomls, from path to nix object
+          # (attrset from directory name to Nix object)
           cargotomls =
             let readTOML = builtinz.readTOML usePureFromTOML; in
 
@@ -89,12 +92,21 @@ with rec
           # The list of paths to Cargo.tomls. If this is a workspace, the paths
           # are the members. Otherwise, there is a single path, ".".
           cratePaths = lib.concatStringsSep "\n" wantedMembers;
+
+
+          # The list of _all_ crates (incl. transitive dependencies) with name,
+          # version and sha256 of the crate
+          # Example:
+          #   [ { name = "wabt", version = "2.0.6", sha256 = "..." } ]
           crateDependencies = libb.mkVersions cargolock;
+
           preBuild = ''
-            # Cargo uses mtime, and we write `src/main.rs` in the dep build
-            # step, so make sure cargo rebuilds stuff
-            find . -type f -name '*.rs' -exec touch {} +
+            # Cargo uses mtime, and we write `src/lib.rs` and `src/main.rs`in
+            # the dep build step, so make sure cargo rebuilds stuff
+            if [ -f src/lib.rs ] ; then touch src/lib.rs; fi
+            if [ -f src/main.rs ] ; then touch src/main.rs; fi
           '';
+
           cargoBuild = attrs.cargoBuild or ''
             cargo build "''${cargo_release}" -j $NIX_BUILD_CORES -Z unstable-options --out-dir out
           '';

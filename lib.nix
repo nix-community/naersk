@@ -7,8 +7,10 @@ with
   };
 rec
 {
-    # creates an attrset from package name to package version + sha256
-    # (note: this includes the package's dependencies)
+    # The list of _all_ crates (incl. transitive dependencies) with name,
+    # version and sha256 of the crate
+    # Example:
+    #   [ { name = "wabt", version = "2.0.6", sha256 = "..." } ]
     mkVersions = cargolock:
       if builtins.hasAttr "metadata" cargolock then
 
@@ -89,21 +91,24 @@ rec
       }:
       let
         config = writeText "config" cargoconfig;
-        cargolock' = builtinz.writeTOML "Cargo.toml" cargolock;
+        cargolock' = builtinz.writeTOML "Cargo.lock" cargolock;
         cargotomlss = writeText "foo"
           (lib.concatStrings (lib.mapAttrsToList
-            (k: v: "${k}\n${builtinz.writeTOML "Cargo.toml-ds-aa" v}\n")
+            (k: v: "${k}\n${builtinz.writeTOML "Cargo.toml" v}\n")
             cargotomls
           ));
 
       in
+      # cleanup TODO:
+      #   * filter out local crates ("path filtering") (1)
+      #   * output list of benches and tests from Nix (2)
       runCommand "dummy-src" {}
       ''
         mkdir -p $out/.cargo
         cp -r ${config} $out/.cargo/config
         cp ${cargolock'} $out/Cargo.lock
 
-        cat ${cargotomlss} | \
+        cat ${cargotomlss /* (1) */} | \
           while IFS= read -r member; do
             read -r cargotoml
             final_dir="$out/$member"
@@ -122,7 +127,7 @@ rec
             mkdir -p src
             echo "fn main() {}" > src/main.rs
             touch src/lib.rs
-            # Dirty hack to "touch" any bench, test, etc path.
+            # Dirty hack to "touch" any bench, test, etc path.${""/*(2)*/}
             cat Cargo.toml | \
               grep -oP '^path\s*=\s*"\K\w+.rs' | \
               while IFS= read -r path; do
