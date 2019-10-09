@@ -80,6 +80,12 @@ rec
     (pkgs.lib.cleanSource ./test/simple-dep)
     {};
 
+  binary = naersk.buildPackage
+    (pkgs.lib.cleanSource ./test/binary)
+    {};
+  binary_test = pkgs.runCommand "binary-test" { buildInputs = [ binary ]; }
+    "my-bin > $out";
+
   workspace = naersk.buildPackage
     (pkgs.lib.cleanSource ./test/workspace)
     { doDoc = false; };
