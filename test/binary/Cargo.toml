@@ -1,0 +1,13 @@
+[package]
+name = "binary"
+version = "0.1.0"
+authors = ["nicolas <nicolas@nmattia.com>"]
+edition = "2018"
+
+[dependencies]
+rand = "0.7.0"
+regex = "1.1.8"
+
+[[bin]]
+name = "my-bin"
+path = "src/exe.rs"

@@ -90,9 +90,13 @@ rec
       let
         config = writeText "config" cargoconfig;
         cargolock' = builtinz.writeTOML "Cargo.toml" cargolock;
+        fixupCargoToml = cargotoml:
+          # Since we pretend everything is a lib, we remove any mentions of
+          # binaries
+          removeAttrs cargotoml ["bin" "example" "lib" "test" "bench" ];
         cargotomlss = writeText "foo"
           (lib.concatStrings (lib.mapAttrsToList
-            (k: v: "${k}\n${builtinz.writeTOML "Cargo.toml-ds-aa" v}\n")
+            (k: v: "${k}\n${builtinz.writeTOML "Cargo.toml-ds-aa" (fixupCargoToml v)}\n")
             cargotomls
           ));
 
@@ -113,29 +117,8 @@ rec
 
             # make sure cargo is happy
             pushd $out/$member > /dev/null
-
-            # TODO: get rid of all these hacks
-
-            sed -i '/.*=\s*{.*path\s*=.*/d' Cargo.toml
-            sed -i '/^build\s*=/d' Cargo.toml
-
             mkdir -p src
-            echo "fn main() {}" > src/main.rs
             touch src/lib.rs
-            # Dirty hack to "touch" any bench, test, etc path.
-            cat Cargo.toml | \
-              grep -oP '^path\s*=\s*"\K\w+.rs' | \
-              while IFS= read -r path; do
-                mkdir -p $(dirname $path)
-                touch $path
-              done || true
-            cat Cargo.toml | \
-              grep -oP '^name\s*=\s*"\K\w+' | \
-              while IFS= read -r name; do
-                mkdir -p $name
-                mkdir -p benches
-                touch benches/$name.rs
-              done || true
             popd > /dev/null
           done
       '';
@@ -173,7 +156,4 @@ rec
     parseDependency' = str:
       with { components = lib.splitString " " str; };
       { name = lib.elemAt components 0; version = lib.elemAt components 1; };
-
-    allRemoteDependencies = cargolock:
-        [];
 }
