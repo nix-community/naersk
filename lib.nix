@@ -91,9 +91,13 @@ rec
         config = writeText "config" cargoconfig;
         cargolock' = builtinz.writeTOML "Cargo.toml" cargolock;
         fixupCargoToml = cargotoml:
-          # Since we pretend everything is a lib, we remove any mentions of
-          # binaries
-          removeAttrs cargotoml ["bin" "example" "lib" "test" "bench" ];
+          let attrs =
+                # Since we pretend everything is a lib, we remove any mentions
+                # of binaries
+                removeAttrs cargotoml [ "bin" "example" "lib" "test" "bench" ];
+          in attrs // lib.optionalAttrs (lib.hasAttr "package" attrs) {
+                        package = removeAttrs attrs.package [ "build" ];
+                      };
         cargotomlss = writeText "foo"
           (lib.concatStrings (lib.mapAttrsToList
             (k: v: "${k}\n${builtinz.writeTOML "Cargo.toml-ds-aa" (fixupCargoToml v)}\n")

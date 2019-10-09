@@ -1,8 +1,9 @@
 [package]
-name = "binary"
+name = "dummyfication"
 version = "0.1.0"
 authors = ["nicolas <nicolas@nmattia.com>"]
 edition = "2018"
+build = "build.rs"
 
 [dependencies]
 rand = "0.7.0"
