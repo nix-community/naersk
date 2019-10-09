@@ -80,10 +80,10 @@ rec
     (pkgs.lib.cleanSource ./test/simple-dep)
     {};
 
-  binary = naersk.buildPackage
-    (pkgs.lib.cleanSource ./test/binary)
+  dummyfication = naersk.buildPackage
+    (pkgs.lib.cleanSource ./test/dummyfication)
     {};
-  binary_test = pkgs.runCommand "binary-test" { buildInputs = [ binary ]; }
+  dummyfication_test = pkgs.runCommand "dummyfication-test" { buildInputs = [ dummyfication ]; }
     "my-bin > $out";
 
   workspace = naersk.buildPackage
