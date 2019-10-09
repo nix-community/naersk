@@ -173,7 +173,4 @@ rec
     parseDependency' = str:
       with { components = lib.splitString " " str; };
       { name = lib.elemAt components 0; version = lib.elemAt components 1; };
-
-    allRemoteDependencies = cargolock:
-        [];
 }

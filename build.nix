@@ -67,7 +67,6 @@ with rec
       { inherit
           src
           doCheck
-          nativeBuildInputs
           cratePaths
           name
           version
@@ -92,16 +91,19 @@ with rec
         # Otherwise specifying CMake as a dep breaks the build
         dontUseCmakeConfigure = true;
 
-        buildInputs =
+        nativeBuildInputs =
           [ cargo
             # needed at various steps in the build
             jq
             rsync
-          ] ++ (stdenv.lib.optionals stdenv.isDarwin
+          ] ;
+
+        buildInputs =
+          stdenv.lib.optionals stdenv.isDarwin
           [ darwin.Security
-            darwin.apple_sdk.frameworks.CoreServices
-            darwin.cf-private
-          ]) ++ buildInputs;
+          darwin.apple_sdk.frameworks.CoreServices
+          darwin.cf-private
+          ] ++ buildInputs;
 
         RUSTC="${rustc}/bin/rustc";
 
