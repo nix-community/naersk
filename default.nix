@@ -127,7 +127,7 @@ with rec
                   import ./build.nix
                   (libb.dummySrc
                     { cargoconfig =
-                        if builtinz.pathExists (src + "/.cargo/config")
+                        if builtinz.pathExists (toString src + "/.cargo/config")
                         then builtins.readFile (src + "/.cargo/config")
                         else "";
                       cargolock = cargolock;
