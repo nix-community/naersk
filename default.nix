@@ -45,6 +45,9 @@ with rec
         { usePureFromTOML = attrs.usePureFromTOML or true;
           readTOML = builtinz.readTOML usePureFromTOML;
 
+          # Whether we skip pre-building the deps
+          isSingleStep = attrs.singleStep or false;
+
           # The members we want to build
           wantedMembers =
             lib.mapAttrsToList (member: _cargotoml: member) wantedMemberCargotomls;
@@ -102,18 +105,8 @@ with rec
             ''cargo test "''${cargo_release}" -j $NIX_BUILD_CORES''
           ];
         };
-      buildPackageSingleStep = src: attrs:
-        with (commonAttrs src attrs);
-        import ./build.nix src
-          ( defaultBuildAttrs //
-            { name = "some-name";
-              version = "some-version";
-              inherit cratePaths crateDependencies cargoBuild cargoTestCommands;
-            } //
-            (removeAttrs attrs [ "targets" "usePureFromTOML" "cargotomls" ])
-          );
 
-      buildPackageIncremental = src: attrs:
+      buildPackage = src: attrs:
         with (commonAttrs src attrs);
         import ./build.nix src
           (defaultBuildAttrs //
@@ -121,9 +114,9 @@ with rec
               version = "bar";
               inherit cratePaths crateDependencies preBuild cargoBuild cargoTestCommands;
             } //
-            (removeAttrs attrs [ "targets" "usePureFromTOML" "cargotomls" ]) //
-            { builtDependencies =
-                [(
+            (removeAttrs attrs [ "targets" "usePureFromTOML" "cargotomls" "singleStep" ]) //
+            { builtDependencies = lib.optional (! isSingleStep)
+                (
                   import ./build.nix
                   (libb.dummySrc
                     { cargoconfig =
@@ -148,10 +141,10 @@ with rec
                     name = "some-name";
                   }
                   )
-                )];
+                );
             });
   };
 
-{ inherit buildPackageSingleStep buildPackageIncremental crates;
-  buildPackage = buildPackageIncremental;
+{
+  inherit buildPackage;
 }
