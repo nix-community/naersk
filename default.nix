@@ -122,7 +122,7 @@ with rec
                     { cargoconfig =
                         if builtinz.pathExists (toString src + "/.cargo/config")
                         then builtins.readFile (src + "/.cargo/config")
-                        else "";
+                        else null;
                       cargolock = cargolock;
                       cargotomls = cargotomls;
                     }
