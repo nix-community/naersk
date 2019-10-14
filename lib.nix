@@ -108,7 +108,7 @@ rec
       runCommand "dummy-src" {}
       ''
         mkdir -p $out/.cargo
-        cp -r ${config} $out/.cargo/config
+        ${lib.optionalString (! isNull cargoconfig) "config cp -r ${config} $out/.cargo/config"}
         cp ${cargolock'} $out/Cargo.lock
 
         cat ${cargotomlss} | \
