@@ -110,8 +110,8 @@ with rec
         with (commonAttrs src attrs);
         import ./build.nix src
           (defaultBuildAttrs //
-            { name = "foo";
-              version = "bar";
+            { name = "${src.name}-built";
+              version = "unknown";
               inherit cratePaths crateDependencies preBuild cargoBuild cargoTestCommands;
             } //
             (removeAttrs attrs [ "targets" "usePureFromTOML" "cargotomls" "singleStep" ]) //
@@ -128,8 +128,8 @@ with rec
                     }
                   )
                   (defaultBuildAttrs //
-                    { name = "foo-deps";
-                      version = "bar";
+                    { name = "${src.name}-deps-built";
+                      version = "unknown";
                       inherit cratePaths crateDependencies cargoBuild;
                     } //
                   (removeAttrs attrs [ "targets" "usePureFromTOML" "cargotomls"  "singleStep"]) //
@@ -138,7 +138,6 @@ with rec
                     copyTarget = true;
                     copyBins = false;
                     copyDocsToSeparateOutput = false;
-                    name = "some-name";
                   }
                   )
                 );
