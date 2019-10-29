@@ -80,6 +80,17 @@ with rec
               )
             );
 
+          patchedSources =
+            let
+              mkRelative = po:
+                if lib.hasPrefix "/" po.path
+                then throw "'${toString src}/Cargo.toml' contains the abolsute path '${toString po.path}' which is not allowed under a [patch] section by naersk. Please make it relative to '${toString src}'"
+                else src + "/" + po.path;
+            in lib.optionals (builtins.hasAttr "patch" toplevelCargotoml)
+                (map mkRelative
+                  (lib.collect (as: lib.isAttrs as && builtins.hasAttr "path" as)
+                    toplevelCargotoml.patch));
+
           # Are we building a workspace (or is this a simple crate) ?
           isWorkspace = builtins.hasAttr "workspace" toplevelCargotoml;
 
@@ -125,6 +136,7 @@ with rec
                         else null;
                       cargolock = cargolock;
                       cargotomls = cargotomls;
+                      inherit patchedSources;
                     }
                   )
                   (defaultBuildAttrs //

@@ -1,0 +1,8 @@
+[package]
+name = "bar"
+version = "0.1.0"
+authors = ["nicolas <nicolas@nmattia.com>"]
+edition = "2018"
+
+[dependencies]
+regex = "1.1.8"

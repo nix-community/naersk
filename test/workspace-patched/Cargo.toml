@@ -1,0 +1,9 @@
+[workspace]
+
+members = [
+    "foo",
+    "bar",
+]
+
+[patch.crates-io]
+rand  = { path = "my-rand" }

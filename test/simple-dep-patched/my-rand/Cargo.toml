@@ -1,0 +1,5 @@
+[package]
+name = "rand"
+version = "0.7.0"
+authors = ["Bas van Dijk <v.dijk.bas@gmail.com>"]
+edition = "2018"

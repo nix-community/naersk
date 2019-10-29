@@ -80,6 +80,10 @@ rec
     (pkgs.lib.cleanSource ./test/simple-dep)
     {};
 
+  simple-dep-patched = naersk.buildPackage
+    (pkgs.lib.cleanSource ./test/simple-dep-patched)
+    {};
+
   dummyfication = naersk.buildPackage
     (pkgs.lib.cleanSource ./test/dummyfication)
     {};
@@ -88,6 +92,10 @@ rec
 
   workspace = naersk.buildPackage
     (pkgs.lib.cleanSource ./test/workspace)
+    { doDoc = false; };
+
+  workspace-patched = naersk.buildPackage
+    (pkgs.lib.cleanSource ./test/workspace-patched)
     { doDoc = false; };
 
   # Fails with some remarshal error
