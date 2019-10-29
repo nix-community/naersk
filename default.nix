@@ -110,7 +110,7 @@ with rec
         with (commonAttrs src attrs);
         import ./build.nix src
           (defaultBuildAttrs //
-            { name = "${src.name}-built";
+            { name = "${attrs.name or "unnamed"}-built";
               version = "unknown";
               inherit cratePaths crateDependencies preBuild cargoBuild cargoTestCommands;
             } //
@@ -128,7 +128,7 @@ with rec
                     }
                   )
                   (defaultBuildAttrs //
-                    { name = "${src.name}-deps-built";
+                    { name = "${attrs.name or "unnamed"}-deps-built";
                       version = "unknown";
                       inherit cratePaths crateDependencies cargoBuild;
                     } //
