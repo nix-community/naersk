@@ -86,6 +86,7 @@ rec
       { cargoconfig   # string
       , cargotomls   # attrset
       , cargolock   # attrset
+      , patchedSources # list of paths that should be copied to the output
       }:
       let
         config = writeText "config" cargoconfig;
@@ -105,11 +106,16 @@ rec
           ));
 
       in
-      runCommand "dummy-src" {}
+      runCommand "dummy-src" { inherit patchedSources; }
       ''
         mkdir -p $out/.cargo
         ${lib.optionalString (! isNull cargoconfig) "cp ${config} $out/.cargo/config"}
         cp ${cargolock'} $out/Cargo.lock
+
+        for p in $patchedSources; do
+          echo "Copying patched source $p to $out..."
+          cp -R "$p" "$out/"
+        done
 
         cat ${cargotomlss} | \
           while IFS= read -r member; do
