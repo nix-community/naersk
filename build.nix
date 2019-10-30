@@ -29,19 +29,18 @@ src:
   #  Which drops the run-time dependency on the crates-io source thereby
   #  significantly reducing the Nix closure size.
 , removeReferencesToSrcFromDocs ? true
-, name
+, cratePaths
+, pname
 , version
+, name ? "${pname}-${version}"
 , rustc
 , cargo
 , override ? null
 , buildInputs ? []
-, nativeBuildInputs ? []
 , builtDependencies ? []
-, replaceToml ? true
 , release ? true
 , stdenv
 , lib
-, llvmPackages
 , rsync
 , jq
 , darwin
@@ -50,8 +49,6 @@ src:
 , runCommand
 , remarshal
 , crateDependencies
-# TODO: rename to "members"
-, cratePaths
 }:
 
 with
@@ -105,6 +102,9 @@ with rec
           darwin.cf-private
           ] ++ buildInputs;
 
+        # iff not in a shell
+        inherit builtDependencies;
+
         RUSTC="${rustc}/bin/rustc";
 
         configurePhase =
@@ -120,10 +120,7 @@ with rec
 
             mkdir -p target
 
-            cat ${builtinz.writeJSON "dependencies-json" builtDependencies} |\
-              jq -r '.[]' |\
-              while IFS= read -r dep
-              do
+            for dep in $builtDependencies; do
                 echo pre-installing dep $dep
                 rsync -rl \
                   --no-perms \
