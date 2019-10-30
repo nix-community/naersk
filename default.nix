@@ -105,6 +105,11 @@ with rec
           # are the members. Otherwise, there is a single path, ".".
           cratePaths = lib.concatStringsSep "\n" wantedMembers;
 
+          packageName = attrs.name or toplevelCargotoml.package.name or
+            (if isWorkspace then "rust-workspace" else "rust-package");
+
+          packageVersion = attrs.version or toplevelCargotoml.package.version or
+            "unknown";
 
           # The list of _all_ crates (incl. transitive dependencies) with name,
           # version and sha256 of the crate
@@ -131,8 +136,8 @@ with rec
         with (commonAttrs src attrs);
         import ./build.nix src
           (defaultBuildAttrs //
-            { name = "${attrs.name or "unnamed"}-built";
-              version = "unknown";
+            { pname = packageName;
+              version = packageVersion;
               inherit cratePaths crateDependencies preBuild cargoBuild cargoTestCommands;
             } //
             (removeAttrs attrs [ "targets" "usePureFromTOML" "cargotomls" "singleStep" ]) //
@@ -150,8 +155,8 @@ with rec
                     }
                   )
                   (defaultBuildAttrs //
-                    { name = "${attrs.name or "unnamed"}-deps-built";
-                      version = "unknown";
+                    { pname = "${packageName}-deps";
+                      version = packageVersion;
                       inherit cratePaths crateDependencies cargoBuild;
                     } //
                   (removeAttrs attrs [ "targets" "usePureFromTOML" "cargotomls"  "singleStep"]) //

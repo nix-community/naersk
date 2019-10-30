@@ -30,8 +30,9 @@ src:
   #  significantly reducing the Nix closure size.
 , removeReferencesToSrcFromDocs ? true
 , cratePaths
-, name
+, pname
 , version
+, name ? "${pname}-${version}"
 , rustc
 , cargo
 , override ? null
@@ -101,6 +102,9 @@ with rec
           darwin.cf-private
           ] ++ buildInputs;
 
+        # iff not in a shell
+        inherit builtDependencies;
+
         RUSTC="${rustc}/bin/rustc";
 
         configurePhase =
@@ -116,10 +120,7 @@ with rec
 
             mkdir -p target
 
-            cat ${builtinz.writeJSON "dependencies-json" builtDependencies} |\
-              jq -r '.[]' |\
-              while IFS= read -r dep
-              do
+            for dep in $builtDependencies; do
                 echo pre-installing dep $dep
                 rsync -rl \
                   --no-perms \

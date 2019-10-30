@@ -101,14 +101,16 @@ rec
           in attrs // lib.optionalAttrs (lib.hasAttr "package" attrs) {
                         package = removeAttrs attrs.package [ "build" ];
                       };
-        cargotomlss = writeText "foo"
-          (lib.concatStrings (lib.mapAttrsToList
-            (k: v: "${k}\n${builtinz.writeTOML "Cargo.toml" (fixupCargoToml v)}\n")
-            cargotomls
-          ));
+
+        # a list of tuples from member to cargo toml:
+        #   "foo-member:/path/to/toml bar:/path/to/other-toml"
+        cargotomlss = lib.mapAttrsToList
+            (k: v: "${k}:${builtinz.writeTOML "Cargo.toml" (fixupCargoToml v)}")
+            cargotomls;
 
       in
-      runCommand "dummy-src" { inherit patchedSources; }
+      runCommand "dummy-src"
+        { inherit patchedSources cargotomlss; }
       ''
         mkdir -p $out/.cargo
         ${lib.optionalString (! isNull cargoconfig) "cp ${config} $out/.cargo/config"}
@@ -119,9 +121,10 @@ rec
           cp -R "$p" "$out/"
         done
 
-        cat ${cargotomlss} | \
-          while IFS= read -r member; do
-            read -r cargotoml
+        for tuple in $cargotomlss; do
+            member="''${tuple%%:*}"
+            cargotoml="''${tuple##*:}"
+
             final_dir="$out/$member"
             mkdir -p "$final_dir"
             final_path="$final_dir/Cargo.toml"
@@ -132,7 +135,7 @@ rec
             mkdir -p src
             touch src/lib.rs
             popd > /dev/null
-          done
+        done
       '';
 
     mkPackages = cargolock:
