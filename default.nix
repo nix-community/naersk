@@ -159,7 +159,7 @@ with rec
                       version = packageVersion;
                       inherit cratePaths crateDependencies cargoBuild;
                     } //
-                  (removeAttrs attrs [ "targets" "usePureFromTOML" "cargotomls"  "singleStep"]) //
+                  (removeAttrs attrs [ "targets" "usePureFromTOML" "cargotomls" "singleStep" "name" ]) //
                   { preBuild = "";
                     cargoTestCommands = map (cmd: "${cmd} || true") cargoTestCommands;
                     copyTarget = true;
