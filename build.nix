@@ -6,6 +6,8 @@ src:
   cargoTestCommands
   #| Whether or not to forward intermediate build artifacts to $out
 , copyTarget ? false
+  #| Whether or not to compress the target when copying it
+, compressTarget
   #| Whether or not to copy binaries to $out/bin
 , copyBins ? true
 , doCheck ? true
@@ -49,6 +51,7 @@ src:
 , runCommand
 , remarshal
 , crateDependencies
+, zstd
 }:
 
 with
@@ -122,13 +125,21 @@ with rec
 
             for dep in $builtDependencies; do
                 echo pre-installing dep $dep
-                rsync -rl \
-                  --no-perms \
-                  --no-owner \
-                  --no-group \
-                  --chmod=+w \
-                  --executability $dep/target/ target
-                chmod +w -R target
+                if [ -d "$dep/target" ]; then
+                  rsync -rl \
+                    --no-perms \
+                    --no-owner \
+                    --no-group \
+                    --chmod=+w \
+                    --executability $dep/target/ target
+                fi
+                if [ -f "$dep/target.tar.zst" ]; then
+                  ${zstd}/bin/zstd -d "$dep/target.tar.zst" --stdout | tar -x
+                fi
+
+                if [ -d "$dep/target" ]; then
+                  chmod +w -R target
+                fi
               done
 
             export CARGO_HOME=''${CARGO_HOME:-$PWD/.cargo-home}
@@ -187,7 +198,13 @@ with rec
 
             ${lib.optionalString copyTarget ''
             mkdir -p $out
+            ${if compressTarget then
+            ''
+            tar -c target | ${zstd}/bin/zstd -o $out/target.tar.zst
+            '' else
+            ''
             cp -r target $out
+            ''}
             ''}
 
             ${lib.optionalString (doDoc && copyDocsToSeparateOutput) ''
