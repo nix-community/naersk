@@ -9,6 +9,7 @@
 , remarshal
 , cargo
 , rustc
+, zstd
 }:
 
 with
@@ -27,7 +28,8 @@ let
           remarshal
           symlinkJoin
           cargo
-          rustc;
+          rustc
+          zstd;
       }; in
 
 let
@@ -42,6 +44,8 @@ with rec
       commonAttrs = src: attrs: rec
         { usePureFromTOML = attrs.usePureFromTOML or true;
           readTOML = builtinz.readTOML usePureFromTOML;
+
+          compressTarget = attrs.compressTarget or true;
 
           # Whether we skip pre-building the deps
           isSingleStep = attrs.singleStep or false;
@@ -138,7 +142,7 @@ with rec
           (defaultBuildAttrs //
             { pname = packageName;
               version = packageVersion;
-              inherit cratePaths crateDependencies preBuild cargoBuild cargoTestCommands;
+              inherit cratePaths crateDependencies preBuild cargoBuild cargoTestCommands compressTarget;
             } //
             (removeAttrs attrs [ "targets" "usePureFromTOML" "cargotomls" "singleStep" ]) //
             { builtDependencies = lib.optional (! isSingleStep)
@@ -157,7 +161,7 @@ with rec
                   (defaultBuildAttrs //
                     { pname = "${packageName}-deps";
                       version = packageVersion;
-                      inherit cratePaths crateDependencies cargoBuild;
+                      inherit cratePaths crateDependencies cargoBuild compressTarget;
                     } //
                   (removeAttrs attrs [ "targets" "usePureFromTOML" "cargotomls"  "singleStep"]) //
                   { preBuild = "";
