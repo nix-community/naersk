@@ -192,8 +192,10 @@ with rec
             runHook preInstall
 
             ${lib.optionalString copyBins ''
-            mkdir -p $out/bin
-            find out -type f -executable -exec cp {} $out/bin \;
+            if [ -d out ]; then
+              mkdir -p $out/bin
+              find out -type f -executable -exec cp {} $out/bin \;
+            fi
             ''}
 
             ${lib.optionalString copyTarget ''
