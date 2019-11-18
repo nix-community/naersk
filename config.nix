@@ -1,117 +1,111 @@
 { lib, libb, builtinz, src, attrs }:
-rec
-{ usePureFromTOML = attrs.usePureFromTOML or true;
+let
+  usePureFromTOML = attrs.usePureFromTOML or true;
   readTOML = builtinz.readTOML usePureFromTOML;
 
-  compressTarget = attrs.compressTarget or true;
+  # config used during build the prebuild and the final build
+  buildConfig =
+    {
+      compressTarget = attrs.compressTarget or true;
+      doCheck = attrs.doCheck or true;
+      buildInputs = attrs.buildInputs or [];
+      removeReferencesToSrcFromDocs = attrs.removeReferencesToSrcFromDocs or true;
+      doDoc = attrs.doDoc or true;
+      #| Whether or not the rustdoc can fail the build
+      doDocFail = attrs.doDocFail or false;
 
-  # Whether we skip pre-building the deps
-  isSingleStep = attrs.singleStep or false;
+      release = attrs.release or true;
 
-  # The members we want to build
-  # (list of directory names)
-  wantedMembers =
-    lib.mapAttrsToList (member: _cargotoml: member) wantedMemberCargotomls;
+      override = attrs.override or (x: x);
 
-  # Member path to cargotoml
-  # (attrset from directory name to Nix object)
-  wantedMemberCargotomls =
-    let pred =
-      if ! isWorkspace
-      then (_member: _cargotoml: true)
-      else
-        if builtins.hasAttr "targets" attrs
-        then (_member: cargotoml: lib.elem cargotoml.package.name attrs.targets)
-        else (member: _cargotoml: member != "."); in
-    lib.filterAttrs pred cargotomls;
+      cargoBuild = attrs.cargoBuild or ''
+        cargo build "''${cargo_release}" -j $NIX_BUILD_CORES -Z unstable-options --out-dir out
+      '';
 
-  # All cargotomls, from path to nix object
-  # (attrset from directory name to Nix object)
-  cargotomls =
-    let readTOML = builtinz.readTOML usePureFromTOML; in
+      # The list of _all_ crates (incl. transitive dependencies) with name,
+      # version and sha256 of the crate
+      # Example:
+      #   [ { name = "wabt", version = "2.0.6", sha256 = "..." } ]
+      crateDependencies = libb.mkVersions buildPlanConfig.cargolock;
+    };
 
-    { "." = toplevelCargotoml; } //
-    lib.optionalAttrs isWorkspace
-    (lib.listToAttrs
-      (map
-        (member:
-          { name = member;
-            value = readTOML (src + "/${member}/Cargo.toml");
-          }
-        )
-        (toplevelCargotoml.workspace.members or [])
-      )
-    );
+  # config used when planning the builds
+  buildPlanConfig = rec
+    {
+      # Whether we skip pre-building the deps
+      isSingleStep = attrs.singleStep or false;
 
-  patchedSources =
-    let
-      mkRelative = po:
-        if lib.hasPrefix "/" po.path
-        then throw "'${toString src}/Cargo.toml' contains the absolute path '${toString po.path}' which is not allowed under a [patch] section by naersk. Please make it relative to '${toString src}'"
-        else src + "/" + po.path;
-    in lib.optionals (builtins.hasAttr "patch" toplevelCargotoml)
-        (map mkRelative
-          (lib.collect (as: lib.isAttrs as && builtins.hasAttr "path" as)
-            toplevelCargotoml.patch));
+      # The members we want to build
+      # (list of directory names)
+      wantedMembers =
+        lib.mapAttrsToList (member: _cargotoml: member) wantedMemberCargotomls;
 
-  # Are we building a workspace (or is this a simple crate) ?
-  isWorkspace = builtins.hasAttr "workspace" toplevelCargotoml;
+      # Member path to cargotoml
+      # (attrset from directory name to Nix object)
+      wantedMemberCargotomls =
+        let pred =
+          if ! isWorkspace
+          then (_member: _cargotoml: true)
+          else
+            if builtins.hasAttr "targets" attrs
+            then (_member: cargotoml: lib.elem cargotoml.package.name attrs.targets)
+            else (member: _cargotoml: member != "."); in
+        lib.filterAttrs pred cargotomls;
 
-  # The top level Cargo.toml, either a workspace or package
-  toplevelCargotoml = readTOML (src + "/Cargo.toml");
+      # All cargotomls, from path to nix object
+      # (attrset from directory name to Nix object)
+      cargotomls =
+        let readTOML = builtinz.readTOML usePureFromTOML; in
 
-  # The cargo lock
-  cargolock = readTOML (src + "/Cargo.lock");
+        { "." = toplevelCargotoml; } //
+        lib.optionalAttrs isWorkspace
+        (lib.listToAttrs
+          (map
+            (member:
+              { name = member;
+                value = readTOML (src + "/${member}/Cargo.toml");
+              }
+            )
+            (toplevelCargotoml.workspace.members or [])
+          )
+        );
 
-  # The list of paths to Cargo.tomls. If this is a workspace, the paths
-  # are the members. Otherwise, there is a single path, ".".
-  cratePaths = lib.concatStringsSep "\n" wantedMembers;
+      patchedSources =
+        let
+          mkRelative = po:
+            if lib.hasPrefix "/" po.path
+            then throw "'${toString src}/Cargo.toml' contains the absolute path '${toString po.path}' which is not allowed under a [patch] section by naersk. Please make it relative to '${toString src}'"
+            else src + "/" + po.path;
+        in lib.optionals (builtins.hasAttr "patch" toplevelCargotoml)
+            (map mkRelative
+              (lib.collect (as: lib.isAttrs as && builtins.hasAttr "path" as)
+                toplevelCargotoml.patch));
 
-  packageName = attrs.name or toplevelCargotoml.package.name or
-    (if isWorkspace then "rust-workspace" else "rust-package");
+      # Are we building a workspace (or is this a simple crate) ?
+      isWorkspace = builtins.hasAttr "workspace" toplevelCargotoml;
 
-  packageVersion = attrs.version or toplevelCargotoml.package.version or
-    "unknown";
+      # The top level Cargo.toml, either a workspace or package
+      toplevelCargotoml = readTOML (src + "/Cargo.toml");
 
-  # The list of _all_ crates (incl. transitive dependencies) with name,
-  # version and sha256 of the crate
-  # Example:
-  #   [ { name = "wabt", version = "2.0.6", sha256 = "..." } ]
-  crateDependencies = libb.mkVersions cargolock;
+      # The cargo lock
+      cargolock = readTOML (src + "/Cargo.lock");
 
-  preBuild = ''
-    # Cargo uses mtime, and we write `src/lib.rs` and `src/main.rs`in
-    # the dep build step, so make sure cargo rebuilds stuff
-    if [ -f src/lib.rs ] ; then touch src/lib.rs; fi
-    if [ -f src/main.rs ] ; then touch src/main.rs; fi
-  '';
+      packageName = attrs.name or toplevelCargotoml.package.name or
+        (if isWorkspace then "rust-workspace" else "rust-package");
 
-  cargoBuild = attrs.cargoBuild or ''
-    cargo build "''${cargo_release}" -j $NIX_BUILD_CORES -Z unstable-options --out-dir out
-  '';
-  cargoTestCommands = attrs.cargoTestCommands or [
-    ''cargo test "''${cargo_release}" -j $NIX_BUILD_CORES''
-  ];
+      packageVersion = attrs.version or toplevelCargotoml.package.version or
+        "unknown";
 
-  override = attrs.override or (x: x);
+      cargoTestCommands = attrs.cargoTestCommands or [
+        ''cargo test "''${cargo_release}" -j $NIX_BUILD_CORES''
+      ];
 
-  release = attrs.release or true;
+      #| Whether or not to forward intermediate build artifacts to $out
+      copyTarget = attrs.copyTarget or false;
 
-  #| Whether or not to forward intermediate build artifacts to $out
-  copyTarget = attrs.copyTarget or false;
+      copyBins = attrs.copyBins or true;
 
-  #| Whether or not the rustdoc can fail the build
-  doDocFail = attrs.doDocFail or false;
+      copyDocsToSeparateOutput = attrs.copyDocsToSeparateOutput or true;
 
-  doDoc = attrs.doDoc or true;
-
-  copyBins = attrs.copyBins or true;
-
-  copyDocsToSeparateOutput = attrs.copyDocsToSeparateOutput or true;
-
-  removeReferencesToSrcFromDocs = attrs.removeReferencesToSrcFromDocs or true;
-
-  doCheck = attrs.doCheck or true;
-
-  buildInputs = attrs.buildInputs or [];
-}
+    };
+in buildPlanConfig // { inherit buildConfig ; }

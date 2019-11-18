@@ -44,9 +44,14 @@ let
       (defaultBuildAttrs //
         { pname = config.packageName;
           version = config.packageVersion;
-          inherit (config) cratePaths crateDependencies preBuild cargoBuild cargoTestCommands compressTarget override release copyTarget doDocFail doDoc copyBins copyDocsToSeparateOutput removeReferencesToSrcFromDocs doCheck buildInputs;
-        } //
-        (removeAttrs attrs [ "usePureFromTOML" "cargotomls" "singleStep" ]) //
+          preBuild = lib.optionalString (!config.isSingleStep) ''
+            # Cargo uses mtime, and we write `src/lib.rs` and `src/main.rs`in
+            # the dep build step, so make sure cargo rebuilds stuff
+            if [ -f src/lib.rs ] ; then touch src/lib.rs; fi
+            if [ -f src/main.rs ] ; then touch src/main.rs; fi
+          '';
+          inherit (config) cargoTestCommands copyTarget copyBins copyDocsToSeparateOutput ;
+        } // config.buildConfig //
         { builtDependencies = lib.optional (! config.isSingleStep)
             (
               import ./build.nix
@@ -63,10 +68,9 @@ let
               (defaultBuildAttrs //
                 { pname = "${config.packageName}-deps";
                   version = config.packageVersion;
-                  inherit (config) cratePaths crateDependencies cargoBuild compressTarget override release doDocFail doDoc removeReferencesToSrcFromDocs doCheck buildInputs;
-                } //
-              (removeAttrs attrs [ "usePureFromTOML" "cargotomls"  "singleStep"]) //
+                } // config.buildConfig //
               { preBuild = "";
+                # TODO: custom cargoTestCommands should not be needed here
                 cargoTestCommands = map (cmd: "${cmd} || true") config.cargoTestCommands;
                 copyTarget = true;
                 copyBins = false;

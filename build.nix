@@ -29,7 +29,6 @@ src:
   #  Which drops the run-time dependency on the crates-io source thereby
   #  significantly reducing the Nix closure size.
 , removeReferencesToSrcFromDocs
-, cratePaths
 , pname
 , version
 , rustc
@@ -64,7 +63,6 @@ let
       inherit
         src
         doCheck
-        cratePaths
         version
         preBuild;
 
