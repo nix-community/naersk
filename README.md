@@ -19,10 +19,13 @@ let
     pkgs = import <nixpkgs> {};
     sources = import ./nix/sources.nix;
     naersk = pkgs.callPackage sources.naersk {};
-in naersk.buildPackage ./path/to/rust {}
+in naersk.buildPackage ./path/to/rust
 ```
 
 _NOTE_: `./path/to/rust/` should contain a `Cargo.lock`.
+
+The `buildPackage` function also accepts an attribute set. For more
+information, consult [`config.nix`](./config.nix).
 
 ## Comparison
 
