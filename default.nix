@@ -12,10 +12,8 @@
 , zstd
 }:
 
-with
-  { libb = import ./lib.nix { inherit lib writeText runCommand remarshal; }; };
-
 let
+  libb = import ./lib.nix { inherit lib writeText runCommand remarshal; };
   defaultBuildAttrs =
       { inherit
           jq
@@ -30,14 +28,12 @@ let
           cargo
           rustc
           zstd;
-      }; in
-
-let
+      };
   builtinz =
       builtins //
       import ./builtins
-        { inherit lib writeText remarshal runCommand ; }; in
-
+        { inherit lib writeText remarshal runCommand ; };
+in
 # Crate building
 let
   mkConfig = src: attrs:
@@ -48,7 +44,7 @@ let
       (defaultBuildAttrs //
         { pname = config.packageName;
           version = config.packageVersion;
-          inherit (config) cratePaths crateDependencies preBuild cargoBuild cargoTestCommands compressTarget;
+          inherit (config) cratePaths crateDependencies preBuild cargoBuild cargoTestCommands compressTarget override release copyTarget doDocFail doDoc copyBins copyDocsToSeparateOutput removeReferencesToSrcFromDocs doCheck buildInputs;
         } //
         (removeAttrs attrs [ "usePureFromTOML" "cargotomls" "singleStep" ]) //
         { builtDependencies = lib.optional (! config.isSingleStep)
@@ -67,7 +63,7 @@ let
               (defaultBuildAttrs //
                 { pname = "${config.packageName}-deps";
                   version = config.packageVersion;
-                  inherit (config) cratePaths crateDependencies cargoBuild compressTarget;
+                  inherit (config) cratePaths crateDependencies cargoBuild compressTarget override release doDocFail doDoc removeReferencesToSrcFromDocs doCheck buildInputs;
                 } //
               (removeAttrs attrs [ "usePureFromTOML" "cargotomls"  "singleStep"]) //
               { preBuild = "";
@@ -75,11 +71,9 @@ let
                 copyTarget = true;
                 copyBins = false;
                 copyDocsToSeparateOutput = false;
+                builtDependencies = [];
               }
               )
             );
         });
-in
-{
-  inherit buildPackage;
-}
+in { inherit buildPackage; }

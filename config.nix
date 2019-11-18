@@ -92,4 +92,26 @@ rec
   cargoTestCommands = attrs.cargoTestCommands or [
     ''cargo test "''${cargo_release}" -j $NIX_BUILD_CORES''
   ];
+
+  override = attrs.override or (x: x);
+
+  release = attrs.release or true;
+
+  #| Whether or not to forward intermediate build artifacts to $out
+  copyTarget = attrs.copyTarget or false;
+
+  #| Whether or not the rustdoc can fail the build
+  doDocFail = attrs.doDocFail or false;
+
+  doDoc = attrs.doDoc or true;
+
+  copyBins = attrs.copyBins or true;
+
+  copyDocsToSeparateOutput = attrs.copyDocsToSeparateOutput or true;
+
+  removeReferencesToSrcFromDocs = attrs.removeReferencesToSrcFromDocs or true;
+
+  doCheck = attrs.doCheck or true;
+
+  buildInputs = attrs.buildInputs or [];
 }
