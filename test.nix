@@ -25,13 +25,14 @@ rec
   #   { buildInputs = [ ripgrep ]; }
   #   "rg --help && touch $out";
 
-  ripgrep-all = naersk.buildPackage sources.ripgrep-all {};
+  ripgrep-all = naersk.buildPackage sources.ripgrep-all;
   ripgrep-all_test = pkgs.runCommand "ripgrep-all-test"
     { buildInputs = [ ripgrep-all ]; }
     "rga --help && touch $out";
 
-  lorri = naersk.buildPackage sources.lorri
-    { override = _oldAttrs:
+  lorri = naersk.buildPackage
+    { src = sources.lorri;
+      override = _oldAttrs:
         { BUILD_REV_COUNT = 1;
           RUN_TIME_CLOSURE = "${sources.lorri}/nix/runtime.nix";
         };
@@ -40,11 +41,12 @@ rec
   lorri_test = pkgs.runCommand "lorri-test" { buildInputs = [ lorri ]; }
     "lorri --help && touch $out";
 
-  talent-plan-1 = naersk.buildPackage "${sources.talent-plan}/rust/projects/project-1" {};
-  talent-plan-2 = naersk.buildPackage "${sources.talent-plan}/rust/projects/project-2" {};
+  talent-plan-1 = naersk.buildPackage "${sources.talent-plan}/rust/projects/project-1";
+  talent-plan-2 = naersk.buildPackage "${sources.talent-plan}/rust/projects/project-2";
   talent-plan-3 = naersk.buildPackage
-    "${sources.talent-plan}/rust/projects/project-3"
-    { doCheck = false; };
+    { src = "${sources.talent-plan}/rust/projects/project-3";
+      doCheck = false;
+    };
 
   # TODO: support for git deps
   #test_talent-plan-4 = buildPackage "${sources.talent-plan}/rust/projects/project-4" {};
@@ -74,29 +76,25 @@ rec
   #   Error: Cannot parse as TOML (<string>(92, 14): msg)
   #rust = naersk.buildPackage sources.rust {};
 
-  rustlings = naersk.buildPackage sources.rustlings {};
+  rustlings = naersk.buildPackage sources.rustlings;
 
-  simple-dep = naersk.buildPackage
-    (pkgs.lib.cleanSource ./test/simple-dep)
-    {};
+  simple-dep = naersk.buildPackage ./test/simple-dep;
 
-  simple-dep-patched = naersk.buildPackage
-    (pkgs.lib.cleanSource ./test/simple-dep-patched)
-    {};
+  simple-dep-patched = naersk.buildPackage ./test/simple-dep-patched;
 
-  dummyfication = naersk.buildPackage
-    (pkgs.lib.cleanSource ./test/dummyfication)
-    {};
+  dummyfication = naersk.buildPackage ./test/dummyfication;
   dummyfication_test = pkgs.runCommand "dummyfication-test" { buildInputs = [ dummyfication ]; }
     "my-bin > $out";
 
   workspace = naersk.buildPackage
-    (pkgs.lib.cleanSource ./test/workspace)
-    { doDoc = false; };
+    { src = pkgs.lib.cleanSource ./test/workspace;
+      doDoc = false;
+    };
 
   workspace-patched = naersk.buildPackage
-    (pkgs.lib.cleanSource ./test/workspace-patched)
-    { doDoc = false; };
+    { src = pkgs.lib.cleanSource ./test/workspace-patched;
+      doDoc = false;
+    };
 
   # Fails with some remarshal error
   #servo = naersk.buildPackage

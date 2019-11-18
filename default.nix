@@ -36,11 +36,11 @@ let
 in
 # Crate building
 let
-  mkConfig = src: attrs:
-    import ./config.nix { inherit lib src attrs libb builtinz; };
-  buildPackage = src: attrs:
-    let config = (mkConfig src attrs); in
-    import ./build.nix src
+  mkConfig = arg:
+    import ./config.nix { inherit lib arg libb builtinz; };
+  buildPackage = arg:
+    let config = (mkConfig arg); in
+    import ./build.nix
       (defaultBuildAttrs //
         { pname = config.packageName;
           version = config.packageVersion;
@@ -50,21 +50,23 @@ let
             if [ -f src/lib.rs ] ; then touch src/lib.rs; fi
             if [ -f src/main.rs ] ; then touch src/main.rs; fi
           '';
-          inherit (config) cargoTestCommands copyTarget copyBins copyDocsToSeparateOutput ;
+          inherit (config) src cargoTestCommands copyTarget copyBins copyDocsToSeparateOutput ;
         } // config.buildConfig //
         { builtDependencies = lib.optional (! config.isSingleStep)
             (
               import ./build.nix
+              (
+              { src =
               (libb.dummySrc
                 { cargoconfig =
-                    if builtinz.pathExists (toString src + "/.cargo/config")
-                    then builtins.readFile (src + "/.cargo/config")
+                    if builtinz.pathExists (toString config.src + "/.cargo/config")
+                    then builtins.readFile (config.src + "/.cargo/config")
                     else null;
                   cargolock = config.cargolock;
                   cargotomls = config.cargotomls;
                   inherit (config) patchedSources;
                 }
-              )
+              ); } //
               (defaultBuildAttrs //
                 { pname = "${config.packageName}-deps";
                   version = config.packageVersion;
@@ -77,7 +79,7 @@ let
                 copyDocsToSeparateOutput = false;
                 builtDependencies = [];
               }
-              )
+              ))
             );
         });
 in { inherit buildPackage; }

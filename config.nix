@@ -1,5 +1,14 @@
-{ lib, libb, builtinz, src, attrs }:
+{ lib, libb, builtinz, arg }:
 let
+  argIsAttrs =
+    if lib.isDerivation arg then false
+    else if lib.isString arg then false
+    else if builtins.typeOf arg == "path" then false
+    else if builtins.hasAttr "outPath" arg then false
+    else true;
+
+  attrs = if argIsAttrs then arg else
+    { src = if builtins.typeOf arg == "path" then lib.cleanSource arg else arg; };
   usePureFromTOML = attrs.usePureFromTOML or true;
   readTOML = builtinz.readTOML usePureFromTOML;
 
@@ -31,7 +40,7 @@ let
 
   # config used when planning the builds
   buildPlanConfig = rec
-    {
+    { inherit (attrs) src;
       # Whether we skip pre-building the deps
       isSingleStep = attrs.singleStep or false;
 
