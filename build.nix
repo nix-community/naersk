@@ -50,14 +50,12 @@
 , zstd
 }:
 
-with
-  { builtinz =
-      builtins //
-      import ./builtins
-        { inherit lib writeText remarshal runCommand ; };
-  };
-
 let
+  builtinz =
+    builtins //
+    import ./builtins
+    { inherit lib writeText remarshal runCommand; };
+
   drv = stdenv.mkDerivation (
     { name = "${pname}-${version}";
       inherit
@@ -221,12 +219,12 @@ let
   # gzipped tar; we simply unpack it and introduce a ".cargo-checksum.json"
   # file that cargo itself uses to double check the sha256
   unpackCrate = name: version: sha256:
-    with
-    { crate = builtins.fetchurl
+    let
+      crate = builtins.fetchurl
         { url = "https://crates.io/api/v1/crates/${name}/${version}/download";
           inherit sha256;
         };
-    };
+    in
     runCommand "unpack-${name}-${version}" {}
     ''
       mkdir -p $out

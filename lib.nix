@@ -1,10 +1,10 @@
 { lib, writeText, runCommand, remarshal }:
-with
-  { builtinz =
-      builtins //
-      import ./builtins
-        { inherit lib writeText remarshal runCommand ; };
-  };
+let
+  builtinz =
+    builtins //
+    import ./builtins
+      { inherit lib writeText remarshal runCommand ; };
+in
 rec
 {
     # The list of _all_ crates (incl. transitive dependencies) with name,
@@ -16,7 +16,7 @@ rec
 
         # TODO: this should nub by <pkg-name>-<pkg-version>
         (lib.concatMap (x:
-          with { mdk = mkMetadataKey x.name x.version; };
+          let mdk = mkMetadataKey x.name x.version; in
           ( lib.optional (builtins.hasAttr mdk cargolock.metadata)
               { inherit (x) version name;
                 sha256 = cargolock.metadata.${mkMetadataKey x.name x.version};
@@ -30,19 +30,19 @@ rec
     # Turns "lib-name lib-ver (registry+...)" to [ { name = "lib-name", etc } ]
     # iff the package is present in the Cargo.lock (otherwise returns [])
     parseDependency = cargolock: str:
-      with rec
-        { components = lib.splitString " " str;
-          name = lib.elemAt components 0;
-          version = lib.elemAt components 1;
-          mdk = mkMetadataKey name version;
-        };
-      ( lib.optional (builtins.hasAttr mdk cargolock.metadata)
+      let
+        components = lib.splitString " " str;
+        name = lib.elemAt components 0;
+        version = lib.elemAt components 1;
+        mdk = mkMetadataKey name version;
+      in
+      lib.optional (builtins.hasAttr mdk cargolock.metadata)
       (
-      with
-        { sha256 = cargolock.metadata.${mkMetadataKey name version};
-        };
-      { inherit name version sha256; }
-      ));
+        let
+          sha256 = cargolock.metadata.${mkMetadataKey name version};
+        in
+        { inherit name version sha256; }
+      );
 
 
     # crafts the key used to look up the sha256 in the cargo lock; no
@@ -54,15 +54,15 @@ rec
     # package (and the package itself). This package is Nix-generated and thus
     # only the transitive dependencies contribute to the package's derivation.
     cargolockFor = cargolock: name: version:
-      with rec
-        { tdeps = transitiveDeps cargolock name version;
-          tdepPrefix = dep: "checksum ${dep.name} ${dep.version}";
-          isTransitiveDep = p: lib.any
-            (d: d.package.name == p.name && d.package.version == p.version)
-            tdeps;
-          isTransitiveDepChecksumKey = k:
-            lib.any (tdep: lib.hasPrefix (tdepPrefix tdep.package) k) tdeps;
-        };
+      let
+        tdeps = transitiveDeps cargolock name version;
+        tdepPrefix = dep: "checksum ${dep.name} ${dep.version}";
+        isTransitiveDep = p: lib.any
+          (d: d.package.name == p.name && d.package.version == p.version)
+          tdeps;
+        isTransitiveDepChecksumKey = k:
+          lib.any (tdep: lib.hasPrefix (tdepPrefix tdep.package) k) tdeps;
+      in
       cargolock //
         { package = lib.filter (p:
             (p.name == name && p.version == version) ||
@@ -144,22 +144,21 @@ rec
               cargolock.package);
 
     directDependencies = cargolock: name: version:
-      with rec
-        { packages = mkPackages cargolock;
-          package = packages.${name}.${version};
-        } ;
-
+      let
+        packages = mkPackages cargolock;
+        package = packages.${name}.${version};
+      in
       lib.optionals (builtins.hasAttr "dependencies" package)
         (map parseDependency' package.dependencies);
 
     transitiveDeps = cargolock: name: version:
-      with
-        { wrap = p:
-            { key = "${p.name}-${p.version}";
-              package = p;
-            };
-          packages = mkPackages cargolock;
-        };
+      let
+        wrap = p:
+          { key = "${p.name}-${p.version}";
+            package = p;
+          };
+        packages = mkPackages cargolock;
+      in
       builtins.genericClosure
       { startSet = [ (wrap packages.${name}.${version}) ];
         operator = p: map (dep: wrap (packages.${dep.name}.${dep.version})) (
@@ -169,6 +168,6 @@ rec
 
     # turns "<package> <version> ..." into { name = <package>, version = <version>; }
     parseDependency' = str:
-      with { components = lib.splitString " " str; };
+      let components = lib.splitString " " str; in
       { name = lib.elemAt components 0; version = lib.elemAt components 1; };
 }

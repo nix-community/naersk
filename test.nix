@@ -1,15 +1,11 @@
 { system ? builtins.currentSystem }:
-with rec
-  { sources = import ./nix/sources.nix ;
-    pkgs = import sources.nixpkgs { inherit system ; };
-    naersk = pkgs.callPackage ./default.nix
-      { inherit (pkgs.rustPackages) cargo rustc;
-      };
-  };
-
-with
-  { builtinz = builtins // pkgs.callPackage ./builtins {}; };
-
+let
+  sources = import ./nix/sources.nix ;
+  pkgs = import sources.nixpkgs { inherit system ; };
+  naersk = pkgs.callPackage ./default.nix
+    { inherit (pkgs.rustPackages) cargo rustc; };
+  builtinz = builtins // pkgs.callPackage ./builtins {};
+in
 rec
 { # error[E0554]: `#![feature]` may not be used on the stable release channel
   # rustfmt = naersk.buildPackage sources.rustfmt { doDocFail = false; };
