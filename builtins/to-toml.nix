@@ -10,6 +10,7 @@ let
     concatMapStringsSep
     mapAttrsToList
     ;
+
   inherit (builtins)
     abort
     match
@@ -52,11 +53,11 @@ let
               vals = map quoteString v;
               valsStr = concatStringsSep ", " vals;
             in
-              "[ ${valsStr} ]" else
+              "[ ${valsStr} ]"
+          else
             if ty == "set" then
               abort "unsupported set for not-inner value"
-            else abort "Not implemented: type ${ty}"
-  ;
+            else abort "Not implemented: type ${ty}";
 
   outputKeyValInner = k: v:
     let
@@ -96,8 +97,7 @@ let
                 [ "${quoteKey k} = [ ${valsStr} ]" ] else
               if ty == "set" then
                 [ "[${k}]" ] ++ (concatLists (mapAttrsToList outputKeyValInner v))
-              else abort "Not implemented: type ${ty} for key ${k}"
-  ;
+              else abort "Not implemented: type ${ty} for key ${k}";
 
   tomlTy = x:
     if typeOf x == "string" then "string" else

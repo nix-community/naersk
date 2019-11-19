@@ -33,8 +33,7 @@ rec
         )
       );
 
-  writeJSON = name: attrs: writeText name
-    (builtins.toJSON attrs);
+  writeJSON = name: attrs: writeText name (builtins.toJSON attrs);
 
   # Returns `true` if `path` exists.
   # TODO: use `builtins.pathExists` once

@@ -27,26 +27,24 @@ rec
     { buildInputs = [ ripgrep-all ]; }
     "rga --help && touch $out";
 
-  lorri = naersk.buildPackage
-    {
-      src = sources.lorri;
-      override = _oldAttrs:
-        {
-          BUILD_REV_COUNT = 1;
-          RUN_TIME_CLOSURE = "${sources.lorri}/nix/runtime.nix";
-        };
-      doCheck = false;
+  lorri = naersk.buildPackage {
+    src = sources.lorri;
+    override = _oldAttrs: {
+      BUILD_REV_COUNT = 1;
+      RUN_TIME_CLOSURE = "${sources.lorri}/nix/runtime.nix";
     };
+    doCheck = false;
+  };
+
   lorri_test = pkgs.runCommand "lorri-test" { buildInputs = [ lorri ]; }
     "lorri --help && touch $out";
 
   talent-plan-1 = naersk.buildPackage "${sources.talent-plan}/rust/projects/project-1";
   talent-plan-2 = naersk.buildPackage "${sources.talent-plan}/rust/projects/project-2";
-  talent-plan-3 = naersk.buildPackage
-    {
-      src = "${sources.talent-plan}/rust/projects/project-3";
-      doCheck = false;
-    };
+  talent-plan-3 = naersk.buildPackage {
+    src = "${sources.talent-plan}/rust/projects/project-3";
+    doCheck = false;
+  };
 
   # TODO: support for git deps
   #test_talent-plan-4 = buildPackage "${sources.talent-plan}/rust/projects/project-4" {};
@@ -83,20 +81,20 @@ rec
   simple-dep-patched = naersk.buildPackage ./test/simple-dep-patched;
 
   dummyfication = naersk.buildPackage ./test/dummyfication;
-  dummyfication_test = pkgs.runCommand "dummyfication-test" { buildInputs = [ dummyfication ]; }
+  dummyfication_test = pkgs.runCommand
+    "dummyfication-test"
+    { buildInputs = [ dummyfication ]; }
     "my-bin > $out";
 
-  workspace = naersk.buildPackage
-    {
-      src = pkgs.lib.cleanSource ./test/workspace;
-      doDoc = false;
-    };
+  workspace = naersk.buildPackage {
+    src = pkgs.lib.cleanSource ./test/workspace;
+    doDoc = false;
+  };
 
-  workspace-patched = naersk.buildPackage
-    {
-      src = pkgs.lib.cleanSource ./test/workspace-patched;
-      doDoc = false;
-    };
+  workspace-patched = naersk.buildPackage {
+    src = pkgs.lib.cleanSource ./test/workspace-patched;
+    doDoc = false;
+  };
 
   # Fails with some remarshal error
   #servo = naersk.buildPackage

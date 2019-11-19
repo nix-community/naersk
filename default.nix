@@ -14,34 +14,35 @@
 
 let
   libb = import ./lib.nix { inherit lib writeText runCommand remarshal; };
-  defaultBuildAttrs =
-    {
-      inherit
-        jq
-        runCommand
-        lib
-        darwin
-        writeText
-        stdenv
-        rsync
-        remarshal
-        symlinkJoin
-        cargo
-        rustc
-        zstd
-        ;
-    };
-  builtinz =
-    builtins // import ./builtins
-      { inherit lib writeText remarshal runCommand; };
+
+  defaultBuildAttrs = {
+    inherit
+      jq
+      runCommand
+      lib
+      darwin
+      writeText
+      stdenv
+      rsync
+      remarshal
+      symlinkJoin
+      cargo
+      rustc
+      zstd
+      ;
+  };
+
+  builtinz = builtins // import ./builtins
+    { inherit lib writeText remarshal runCommand; };
 in
   # Crate building
 let
   mkConfig = arg:
     import ./config.nix { inherit lib arg libb builtinz; };
+
   buildPackage = arg:
     let
-      config = (mkConfig arg);
+      config = mkConfig arg;
     in
       import ./build.nix
         (
@@ -61,19 +62,15 @@ let
                 import ./build.nix
                   (
                     {
-                      src =
-                        (
-                          libb.dummySrc
-                            {
-                              cargoconfig =
-                                if builtinz.pathExists (toString config.src + "/.cargo/config")
-                                then builtins.readFile (config.src + "/.cargo/config")
-                                else null;
-                              cargolock = config.cargolock;
-                              cargotomls = config.cargotomls;
-                              inherit (config) patchedSources;
-                            }
-                        );
+                      src = libb.dummySrc {
+                        cargoconfig =
+                          if builtinz.pathExists (toString config.src + "/.cargo/config")
+                          then builtins.readFile (config.src + "/.cargo/config")
+                          else null;
+                        cargolock = config.cargolock;
+                        cargotomls = config.cargotomls;
+                        inherit (config) patchedSources;
+                      };
                     } // (
                       defaultBuildAttrs // {
                         pname = "${config.packageName}-deps";

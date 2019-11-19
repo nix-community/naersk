@@ -13,34 +13,32 @@ let
   readTOML = builtinz.readTOML usePureFromTOML;
 
   # config used during build the prebuild and the final build
-  buildConfig =
-    {
-      compressTarget = attrs.compressTarget or true;
-      doCheck = attrs.doCheck or true;
-      buildInputs = attrs.buildInputs or [];
-      removeReferencesToSrcFromDocs = attrs.removeReferencesToSrcFromDocs or true;
-      doDoc = attrs.doDoc or true;
-      #| Whether or not the rustdoc can fail the build
-      doDocFail = attrs.doDocFail or false;
+  buildConfig = {
+    compressTarget = attrs.compressTarget or true;
+    doCheck = attrs.doCheck or true;
+    buildInputs = attrs.buildInputs or [];
+    removeReferencesToSrcFromDocs = attrs.removeReferencesToSrcFromDocs or true;
+    doDoc = attrs.doDoc or true;
+    #| Whether or not the rustdoc can fail the build
+    doDocFail = attrs.doDocFail or false;
 
-      release = attrs.release or true;
+    release = attrs.release or true;
 
-      override = attrs.override or (x: x);
+    override = attrs.override or (x: x);
 
-      cargoBuild = attrs.cargoBuild or ''
-        cargo build "''${cargo_release}" -j $NIX_BUILD_CORES -Z unstable-options --out-dir out
-      '';
+    cargoBuild = attrs.cargoBuild or ''
+      cargo build "''${cargo_release}" -j $NIX_BUILD_CORES -Z unstable-options --out-dir out
+    '';
 
-      # The list of _all_ crates (incl. transitive dependencies) with name,
-      # version and sha256 of the crate
-      # Example:
-      #   [ { name = "wabt", version = "2.0.6", sha256 = "..." } ]
-      crateDependencies = libb.mkVersions buildPlanConfig.cargolock;
-    };
+    # The list of _all_ crates (incl. transitive dependencies) with name,
+    # version and sha256 of the crate
+    # Example:
+    #   [ { name = "wabt", version = "2.0.6", sha256 = "..." } ]
+    crateDependencies = libb.mkVersions buildPlanConfig.cargolock;
+  };
 
   # config used when planning the builds
-  buildPlanConfig = rec
-  {
+  buildPlanConfig = rec {
     inherit (attrs) src;
     # Whether we skip pre-building the deps
     isSingleStep = attrs.singleStep or false;
@@ -70,7 +68,6 @@ let
       let
         readTOML = builtinz.readTOML usePureFromTOML;
       in
-
         { "." = toplevelCargotoml; } // lib.optionalAttrs isWorkspace
           (
             lib.listToAttrs
@@ -128,7 +125,6 @@ let
     copyBins = attrs.copyBins or true;
 
     copyDocsToSeparateOutput = attrs.copyDocsToSeparateOutput or true;
-
   };
 in
 buildPlanConfig // { inherit buildConfig; }
