@@ -1,13 +1,14 @@
 { system ? builtins.currentSystem }:
 let
-  sources = import ./nix/sources.nix ;
-  pkgs = import sources.nixpkgs { inherit system ; };
+  sources = import ./nix/sources.nix;
+  pkgs = import sources.nixpkgs { inherit system; };
   naersk = pkgs.callPackage ./default.nix
     { inherit (pkgs.rustPackages) cargo rustc; };
   builtinz = builtins // pkgs.callPackage ./builtins {};
 in
 rec
-{ # error[E0554]: `#![feature]` may not be used on the stable release channel
+{
+  # error[E0554]: `#![feature]` may not be used on the stable release channel
   # rustfmt = naersk.buildPackage sources.rustfmt { doDocFail = false; };
   # rustfmt_test = pkgs.runCommand "rustfmt-test"
   #   { buildInputs = [ rustfmt ]; }
@@ -27,9 +28,11 @@ rec
     "rga --help && touch $out";
 
   lorri = naersk.buildPackage
-    { src = sources.lorri;
+    {
+      src = sources.lorri;
       override = _oldAttrs:
-        { BUILD_REV_COUNT = 1;
+        {
+          BUILD_REV_COUNT = 1;
           RUN_TIME_CLOSURE = "${sources.lorri}/nix/runtime.nix";
         };
       doCheck = false;
@@ -40,7 +43,8 @@ rec
   talent-plan-1 = naersk.buildPackage "${sources.talent-plan}/rust/projects/project-1";
   talent-plan-2 = naersk.buildPackage "${sources.talent-plan}/rust/projects/project-2";
   talent-plan-3 = naersk.buildPackage
-    { src = "${sources.talent-plan}/rust/projects/project-3";
+    {
+      src = "${sources.talent-plan}/rust/projects/project-3";
       doCheck = false;
     };
 
@@ -57,16 +61,16 @@ rec
 
   # "targets" is broken
   #lucet = naersk.buildPackage lucetSrc
-    #{ nativeBuildInputs = [ pkgs.cmake pkgs.python3 ] ;
-      #doDoc = false;
-      #doCheck = false;
-      #targets =
-        #[ "lucetc"
-          #"lucet-runtime"
-          #"lucet-runtime-internals"
-          #"lucet-module-data"
-        #];
-    #};
+  #{ nativeBuildInputs = [ pkgs.cmake pkgs.python3 ] ;
+  #doDoc = false;
+  #doCheck = false;
+  #targets =
+  #[ "lucetc"
+  #"lucet-runtime"
+  #"lucet-runtime-internals"
+  #"lucet-module-data"
+  #];
+  #};
 
   # error in readTOML (remarshal):
   #   Error: Cannot parse as TOML (<string>(92, 14): msg)
@@ -83,19 +87,21 @@ rec
     "my-bin > $out";
 
   workspace = naersk.buildPackage
-    { src = pkgs.lib.cleanSource ./test/workspace;
+    {
+      src = pkgs.lib.cleanSource ./test/workspace;
       doDoc = false;
     };
 
   workspace-patched = naersk.buildPackage
-    { src = pkgs.lib.cleanSource ./test/workspace-patched;
+    {
+      src = pkgs.lib.cleanSource ./test/workspace-patched;
       doDoc = false;
     };
 
   # Fails with some remarshal error
   #servo = naersk.buildPackage
-    #sources.servo
-    #{ inherit cargo; };
+  #sources.servo
+  #{ inherit cargo; };
 
   # TODO: error: no matching package named `rustc-workspace-hack` found
   # cargo =

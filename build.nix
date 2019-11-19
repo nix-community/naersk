@@ -52,24 +52,29 @@
 
 let
   builtinz =
-    builtins //
-    import ./builtins
-    { inherit lib writeText remarshal runCommand; };
+    builtins // import ./builtins
+      { inherit lib writeText remarshal runCommand; };
 
   drv = stdenv.mkDerivation (
-    { name = "${pname}-${version}";
+    {
+      name = "${pname}-${version}";
       inherit
         src
         doCheck
         version
-        preBuild;
+        preBuild
+        ;
 
       cargoconfig = builtinz.toTOML
-        { source =
-            { crates-io = { replace-with = "nix-sources"; } ;
+        {
+          source =
+            {
+              crates-io = { replace-with = "nix-sources"; };
               nix-sources =
-                { directory = symlinkJoin
-                    { name = "crates-io";
+                {
+                  directory = symlinkJoin
+                    {
+                      name = "crates-io";
                       paths = map (v: unpackCrate v.name v.version v.sha256)
                         crateDependencies;
                     };
@@ -84,23 +89,25 @@ let
       dontUseCmakeConfigure = true;
 
       nativeBuildInputs =
-        [ cargo
+        [
+          cargo
           # needed at various steps in the build
           jq
           rsync
-        ] ;
+        ];
 
       buildInputs =
         stdenv.lib.optionals stdenv.isDarwin
-        [ darwin.Security
-        darwin.apple_sdk.frameworks.CoreServices
-        darwin.cf-private
-        ] ++ buildInputs;
+          [
+            darwin.Security
+            darwin.apple_sdk.frameworks.CoreServices
+            darwin.cf-private
+          ] ++ buildInputs;
 
       # iff not in a shell
       inherit builtDependencies;
 
-      RUSTC="${rustc}/bin/rustc";
+      RUSTC = "${rustc}/bin/rustc";
 
       configurePhase =
         ''
@@ -174,7 +181,7 @@ let
               match='<meta name="description" content="Source to the Rust file `${builtins.storeDir}[^`]*`.">'
         replacement='<meta name="description" content="Source to the Rust file removed to reduce Nix closure size.">'
         find target/doc -name "*\.rs\.html" -exec sed -i "s|$match|$replacement|" {} +
-        ''}
+      ''}
 
         runHook postDoc
       '';
@@ -188,22 +195,22 @@ let
             mkdir -p $out/bin
             find out -type f -executable -exec cp {} $out/bin \;
           fi
-          ''}
+        ''}
 
           ${lib.optionalString copyTarget ''
           mkdir -p $out
           ${if compressTarget then
           ''
-          tar -c target | ${zstd}/bin/zstd -o $out/target.tar.zst
+            tar -c target | ${zstd}/bin/zstd -o $out/target.tar.zst
           '' else
           ''
-          cp -r target $out
+            cp -r target $out
           ''}
-          ''}
+        ''}
 
           ${lib.optionalString (doDoc && copyDocsToSeparateOutput) ''
           cp -r target/doc $doc
-          ''}
+        ''}
 
           runHook postInstall
         '';
@@ -212,8 +219,8 @@ let
         inherit builtDependencies;
       };
     }
-    )
-    ;
+  )
+  ;
 
   # XXX: the actual crate format is not documented but in practice is a
   # gzipped tar; we simply unpack it and introduce a ".cargo-checksum.json"
@@ -221,15 +228,16 @@ let
   unpackCrate = name: version: sha256:
     let
       crate = builtins.fetchurl
-        { url = "https://crates.io/api/v1/crates/${name}/${version}/download";
+        {
+          url = "https://crates.io/api/v1/crates/${name}/${version}/download";
           inherit sha256;
         };
     in
-    runCommand "unpack-${name}-${version}" {}
-    ''
-      mkdir -p $out
-      tar -xzf ${crate} -C $out
-      echo '{"package":"${sha256}","files":{}}' > $out/${name}-${version}/.cargo-checksum.json
-    '';
+      runCommand "unpack-${name}-${version}" {}
+        ''
+          mkdir -p $out
+          tar -xzf ${crate} -C $out
+          echo '{"package":"${sha256}","files":{}}' > $out/${name}-${version}/.cargo-checksum.json
+        '';
 in
 drv.overrideAttrs override
