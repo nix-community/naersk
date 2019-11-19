@@ -1,5 +1,5 @@
-src:
-{ preBuild
+{ src
+, preBuild
   #| What command to run during the build phase
 , cargoBuild
 , #| What command to run during the test phase
