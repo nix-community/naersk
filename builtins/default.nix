@@ -39,7 +39,7 @@ rec
   # TODO: use `builtins.pathExists` once
   # https://github.com/NixOS/nix/pull/3012 has landed and is generally
   # available
-  pathExists = path:
+  pathExists = if lib.versionAtLeast builtins.nixVersion "2.3" then builtins.pathExists else path:
     let
       all = lib.all (x: x);
       isOk = part:
