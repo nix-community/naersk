@@ -10,6 +10,7 @@
 , cargo
 , rustc
 , zstd
+, fetchurl
 }:
 
 let
@@ -29,6 +30,7 @@ let
       cargo
       rustc
       zstd
+      fetchurl
       ;
   };
 
