@@ -7,8 +7,39 @@ let
     else if builtins.hasAttr "outPath" arg then false
     else true;
 
-  attrs = if argIsAttrs then arg else
-    { src = if builtins.typeOf arg == "path" then lib.cleanSource arg else arg; };
+  # if the argument is not an attribute set, then assume it's the 'root'.
+  attrs = if argIsAttrs then arg else { root = arg; };
+
+  # we differentiate 'src' and 'root'. 'src' is used as source for the build;
+  # 'root' is used to find files like 'Cargo.toml'. As often as possible 'root'
+  # should be a "path" to avoid reading values from the nix-store.
+  # Below we try to come up with some good values for src and root if they're
+  # not defined.
+  sr =
+    let
+      hasRoot = builtins.hasAttr "root" attrs;
+      hasSrc = builtins.hasAttr "src" attrs;
+      isPath = x: builtins.typeOf x == "path";
+      root = attrs.root;
+      src = attrs.src;
+    in
+    # src: yes, root: no
+    if hasSrc && ! hasRoot then
+      if isPath src then
+        { src = lib.cleanSource src; root = src; }
+      else { inherit src; root = src; }
+    # src: yes, root: yes
+    else if hasRoot && hasSrc then
+      { inherit src root; }
+    # src: no, root: yes
+    else if hasRoot && ! hasSrc then
+      if isPath root then
+        { inherit root; src = lib.cleanSource root; }
+      else
+        { inherit root; src = root; }
+    # src: no, root: yes
+    else throw "please specify either 'src' or 'root'";
+
   usePureFromTOML = attrs.usePureFromTOML or true;
   readTOML = builtinz.readTOML usePureFromTOML;
 
@@ -39,7 +70,7 @@ let
 
   # config used when planning the builds
   buildPlanConfig = rec {
-    inherit (attrs) src;
+    inherit (sr) src root;
     # Whether we skip pre-building the deps
     isSingleStep = attrs.singleStep or false;
 
@@ -77,7 +108,7 @@ let
                     member:
                       {
                         name = member;
-                        value = readTOML (src + "/${member}/Cargo.toml");
+                        value = readTOML (root + "/${member}/Cargo.toml");
                       }
                   )
                   (toplevelCargotoml.workspace.members or [])
@@ -104,10 +135,10 @@ let
     isWorkspace = builtins.hasAttr "workspace" toplevelCargotoml;
 
     # The top level Cargo.toml, either a workspace or package
-    toplevelCargotoml = readTOML (src + "/Cargo.toml");
+    toplevelCargotoml = readTOML (root + "/Cargo.toml");
 
     # The cargo lock
-    cargolock = readTOML (src + "/Cargo.lock");
+    cargolock = readTOML (root + "/Cargo.lock");
 
     packageName = attrs.name or toplevelCargotoml.package.name or
       (if isWorkspace then "rust-workspace" else "rust-package");

@@ -10,6 +10,7 @@
 , cargo
 , rustc
 , zstd
+, fetchurl
 }:
 
 let
@@ -29,6 +30,7 @@ let
       cargo
       rustc
       zstd
+      fetchurl
       ;
   };
 
@@ -64,8 +66,8 @@ let
                     {
                       src = libb.dummySrc {
                         cargoconfig =
-                          if builtinz.pathExists (toString config.src + "/.cargo/config")
-                          then builtins.readFile (config.src + "/.cargo/config")
+                          if builtinz.pathExists (toString config.root + "/.cargo/config")
+                          then builtins.readFile (config.root + "/.cargo/config")
                           else null;
                         cargolock = config.cargolock;
                         cargotomls = config.cargotomls;
