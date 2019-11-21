@@ -87,12 +87,12 @@ rec
     "my-bin > $out";
 
   workspace = naersk.buildPackage {
-    src = pkgs.lib.cleanSource ./test/workspace;
+    src = ./test/workspace;
     doDoc = false;
   };
 
   workspace-patched = naersk.buildPackage {
-    src = pkgs.lib.cleanSource ./test/workspace-patched;
+    src = ./test/workspace-patched;
     doDoc = false;
   };
 
