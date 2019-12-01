@@ -1,5 +1,56 @@
 { lib, libb, builtinz, arg }:
 let
+  mkAttrs = attrs0:
+    { # foo bar< baz
+      # baz? foooo
+      # one
+      # two
+      # three
+      # four
+      root = attrs0.root or null;
+      # hello src
+      # hello world
+      src = attrs0.src or null;
+      # hello src
+      usePureFromTOML = attrs0.usePureFromTOML or true;
+      # hello src
+      compressTarget = attrs0.compressTarget or true;
+      # hello src
+      doCheck = attrs0.doCheck or true;
+      # hello src
+      buildInputs = attrs0.buildInputs or [];
+      # hello src
+      removeReferencesToSrcFromDocs = attrs0.removeReferencesToSrcFromDocs or true;
+      # hello src
+      doDoc = attrs0.doDoc or true;
+      # hello src
+      doDocFail = attrs0.doDocFail or false;
+      # hello src
+      release = attrs0.release or true;
+      # hello src
+      override = attrs0.override or (x: x);
+      # hello src
+      cargoBuild = attrs0.cargoBuild or
+          ''cargo build "''${cargo_release}" -j $NIX_BUILD_CORES -Z unstable-options --out-dir out'';
+      # hello src
+      singleStep = attrs0.singleStep or false;
+      # hello src
+      targets =  attrs0.targets or null;
+      # hello src
+      name = attrs0.name or null;
+      # hello src
+      version = attrs0.version or null;
+      # hello src
+      cargoTestCommands = attrs0.cargoTestCommands or
+          [ ''cargo test "''${cargo_release}" -j $NIX_BUILD_CORES'' ];
+      # hello src
+      copyTarget = attrs0.copyTarget or false;
+      # hello src
+      copyBins = attrs0.copyBins or true;
+      # hello src
+      copyDocsToSeparateOutput =  attrs0.copyDocsToSeparateOutput or true;
+    };
+
   argIsAttrs =
     if lib.isDerivation arg then false
     else if lib.isString arg then false
@@ -8,7 +59,11 @@ let
     else true;
 
   # if the argument is not an attribute set, then assume it's the 'root'.
-  attrs = if argIsAttrs then arg else { root = arg; };
+
+  attrs =
+    if argIsAttrs
+    then mkAttrs arg
+    else mkAttrs { root = arg; };
 
   # we differentiate 'src' and 'root'. 'src' is used as source for the build;
   # 'root' is used to find files like 'Cargo.toml'. As often as possible 'root'
@@ -17,8 +72,8 @@ let
   # not defined.
   sr =
     let
-      hasRoot = builtins.hasAttr "root" attrs;
-      hasSrc = builtins.hasAttr "src" attrs;
+      hasRoot = ! isNull attrs.root;
+      hasSrc = ! isNull attrs.src;
       isPath = x: builtins.typeOf x == "path";
       root = attrs.root;
       src = attrs.src;
@@ -40,18 +95,18 @@ let
     # src: no, root: yes
     else throw "please specify either 'src' or 'root'";
 
-  usePureFromTOML = attrs.usePureFromTOML or true;
+  usePureFromTOML = attrs.usePureFromTOML;
   readTOML = builtinz.readTOML usePureFromTOML;
 
   # config used during build the prebuild and the final build
   buildConfig = {
-    compressTarget = attrs.compressTarget or true;
-    doCheck = attrs.doCheck or true;
-    buildInputs = attrs.buildInputs or [];
-    removeReferencesToSrcFromDocs = attrs.removeReferencesToSrcFromDocs or true;
-    doDoc = attrs.doDoc or true;
+    compressTarget = attrs.compressTarget;
+    doCheck = attrs.doCheck;
+    buildInputs = attrs.buildInputs;
+    removeReferencesToSrcFromDocs = attrs.removeReferencesToSrcFromDocs;
+    doDoc = attrs.doDoc;
     #| Whether or not the rustdoc can fail the build
-    doDocFail = attrs.doDocFail or false;
+    doDocFail = attrs.doDocFail;
 
     release = attrs.release or true;
 
@@ -87,7 +142,7 @@ let
           if ! isWorkspace
           then (_member: _cargotoml: true)
           else
-            if builtins.hasAttr "targets" attrs
+            if ! isNull attrs.targets
             then (_member: cargotoml: lib.elem cargotoml.package.name attrs.targets)
             else (member: _cargotoml: member != ".");
       in
@@ -140,15 +195,18 @@ let
     # The cargo lock
     cargolock = readTOML (root + "/Cargo.lock");
 
-    packageName = attrs.name or toplevelCargotoml.package.name or
-      (if isWorkspace then "rust-workspace" else "rust-package");
+    packageName =
+      if ! isNull attrs.name
+      then attrs.name
+      else toplevelCargotoml.package.name or
+        (if isWorkspace then "rust-workspace" else "rust-package");
 
-    packageVersion = attrs.version or toplevelCargotoml.package.version or
-      "unknown";
+    packageVersion =
+      if ! isNull attrs.version
+      then attrs.version
+      else toplevelCargotoml.package.version or "unknown";
 
-    cargoTestCommands = attrs.cargoTestCommands or [
-      ''cargo test "''${cargo_release}" -j $NIX_BUILD_CORES''
-    ];
+    cargoTestCommands = attrs.cargoTestCommands;
 
     #| Whether or not to forward intermediate build artifacts to $out
     copyTarget = attrs.copyTarget or false;
