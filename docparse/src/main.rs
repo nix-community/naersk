@@ -37,33 +37,39 @@ fn print_mk_attrs(mk_attrs: SyntaxNode) {
         .body()
         .and_then(AttrSet::cast)
         .expect("Not a pattern");
+
+    println!("| Attribute | Description |");
+    println!("| - | - |");
     for e in body.entries() {
         let k = e.key().expect("No key").path().next().unwrap();
         let mshown = e
             .value()
             .and_then(OrDefault::cast)
             .expect("Is not OrDefault")
-            .default().and_then(|def|
-        {
-            let shown = format!("{}", def);
-            if shown != "null" {
-                Some(shown)
-            } else {
-                None
-            }
-        });
+            .default()
+            .and_then(|def| {
+                let shown = format!("{}", def);
+                if shown != "null" {
+                    Some(shown)
+                } else {
+                    None
+                }
+            });
         let e = e.node().clone();
         let c = find_comment(e).expect("No comment");
-        println!("### {} \n", k);
-        println!("{}", c);
-        if let Some(shown) = mshown {
-            println!("");
-            println!("_default value:_");
-            println!("``` nix");
-            println!("{}", shown);
-            println!("```");
+        let mut lines = vec![];
+        for l in c.lines() {
+            lines.push(l);
         }
-        println!("");
+
+        let sss;
+        if let Some(shown) = mshown {
+            lines.push("Default:");
+            sss = format!("`{}`", shown).to_string();
+            lines.push(&sss);
+        }
+        let descr = lines.join(" ");
+        println!("| `{}` | {} |", k, descr);
     }
 }
 
@@ -89,10 +95,11 @@ fn find_comment(node: SyntaxNode) -> Option<String> {
             _ => break,
         }
     }
+    comments.reverse();
     let doc = comments
         .iter()
         .map(|it| it.trim_start_matches('#').trim())
         .collect::<Vec<_>>()
-        .join("\n        ");
+        .join("\n");
     return Some(doc).filter(|it| !it.is_empty());
 }

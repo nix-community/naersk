@@ -1,0 +1,12 @@
+#!/usr/bin/env nix-shell
+#!nix-shell -i bash
+#!nix-shell -I nixpkgs=./nix
+#!nix-shell -p nix
+
+set -euo pipefail
+
+echo "Updating README"
+
+cat $(nix-build ./test.nix -A readme) > README.md
+
+echo done

@@ -1,54 +1,61 @@
 { lib, libb, builtinz, arg }:
 let
   mkAttrs = attrs0:
-    { # foo bar< baz
-      # baz? foooo
-      # one
-      # two
-      # three
-      # four
-      root = attrs0.root or null;
-      # hello src
-      # hello world
+  {   # The name of the derivation.
+      name = attrs0.name or null;
+      # The version of the derivation.
+      version = attrs0.version or null;
+      # Used by `naersk` as source input to the derivation. When `root` is not
+      # set, `src` is also used to discover the `Cargo.toml` and `Cargo.lock`.
       src = attrs0.src or null;
-      # hello src
-      usePureFromTOML = attrs0.usePureFromTOML or true;
-      # hello src
-      compressTarget = attrs0.compressTarget or true;
-      # hello src
-      doCheck = attrs0.doCheck or true;
-      # hello src
-      buildInputs = attrs0.buildInputs or [];
-      # hello src
-      removeReferencesToSrcFromDocs = attrs0.removeReferencesToSrcFromDocs or true;
-      # hello src
-      doDoc = attrs0.doDoc or true;
-      # hello src
-      doDocFail = attrs0.doDocFail or false;
-      # hello src
-      release = attrs0.release or true;
-      # hello src
-      override = attrs0.override or (x: x);
-      # hello src
+      # Used by `naersk` to read the `Cargo.toml` and `Cargo.lock` files. May
+      # be different from `src`. When `src` is not set, `root` is (indirectly)
+      # used as `src`.
+      root = attrs0.root or null;
+      # The command to use for the build.
       cargoBuild = attrs0.cargoBuild or
           ''cargo build "''${cargo_release}" -j $NIX_BUILD_CORES -Z unstable-options --out-dir out'';
-      # hello src
-      singleStep = attrs0.singleStep or false;
-      # hello src
-      targets =  attrs0.targets or null;
-      # hello src
-      name = attrs0.name or null;
-      # hello src
-      version = attrs0.version or null;
-      # hello src
+      # When true, `checkPhase` is run.
+      doCheck = attrs0.doCheck or true;
+      # The commands to run in the `checkPhase`.
       cargoTestCommands = attrs0.cargoTestCommands or
           [ ''cargo test "''${cargo_release}" -j $NIX_BUILD_CORES'' ];
-      # hello src
-      copyTarget = attrs0.copyTarget or false;
-      # hello src
+      # Extra `buildInputs` to all derivations.
+      buildInputs = attrs0.buildInputs or [];
+      # When true, `cargo doc` is run and a new output `doc` is generated.
+      doDoc = attrs0.doDoc or true;
+      # When true, all cargo builds are run with `--release`.
+      release = attrs0.release or true;
+      # An override for all derivations involved in the build.
+      override = attrs0.override or (x: x);
+      # When true, no intermediary (dependency-only) build is run. Enabling
+      # `singleStep` greatly reduces the incrementality of the builds.
+      singleStep = attrs0.singleStep or false;
+      # The targets to build if the `Cargo.toml` is a virtual manifest.
+      targets =  attrs0.targets or null;
+      # When true, the resulting binaries are copied to `$out/bin`.
       copyBins = attrs0.copyBins or true;
-      # hello src
+      # When true, the documentation is generated in a different output, `doc`.
       copyDocsToSeparateOutput =  attrs0.copyDocsToSeparateOutput or true;
+      # When true, the build fails if the documentation step fails; otherwise
+      # the failure is ignored.
+      doDocFail = attrs0.doDocFail or false;
+      # When true, references to the nix store are removed from the generated
+      # documentation.
+      removeReferencesToSrcFromDocs = attrs0.removeReferencesToSrcFromDocs or true;
+      # When true, the build output of intermediary builds is compressed with
+      # [`Zstandard`](https://facebook.github.io/zstd/). This reduces the size
+      # of closures.
+      compressTarget = attrs0.compressTarget or true;
+      # When true, the `target/` directory is copied to `$out`.
+      copyTarget = attrs0.copyTarget or false;
+      # Whether to use the `fromTOML` built-in or not. When set to `false` the
+      # python package `remarshal` is used instead (in a derivation) and the
+      # JSON output is read with `builtins.fromJSON`.
+      # This is a workaround for old versions of Nix. May be used safely from
+      # Nix 2.3 onwards where all bugs in `builtins.fromTOML` seem to have been
+      # fixed.
+      usePureFromTOML = attrs0.usePureFromTOML or true;
     };
 
   argIsAttrs =
