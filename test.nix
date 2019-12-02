@@ -1,7 +1,7 @@
 { system ? builtins.currentSystem }:
 let
   sources = import ./nix/sources.nix;
-  pkgs = import sources.nixpkgs { inherit system; };
+  pkgs = import ./nix { inherit system; };
   naersk = pkgs.callPackage ./default.nix
     { inherit (pkgs.rustPackages) cargo rustc; };
   builtinz = builtins // pkgs.callPackage ./builtins {};

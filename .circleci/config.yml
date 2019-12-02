@@ -38,7 +38,7 @@ jobs:
 
       - run:
           name: Nix build
-          command: nix-build --sandbox --no-link --cores 0 ./test.nix
+          command: ./script/test
 
 workflows:
   version: 2
