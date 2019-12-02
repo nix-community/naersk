@@ -1,0 +1,15 @@
+#!/usr/bin/env nix-shell
+#!nix-shell -i bash
+#!nix-shell -I nixpkgs=./nix
+#!nix-shell -p nix
+
+set -euo pipefail
+
+export NIX_PATH="nixpkgs=./nix"
+
+echo "Building"
+
+# Build and create a root
+nix-build ./test.nix --sandbox --no-link --max-jobs 10
+
+echo "all good"

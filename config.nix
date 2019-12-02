@@ -1,5 +1,63 @@
 { lib, libb, builtinz, arg }:
 let
+  mkAttrs = attrs0:
+  {   # The name of the derivation.
+      name = attrs0.name or null;
+      # The version of the derivation.
+      version = attrs0.version or null;
+      # Used by `naersk` as source input to the derivation. When `root` is not
+      # set, `src` is also used to discover the `Cargo.toml` and `Cargo.lock`.
+      src = attrs0.src or null;
+      # Used by `naersk` to read the `Cargo.toml` and `Cargo.lock` files. May
+      # be different from `src`. When `src` is not set, `root` is (indirectly)
+      # used as `src`.
+      root = attrs0.root or null;
+      # The command to use for the build.
+      cargoBuild = attrs0.cargoBuild or
+          ''cargo build "''${cargo_release}" -j $NIX_BUILD_CORES -Z unstable-options --out-dir out'';
+      # When true, `checkPhase` is run.
+      doCheck = attrs0.doCheck or true;
+      # The commands to run in the `checkPhase`.
+      cargoTestCommands = attrs0.cargoTestCommands or
+          [ ''cargo test "''${cargo_release}" -j $NIX_BUILD_CORES'' ];
+      # Extra `buildInputs` to all derivations.
+      buildInputs = attrs0.buildInputs or [];
+      # When true, `cargo doc` is run and a new output `doc` is generated.
+      doDoc = attrs0.doDoc or true;
+      # When true, all cargo builds are run with `--release`.
+      release = attrs0.release or true;
+      # An override for all derivations involved in the build.
+      override = attrs0.override or (x: x);
+      # When true, no intermediary (dependency-only) build is run. Enabling
+      # `singleStep` greatly reduces the incrementality of the builds.
+      singleStep = attrs0.singleStep or false;
+      # The targets to build if the `Cargo.toml` is a virtual manifest.
+      targets =  attrs0.targets or null;
+      # When true, the resulting binaries are copied to `$out/bin`.
+      copyBins = attrs0.copyBins or true;
+      # When true, the documentation is generated in a different output, `doc`.
+      copyDocsToSeparateOutput =  attrs0.copyDocsToSeparateOutput or true;
+      # When true, the build fails if the documentation step fails; otherwise
+      # the failure is ignored.
+      doDocFail = attrs0.doDocFail or false;
+      # When true, references to the nix store are removed from the generated
+      # documentation.
+      removeReferencesToSrcFromDocs = attrs0.removeReferencesToSrcFromDocs or true;
+      # When true, the build output of intermediary builds is compressed with
+      # [`Zstandard`](https://facebook.github.io/zstd/). This reduces the size
+      # of closures.
+      compressTarget = attrs0.compressTarget or true;
+      # When true, the `target/` directory is copied to `$out`.
+      copyTarget = attrs0.copyTarget or false;
+      # Whether to use the `fromTOML` built-in or not. When set to `false` the
+      # python package `remarshal` is used instead (in a derivation) and the
+      # JSON output is read with `builtins.fromJSON`.
+      # This is a workaround for old versions of Nix. May be used safely from
+      # Nix 2.3 onwards where all bugs in `builtins.fromTOML` seem to have been
+      # fixed.
+      usePureFromTOML = attrs0.usePureFromTOML or true;
+    };
+
   argIsAttrs =
     if lib.isDerivation arg then false
     else if lib.isString arg then false
@@ -8,7 +66,11 @@ let
     else true;
 
   # if the argument is not an attribute set, then assume it's the 'root'.
-  attrs = if argIsAttrs then arg else { root = arg; };
+
+  attrs =
+    if argIsAttrs
+    then mkAttrs arg
+    else mkAttrs { root = arg; };
 
   # we differentiate 'src' and 'root'. 'src' is used as source for the build;
   # 'root' is used to find files like 'Cargo.toml'. As often as possible 'root'
@@ -17,8 +79,8 @@ let
   # not defined.
   sr =
     let
-      hasRoot = builtins.hasAttr "root" attrs;
-      hasSrc = builtins.hasAttr "src" attrs;
+      hasRoot = ! isNull attrs.root;
+      hasSrc = ! isNull attrs.src;
       isPath = x: builtins.typeOf x == "path";
       root = attrs.root;
       src = attrs.src;
@@ -40,18 +102,18 @@ let
     # src: no, root: yes
     else throw "please specify either 'src' or 'root'";
 
-  usePureFromTOML = attrs.usePureFromTOML or true;
+  usePureFromTOML = attrs.usePureFromTOML;
   readTOML = builtinz.readTOML usePureFromTOML;
 
   # config used during build the prebuild and the final build
   buildConfig = {
-    compressTarget = attrs.compressTarget or true;
-    doCheck = attrs.doCheck or true;
-    buildInputs = attrs.buildInputs or [];
-    removeReferencesToSrcFromDocs = attrs.removeReferencesToSrcFromDocs or true;
-    doDoc = attrs.doDoc or true;
+    compressTarget = attrs.compressTarget;
+    doCheck = attrs.doCheck;
+    buildInputs = attrs.buildInputs;
+    removeReferencesToSrcFromDocs = attrs.removeReferencesToSrcFromDocs;
+    doDoc = attrs.doDoc;
     #| Whether or not the rustdoc can fail the build
-    doDocFail = attrs.doDocFail or false;
+    doDocFail = attrs.doDocFail;
 
     release = attrs.release or true;
 
@@ -87,7 +149,7 @@ let
           if ! isWorkspace
           then (_member: _cargotoml: true)
           else
-            if builtins.hasAttr "targets" attrs
+            if ! isNull attrs.targets
             then (_member: cargotoml: lib.elem cargotoml.package.name attrs.targets)
             else (member: _cargotoml: member != ".");
       in
@@ -140,15 +202,18 @@ let
     # The cargo lock
     cargolock = readTOML (root + "/Cargo.lock");
 
-    packageName = attrs.name or toplevelCargotoml.package.name or
-      (if isWorkspace then "rust-workspace" else "rust-package");
+    packageName =
+      if ! isNull attrs.name
+      then attrs.name
+      else toplevelCargotoml.package.name or
+        (if isWorkspace then "rust-workspace" else "rust-package");
 
-    packageVersion = attrs.version or toplevelCargotoml.package.version or
-      "unknown";
+    packageVersion =
+      if ! isNull attrs.version
+      then attrs.version
+      else toplevelCargotoml.package.version or "unknown";
 
-    cargoTestCommands = attrs.cargoTestCommands or [
-      ''cargo test "''${cargo_release}" -j $NIX_BUILD_CORES''
-    ];
+    cargoTestCommands = attrs.cargoTestCommands;
 
     #| Whether or not to forward intermediate build artifacts to $out
     copyTarget = attrs.copyTarget or false;

@@ -1,13 +1,40 @@
 { system ? builtins.currentSystem }:
 let
   sources = import ./nix/sources.nix;
-  pkgs = import sources.nixpkgs { inherit system; };
+  pkgs = import ./nix { inherit system; };
   naersk = pkgs.callPackage ./default.nix
     { inherit (pkgs.rustPackages) cargo rustc; };
   builtinz = builtins // pkgs.callPackage ./builtins {};
 in
 rec
 {
+  readme = pkgs.runCommand "readme-gen" {}
+    ''
+    cat ${./README.tpl.md} > $out
+    ${docparse}/bin/docparse ${./config.nix} >> gen
+    sed -e '/GEN_CONFIGURATION/{r gen' -e 'd}' -i $out
+    '';
+
+  docparse = naersk.buildPackage {
+    root = ./docparse;
+    src = builtins.filterSource (
+      p: t:
+        let
+          p' = pkgs.lib.removePrefix (toString ./docparse + "/") p;
+        in
+        p' == "Cargo.lock" ||
+        p' == "Cargo.toml" ||
+        p' == "src" ||
+        p' == "src/main.rs"
+      ) ./docparse;
+    };
+
+  readme_test = pkgs.runCommand "readme-test" {}
+    ''
+    diff ${./README.md} ${readme}
+    touch $out
+    '';
+
   # error[E0554]: `#![feature]` may not be used on the stable release channel
   # rustfmt = naersk.buildPackage sources.rustfmt { doDocFail = false; };
   # rustfmt_test = pkgs.runCommand "rustfmt-test"

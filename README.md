@@ -4,6 +4,10 @@
 
 Nix support for building [cargo] crates.
 
+* [Install](#install)
+* [Configuration](#configuration)
+* [Comparison](#install)
+
 ## Install
 
 Use [niv]:
@@ -24,8 +28,39 @@ in naersk.buildPackage ./path/to/rust
 
 _NOTE_: `./path/to/rust/` should contain a `Cargo.lock`.
 
-The `buildPackage` function also accepts an attribute set. For more
-information, consult [`config.nix`](./config.nix).
+## Configuration
+
+The `buildPackage` function also accepts an attribute set. The attributes are
+described below. When the argument passed in _not_ an attribute set, e.g.
+
+``` nix
+naersk.buildPackage theArg
+```
+
+it is converted to an attribute set equivalent to `{ root = theArg; }`.
+
+| Attribute | Description |
+| - | - |
+| `name` | The name of the derivation. |
+| `version` | The version of the derivation. |
+| `src` | Used by `naersk` as source input to the derivation. When `root` is not set, `src` is also used to discover the `Cargo.toml` and `Cargo.lock`. |
+| `root` | Used by `naersk` to read the `Cargo.toml` and `Cargo.lock` files. May be different from `src`. When `src` is not set, `root` is (indirectly) used as `src`. |
+| `cargoBuild` | The command to use for the build. Default: `''cargo build "''${cargo_release}" -j $NIX_BUILD_CORES -Z unstable-options --out-dir out''` |
+| `doCheck` | When true, `checkPhase` is run. Default: `true` |
+| `cargoTestCommands` | The commands to run in the `checkPhase`. Default: `[ ''cargo test "''${cargo_release}" -j $NIX_BUILD_CORES'' ]` |
+| `buildInputs` | Extra `buildInputs` to all derivations. Default: `[]` |
+| `doDoc` | When true, `cargo doc` is run and a new output `doc` is generated. Default: `true` |
+| `release` | When true, all cargo builds are run with `--release`. Default: `true` |
+| `override` | An override for all derivations involved in the build. Default: `(x: x)` |
+| `singleStep` | When true, no intermediary (dependency-only) build is run. Enabling `singleStep` greatly reduces the incrementality of the builds. Default: `false` |
+| `targets` | The targets to build if the `Cargo.toml` is a virtual manifest. |
+| `copyBins` | When true, the resulting binaries are copied to `$out/bin`. Default: `true` |
+| `copyDocsToSeparateOutput` | When true, the documentation is generated in a different output, `doc`. Default: `true` |
+| `doDocFail` | When true, the build fails if the documentation step fails; otherwise the failure is ignored. Default: `false` |
+| `removeReferencesToSrcFromDocs` | When true, references to the nix store are removed from the generated documentation. Default: `true` |
+| `compressTarget` | When true, the build output of intermediary builds is compressed with [`Zstandard`](https://facebook.github.io/zstd/). This reduces the size of closures. Default: `true` |
+| `copyTarget` | When true, the `target/` directory is copied to `$out`. Default: `false` |
+| `usePureFromTOML` | Whether to use the `fromTOML` built-in or not. When set to `false` the python package `remarshal` is used instead (in a derivation) and the JSON output is read with `builtins.fromJSON`. This is a workaround for old versions of Nix. May be used safely from Nix 2.3 onwards where all bugs in `builtins.fromTOML` seem to have been fixed. Default: `true` |
 
 ## Comparison
 
@@ -44,7 +79,6 @@ in the project's `Cargo.lock`. Because `cargo` doesn't register checksums for
 Finally `naersk` supports incremental builds by first performing a
 dependency-only build, and _then_ a build that depends on the top-level crate's
 code and configuration.
-
 
 [cargo]: https://crates.io/
 [niv]: https://github.com/nmattia/niv
