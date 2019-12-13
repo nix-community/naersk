@@ -16,6 +16,8 @@ rec
     '';
 
   docparse = naersk.buildPackage {
+    doDoc = false;
+    doCheck = false;
     root = ./docparse;
     src = builtins.filterSource (
       p: t:
