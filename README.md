@@ -62,6 +62,7 @@ it is converted to an attribute set equivalent to `{ root = theArg; }`.
 | `compressTarget` | When true, the build output of intermediary builds is compressed with [`Zstandard`](https://facebook.github.io/zstd/). This reduces the size of closures. Default: `true` |
 | `copyTarget` | When true, the `target/` directory is copied to `$out`. Default: `false` |
 | `usePureFromTOML` | Whether to use the `fromTOML` built-in or not. When set to `false` the python package `remarshal` is used instead (in a derivation) and the JSON output is read with `builtins.fromJSON`. This is a workaround for old versions of Nix. May be used safely from Nix 2.3 onwards where all bugs in `builtins.fromTOML` seem to have been fixed. Default: `true` |
+| `allowGitDependencies` | Prefetch git dependencies with `builtins.fetchGit` and add `[patch.*]` sections to the `Cargo.toml`. This also removes all references to git links in the `Cargo.lock`. **Highly experimental.** Default: `false` |
 
 ## Comparison
 
