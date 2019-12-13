@@ -56,42 +56,6 @@ rec
   mkMetadataKey = name: version:
     "checksum ${name} ${version} (registry+https://github.com/rust-lang/crates.io-index)";
 
-  # A cargo lock that only includes the transitive dependencies of the
-  # package (and the package itself). This package is Nix-generated and thus
-  # only the transitive dependencies contribute to the package's derivation.
-  cargolockFor = cargolock: name: version:
-    let
-      tdeps = transitiveDeps cargolock name version;
-      tdepPrefix = dep: "checksum ${dep.name} ${dep.version}";
-      isTransitiveDep = p: lib.any
-        (d: d.package.name == p.name && d.package.version == p.version)
-        tdeps;
-      isTransitiveDepChecksumKey = k:
-        lib.any (tdep: lib.hasPrefix (tdepPrefix tdep.package) k) tdeps;
-    in
-      cargolock // {
-        package = lib.filter (
-          p:
-            (p.name == name && p.version == version) || (isTransitiveDep p)
-        ) cargolock.package;
-
-        metadata = lib.filterAttrs (k: _: isTransitiveDepChecksumKey k)
-          cargolock.metadata;
-      };
-
-  # A stripped down Cargo.toml, similar to cargolockFor
-  cargotomlFor = name: version:
-    {
-      package =
-        {
-          name = "dummy";
-          version = "0.1.0";
-          edition = "2018";
-        };
-      dependencies =
-        { ${name} = version; };
-    };
-
   # A very minimal 'src' which makes cargo happy nonetheless
   dummySrc =
     { cargoconfig   # string
