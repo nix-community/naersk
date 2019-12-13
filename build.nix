@@ -37,6 +37,7 @@
 , buildInputs
 , builtDependencies
 , release
+, cargoOptions
 , stdenv
 , lib
 , rsync
@@ -104,6 +105,7 @@ let
 
     configurePhase = ''
       cargo_release=( ${lib.optionalString release "--release" } )
+      cargo_options=( ${lib.escapeShellArgs cargoOptions} )
 
       runHook preConfigure
 
