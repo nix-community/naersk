@@ -45,10 +45,11 @@ it is converted to an attribute set equivalent to `{ root = theArg; }`.
 | `version` | The version of the derivation. |
 | `src` | Used by `naersk` as source input to the derivation. When `root` is not set, `src` is also used to discover the `Cargo.toml` and `Cargo.lock`. |
 | `root` | Used by `naersk` to read the `Cargo.toml` and `Cargo.lock` files. May be different from `src`. When `src` is not set, `root` is (indirectly) used as `src`. |
-| `cargoBuild` | The command to use for the build. Default: `''cargo build "''${cargo_release}" -j $NIX_BUILD_CORES -Z unstable-options --out-dir out''` |
+| `cargoBuild` | The command to use for the build. Default: `''cargo "''${cargo_options[@]}" build "''${cargo_release[@]}" -j $NIX_BUILD_CORES -Z unstable-options --out-dir out''` |
 | `doCheck` | When true, `checkPhase` is run. Default: `true` |
-| `cargoTestCommands` | The commands to run in the `checkPhase`. Default: `[ ''cargo test "''${cargo_release}" -j $NIX_BUILD_CORES'' ]` |
+| `cargoTestCommands` | The commands to run in the `checkPhase`. Default: `[ ''cargo "''${cargo_options[@]}" test "''${cargo_release[@]}" -j $NIX_BUILD_CORES'' ]` |
 | `buildInputs` | Extra `buildInputs` to all derivations. Default: `[]` |
+| `cargoOptions` | Options passed to cargo before the command (cargo OPTIONS <cmd>) Default: `[]` |
 | `doDoc` | When true, `cargo doc` is run and a new output `doc` is generated. Default: `true` |
 | `release` | When true, all cargo builds are run with `--release`. Default: `true` |
 | `override` | An override for all derivations involved in the build. Default: `(x: x)` |
