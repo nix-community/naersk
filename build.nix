@@ -29,6 +29,7 @@
   #  Which drops the run-time dependency on the crates-io source thereby
   #  significantly reducing the Nix closure size.
 , removeReferencesToSrcFromDocs
+, gitDependencies
 , pname
 , version
 , rustc
@@ -59,6 +60,10 @@ let
 
   drv = stdenv.mkDerivation {
     name = "${pname}-${version}";
+    gitDependencies =
+      if gitDependencies != {}
+      then writeText "gitdeps.json" (builtins.toJSON gitDependencies)
+      else "";
     inherit
       src
       doCheck
@@ -142,6 +147,35 @@ let
 
       # TODO: figure out why "1" works whereas "0" doesn't
       find . -type f -exec touch --date=@1 {} +
+
+      if [ -n "$gitDependencies" ]; then
+        echo "Git dependencies were set, patching Cargo.toml(s)"
+        while read -r json; do
+            echo "Got json: $json"
+            dir=$(echo "$json" | jq -cMr '.dir')
+            checkout=$(echo "$json" | jq -cMr '.checkout')
+            name=$(echo "$json" | jq -cMr '.name')
+            url=$(echo "$json" | jq -cMr '.url')
+            echo "Found json:"
+            echo "  dir: $dir"
+            echo "  checkout: $checkout"
+            echo "  name: $name"
+            echo "  url: $url"
+            echo >> Cargo.toml
+            echo "[patch.\"$url\"]" >> $dir/Cargo.toml
+            echo "$name = { path = \"$checkout\" }" >> $dir/Cargo.toml
+
+            echo "Cargo toml updated"
+        done < <(cat "$gitDependencies" | jq -cMr ' '' +
+        # This turns { ".": [ { "rev": "deadbeef" } ] } into
+        # [ { "dir": ".", "rev": "deadbeef" } ]
+        ''
+          to_entries | .[] | .key as $dir | .value | map(.+{ dir: $dir }) | .[]
+          ')
+        sed -ri '/^"checksum [^ ]+ [^ ]+ [(]git[+]https/d' Cargo.lock
+        sed -ri '/^source = "git/d' Cargo.lock
+        sed -ri 's/ [(]git[+]https[^)]*[)]//g' Cargo.lock
+      fi
 
       runHook postConfigure
     '';

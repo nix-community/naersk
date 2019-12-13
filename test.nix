@@ -115,6 +115,12 @@ rec
     { buildInputs = [ dummyfication ]; }
     "my-bin > $out";
 
+  git-dep = naersk.buildPackage {
+    root = ./test/git-dep;
+    cargoOptions = [ "--locked" ];
+    allowGitDependencies = true;
+  };
+
   workspace = naersk.buildPackage {
     src = ./test/workspace;
     doDoc = false;

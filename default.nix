@@ -45,6 +45,10 @@ let
   buildPackage = arg:
     let
       config = mkConfig arg;
+      gitDependencies =
+        if config.patchGitDeps
+        then libb.findGitDependencies { inherit (config) cargotomls; }
+        else {};
     in
       import ./build.nix
         (
@@ -58,12 +62,14 @@ let
               if [ -f src/main.rs ] ; then touch src/main.rs; fi
             '';
             inherit (config) src cargoTestCommands copyTarget copyBins copyDocsToSeparateOutput;
+            inherit gitDependencies;
           } // config.buildConfig // {
             builtDependencies = lib.optional (! config.isSingleStep)
               (
                 import ./build.nix
                   (
                     {
+                      inherit gitDependencies;
                       src = libb.dummySrc {
                         cargoconfig =
                           if builtinz.pathExists (toString config.root + "/.cargo/config")

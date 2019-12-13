@@ -56,6 +56,38 @@ rec
   mkMetadataKey = name: version:
     "checksum ${name} ${version} (registry+https://github.com/rust-lang/crates.io-index)";
 
+  # a record:
+  #   { "." = # '.' is the directory of the cargotoml
+  #     [
+  #       {
+  #         name = "rand";
+  #         url = "https://github.com/...";
+  #         checkout = "/nix/store/checkout"
+  #       }
+  #     ]
+  #   }
+  findGitDependencies =
+    { cargotomls
+    }:
+      let
+        tomlDepdencies = cargotoml:
+          lib.filter (x: ! isNull x) (
+          lib.mapAttrsToList
+            (k: v:
+              if ! builtins.hasAttr "git" v
+              then null
+              else
+                { name = k;
+                  url = v.git;
+                  checkout = builtins.fetchGit {
+                    url = v.git;
+                    rev = v.rev;
+                  };
+                }
+            ) cargotoml.dependencies);
+      in
+        lib.mapAttrs (_: tomlDepdencies) cargotomls;
+
   # A very minimal 'src' which makes cargo happy nonetheless
   dummySrc =
     { cargoconfig   # string
