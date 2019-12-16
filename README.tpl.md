@@ -52,8 +52,12 @@ project's `Cargo.lock` which makes any code generation unnecessary.
 
 For the same reason, `naersk` does not need anything like `rustPlatform`'s
 `cargoSha256`. All crates are downloaded using the `sha256` checksums provided
-in the project's `Cargo.lock`. Because `cargo` doesn't register checksums for
-`git` dependencies, **`naersk` does not support `git` dependencies**.
+in the project's `Cargo.lock`.
+
+Because `cargo` doesn't register checksums for `git` dependencies, **`naersk`'s
+support for `git` dependencies is experimental** and has to be enabled with
+`allowGitDependencies = true` (see the [configuration
+section](#configuration)).
 
 Finally `naersk` supports incremental builds by first performing a
 dependency-only build, and _then_ a build that depends on the top-level crate's
