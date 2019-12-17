@@ -29,6 +29,7 @@
   #  Which drops the run-time dependency on the crates-io source thereby
   #  significantly reducing the Nix closure size.
 , removeReferencesToSrcFromDocs
+, gitDependencies
 , pname
 , version
 , rustc
@@ -37,6 +38,7 @@
 , buildInputs
 , builtDependencies
 , release
+, cargoOptions
 , stdenv
 , lib
 , rsync
@@ -56,6 +58,55 @@ let
     builtins // import ./builtins
       { inherit lib writeText remarshal runCommand; };
 
+  # All the git dependencies, as a list
+  gitDependenciesList =
+    lib.concatLists (lib.mapAttrsToList (_: ds: ds) gitDependencies);
+
+  # This unpacks all git dependencies:
+  #   $out/rand
+  #   $out/rand/Cargo.toml
+  #   $out/rand_core
+  #   ...
+  # It does so by discovering all the `Cargo.toml`s and creating a directory in
+  # $out for each one.
+  # NOTE:
+  #   Only non-virtual manifests are taken into account. That is, only cargo
+  #   tomls that have a [package] sections with a `name = ...`. The
+  #   implementation is a bit tricky and basically akin to parsing TOML with
+  #   bash. The reason is that there is no lightweight jq-equivalent available
+  #   in nixpkgs (rq fails to build).
+  #   We discover the name (in any) in three steps:
+  #     * grab anything that comes after `[package]`
+  #     * grab the first line that contains `name = ...`
+  #     * grab whatever is surrounded with `"`s.
+  #   The last step is very, very slow.
+  unpackedGitDependencies = runCommand "git-deps"
+    { nativeBuildInputs = [ jq ]; }
+    ''
+      mkdir -p $out
+
+      while read -r dep; do
+        checkout=$(echo "$dep" | jq -cMr '.checkout')
+        url=$(echo "$dep" | jq -cMr '.url')
+        tomls=$(find $checkout -name Cargo.toml)
+        while read -r toml; do
+          name=$(cat $toml \
+            | sed -n -e '/\[package\]/,$p' \
+            | grep -m 1 "^name\W" \
+            | grep -oP '(?<=").+(?=")' \
+            || true)
+          if [ -n "$name" ]; then
+            echo "$url Found crate '$name'"
+            cp -r $(dirname $toml) $out/$name
+            chmod +w $out/$name
+            echo '{"package":null,"files":{}}' > $out/$name/.cargo-checksum.json
+          fi
+        done <<< "$tomls"
+      done < <(cat ${
+        builtins.toFile "git-deps-json" (builtins.toJSON gitDependenciesList)
+        } | jq -cMr '.[]')
+    '';
+
   drv = stdenv.mkDerivation {
     name = "${pname}-${version}";
     inherit
@@ -65,6 +116,8 @@ let
       preBuild
       ;
 
+    # The cargo config with source replacement. Replaces both crates.io crates
+    # and git dependencies.
     cargoconfig = builtinz.toTOML {
       source = {
         crates-io = { replace-with = "nix-sources"; };
@@ -72,10 +125,19 @@ let
           directory = symlinkJoin {
             name = "crates-io";
             paths = map (v: unpackCrate v.name v.version v.sha256)
-              crateDependencies;
+              crateDependencies ++ [ unpackedGitDependencies ] ;
           };
         };
-      };
+      } // lib.listToAttrs ( map
+          (e:
+            { name = e.url; value =
+                { git = e.url;
+                  rev = e.rev;
+                  replace-with = "nix-sources";
+                };
+            })
+          gitDependenciesList
+          );
     };
 
     outputs = [ "out" ] ++ lib.optional (doDoc && copyDocsToSeparateOutput) "doc";
@@ -104,6 +166,7 @@ let
 
     configurePhase = ''
       cargo_release=( ${lib.optionalString release "--release" } )
+      cargo_options=( ${lib.escapeShellArgs cargoOptions} )
 
       runHook preConfigure
 

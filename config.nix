@@ -14,14 +14,16 @@ let
       root = attrs0.root or null;
       # The command to use for the build.
       cargoBuild = attrs0.cargoBuild or
-          ''cargo build "''${cargo_release}" -j $NIX_BUILD_CORES -Z unstable-options --out-dir out'';
+          ''cargo "''${cargo_options[@]}" build "''${cargo_release[@]}" -j $NIX_BUILD_CORES -Z unstable-options --out-dir out'';
       # When true, `checkPhase` is run.
       doCheck = attrs0.doCheck or true;
       # The commands to run in the `checkPhase`.
       cargoTestCommands = attrs0.cargoTestCommands or
-          [ ''cargo test "''${cargo_release}" -j $NIX_BUILD_CORES'' ];
+          [ ''cargo "''${cargo_options[@]}" test "''${cargo_release[@]}" -j $NIX_BUILD_CORES'' ];
       # Extra `buildInputs` to all derivations.
       buildInputs = attrs0.buildInputs or [];
+      # Options passed to cargo before the command (cargo OPTIONS <cmd>)
+      cargoOptions = attrs0.cargoOptions or [];
       # When true, `cargo doc` is run and a new output `doc` is generated.
       doDoc = attrs0.doDoc or true;
       # When true, all cargo builds are run with `--release`.
@@ -109,6 +111,7 @@ let
   buildConfig = {
     compressTarget = attrs.compressTarget;
     doCheck = attrs.doCheck;
+    cargoOptions = attrs.cargoOptions;
     buildInputs = attrs.buildInputs;
     removeReferencesToSrcFromDocs = attrs.removeReferencesToSrcFromDocs;
     doDoc = attrs.doDoc;
@@ -134,7 +137,7 @@ let
   buildPlanConfig = rec {
     inherit (sr) src root;
     # Whether we skip pre-building the deps
-    isSingleStep = attrs.singleStep or false;
+    isSingleStep = attrs.singleStep;
 
     # The members we want to build
     # (list of directory names)

@@ -45,10 +45,11 @@ it is converted to an attribute set equivalent to `{ root = theArg; }`.
 | `version` | The version of the derivation. |
 | `src` | Used by `naersk` as source input to the derivation. When `root` is not set, `src` is also used to discover the `Cargo.toml` and `Cargo.lock`. |
 | `root` | Used by `naersk` to read the `Cargo.toml` and `Cargo.lock` files. May be different from `src`. When `src` is not set, `root` is (indirectly) used as `src`. |
-| `cargoBuild` | The command to use for the build. Default: `''cargo build "''${cargo_release}" -j $NIX_BUILD_CORES -Z unstable-options --out-dir out''` |
+| `cargoBuild` | The command to use for the build. Default: `''cargo "''${cargo_options[@]}" build "''${cargo_release[@]}" -j $NIX_BUILD_CORES -Z unstable-options --out-dir out''` |
 | `doCheck` | When true, `checkPhase` is run. Default: `true` |
-| `cargoTestCommands` | The commands to run in the `checkPhase`. Default: `[ ''cargo test "''${cargo_release}" -j $NIX_BUILD_CORES'' ]` |
+| `cargoTestCommands` | The commands to run in the `checkPhase`. Default: `[ ''cargo "''${cargo_options[@]}" test "''${cargo_release[@]}" -j $NIX_BUILD_CORES'' ]` |
 | `buildInputs` | Extra `buildInputs` to all derivations. Default: `[]` |
+| `cargoOptions` | Options passed to cargo before the command (cargo OPTIONS <cmd>) Default: `[]` |
 | `doDoc` | When true, `cargo doc` is run and a new output `doc` is generated. Default: `true` |
 | `release` | When true, all cargo builds are run with `--release`. Default: `true` |
 | `override` | An override for all derivations involved in the build. Default: `(x: x)` |
@@ -73,8 +74,7 @@ project's `Cargo.lock` which makes any code generation unnecessary.
 
 For the same reason, `naersk` does not need anything like `rustPlatform`'s
 `cargoSha256`. All crates are downloaded using the `sha256` checksums provided
-in the project's `Cargo.lock`. Because `cargo` doesn't register checksums for
-`git` dependencies, **`naersk` does not support `git` dependencies**.
+in the project's `Cargo.lock`.
 
 Finally `naersk` supports incremental builds by first performing a
 dependency-only build, and _then_ a build that depends on the top-level crate's

@@ -16,6 +16,8 @@ rec
     '';
 
   docparse = naersk.buildPackage {
+    doDoc = false;
+    doCheck = false;
     root = ./docparse;
     src = builtins.filterSource (
       p: t:
@@ -112,6 +114,11 @@ rec
     "dummyfication-test"
     { buildInputs = [ dummyfication ]; }
     "my-bin > $out";
+
+  git-dep = naersk.buildPackage {
+    root = ./test/git-dep;
+    cargoOptions = [ "--locked" ];
+  };
 
   workspace = naersk.buildPackage {
     src = ./test/workspace;
