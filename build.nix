@@ -58,17 +58,17 @@ let
     builtins // import ./builtins
       { inherit lib writeText remarshal runCommand; };
 
-  foo = lib.concatLists (lib.mapAttrsToList (
-    _: ds: ds) gitDependencies);
+  # All the git dependencies, as a list
+  gitDependenciesList =
+    lib.concatLists (lib.mapAttrsToList (_: ds: ds) gitDependencies);
 
+  # TODO: explain what this is and document
   unpackedGitDependencies = runCommand "git-deps"
     { nativeBuildInputs = [ jq ]; }
     ''
-
       mkdir -p $out
 
       while read -r dep; do
-        echo "Got git dep: $dep"
         checkout=$(echo "$dep" | jq -cMr '.checkout')
         url=$(echo "$dep" | jq -cMr '.url')
         tomls=$(find $checkout -name Cargo.toml)
@@ -86,15 +86,13 @@ let
             echo '{"package":null,"files":{}}' > $out/$name/.cargo-checksum.json
           fi
         done <<< "$tomls"
-      done < <(cat ${builtins.toFile "git-deps-json" (builtins.toJSON foo)} | jq -cMr '.[]')
+      done < <(cat ${
+        builtins.toFile "git-deps-json" (builtins.toJSON gitDependenciesList)
+        } | jq -cMr '.[]')
     '';
 
   drv = stdenv.mkDerivation {
     name = "${pname}-${version}";
-    gitDependencies = "";
-      #if gitDependencies != {}
-      #then writeText "gitdeps.json" (builtins.toJSON gitDependencies)
-      #else "";
     inherit
       src
       doCheck
@@ -102,8 +100,7 @@ let
       preBuild
       ;
 
-
-
+    # TODO: explain what this is
     cargoconfig = builtinz.toTOML {
       source = {
         crates-io = { replace-with = "nix-sources"; };
@@ -111,7 +108,7 @@ let
           directory = symlinkJoin {
             name = "crates-io";
             paths = map (v: unpackCrate v.name v.version v.sha256)
-            crateDependencies ++ [ unpackedGitDependencies ] ;
+              crateDependencies ++ [ unpackedGitDependencies ] ;
           };
         };
       } // lib.listToAttrs ( map
@@ -122,7 +119,7 @@ let
                   replace-with = "nix-sources";
                 };
             })
-          foo
+          gitDependenciesList
           );
     };
 
@@ -189,35 +186,6 @@ let
 
       # TODO: figure out why "1" works whereas "0" doesn't
       find . -type f -exec touch --date=@1 {} +
-
-      if [ -n "$gitDependencies" ]; then
-        echo "Git dependencies were set, patching Cargo.toml(s)"
-        while read -r json; do
-            echo "Got json: $json"
-            dir=$(echo "$json" | jq -cMr '.dir')
-            checkout=$(echo "$json" | jq -cMr '.checkout')
-            name=$(echo "$json" | jq -cMr '.name')
-            url=$(echo "$json" | jq -cMr '.url')
-            echo "Found json:"
-            echo "  dir: $dir"
-            echo "  checkout: $checkout"
-            echo "  name: $name"
-            echo "  url: $url"
-            echo >> Cargo.toml
-            echo "[patch.\"$url\"]" >> $dir/Cargo.toml
-            echo "$name = { path = \"$checkout\" }" >> $dir/Cargo.toml
-
-            echo "Cargo toml updated"
-        done < <(cat "$gitDependencies" | jq -cMr ' '' +
-        # This turns { ".": [ { "rev": "deadbeef" } ] } into
-        # [ { "dir": ".", "rev": "deadbeef" } ]
-        ''
-          to_entries | .[] | .key as $dir | .value | map(.+{ dir: $dir }) | .[]
-          ')
-        sed -ri '/^"checksum [^ ]+ [^ ]+ [(]git[+]https/d' Cargo.lock
-        sed -ri '/^source = "git/d' Cargo.lock
-        sed -ri 's/ [(]git[+]https[^)]*[)]//g' Cargo.lock
-      fi
 
       runHook postConfigure
     '';

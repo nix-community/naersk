@@ -46,9 +46,7 @@ let
     let
       config = mkConfig arg;
       gitDependencies =
-        if config.patchGitDeps
-        then libb.findGitDependencies { inherit (config) cargotomls; }
-        else {};
+        libb.findGitDependencies { inherit (config) cargotomls; };
     in
       import ./build.nix
         (

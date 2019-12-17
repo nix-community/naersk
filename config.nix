@@ -58,11 +58,6 @@ let
       # Nix 2.3 onwards where all bugs in `builtins.fromTOML` seem to have been
       # fixed.
       usePureFromTOML = attrs0.usePureFromTOML or true;
-
-      # Prefetch git dependencies with `builtins.fetchGit` and add `[patch.*]`
-      # sections to the `Cargo.toml`. This also removes all references to git
-      # links in the `Cargo.lock`. **Highly experimental.**
-      allowGitDependencies = attrs0.allowGitDependencies or false;
     };
 
   argIsAttrs =
@@ -143,8 +138,6 @@ let
     inherit (sr) src root;
     # Whether we skip pre-building the deps
     isSingleStep = attrs.singleStep;
-
-    patchGitDeps = attrs.allowGitDependencies;
 
     # The members we want to build
     # (list of directory names)

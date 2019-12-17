@@ -89,9 +89,6 @@ rec
       in
         lib.mapAttrs (_: tomlDependencies) cargotomls;
 
-  #findGitDependenciesList =
-    #{ cargot
-
   # A very minimal 'src' which makes cargo happy nonetheless
   dummySrc =
     { cargoconfig   # string

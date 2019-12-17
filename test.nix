@@ -118,7 +118,6 @@ rec
   git-dep = naersk.buildPackage {
     root = ./test/git-dep;
     cargoOptions = [ "--locked" ];
-    allowGitDependencies = true;
   };
 
   workspace = naersk.buildPackage {
