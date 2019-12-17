@@ -70,23 +70,27 @@ rec
     { cargotomls
     }:
       let
-        tomlDepdencies = cargotoml:
+        tomlDependencies = cargotoml:
           lib.filter (x: ! isNull x) (
           lib.mapAttrsToList
             (k: v:
-              if ! builtins.hasAttr "git" v
+              if ! (lib.isAttrs v && builtins.hasAttr "git" v)
               then null
               else
                 { name = k;
                   url = v.git;
+                  rev = v.rev;
                   checkout = builtins.fetchGit {
                     url = v.git;
                     rev = v.rev;
                   };
                 }
-            ) cargotoml.dependencies);
+            ) cargotoml.dependencies or {});
       in
-        lib.mapAttrs (_: tomlDepdencies) cargotomls;
+        lib.mapAttrs (_: tomlDependencies) cargotomls;
+
+  #findGitDependenciesList =
+    #{ cargot
 
   # A very minimal 'src' which makes cargo happy nonetheless
   dummySrc =

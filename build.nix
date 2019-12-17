@@ -58,18 +58,51 @@ let
     builtins // import ./builtins
       { inherit lib writeText remarshal runCommand; };
 
+  foo = lib.concatLists (lib.mapAttrsToList (
+    _: ds: ds) gitDependencies);
+
+  unpackedGitDependencies = runCommand "git-deps"
+    { nativeBuildInputs = [ jq ]; }
+    ''
+
+      mkdir -p $out
+
+      while read -r dep; do
+        echo "Got git dep: $dep"
+        checkout=$(echo "$dep" | jq -cMr '.checkout')
+        url=$(echo "$dep" | jq -cMr '.url')
+        tomls=$(find $checkout -name Cargo.toml)
+        while read -r toml; do
+          # TODO; explain and say that it's slow
+          name=$(cat $toml \
+            | sed -n -e '/\[package\]/,$p' \
+            | grep -m 1 "^name\W" \
+            | grep -oP '(?<=").+(?=")' \
+            || true)
+          if [ -n "$name" ]; then
+            echo "$url Found crate '$name'"
+            cp -r $(dirname $toml) $out/$name
+            chmod +w $out/$name
+            echo '{"package":null,"files":{}}' > $out/$name/.cargo-checksum.json
+          fi
+        done <<< "$tomls"
+      done < <(cat ${builtins.toFile "git-deps-json" (builtins.toJSON foo)} | jq -cMr '.[]')
+    '';
+
   drv = stdenv.mkDerivation {
     name = "${pname}-${version}";
-    gitDependencies =
-      if gitDependencies != {}
-      then writeText "gitdeps.json" (builtins.toJSON gitDependencies)
-      else "";
+    gitDependencies = "";
+      #if gitDependencies != {}
+      #then writeText "gitdeps.json" (builtins.toJSON gitDependencies)
+      #else "";
     inherit
       src
       doCheck
       version
       preBuild
       ;
+
+
 
     cargoconfig = builtinz.toTOML {
       source = {
@@ -78,10 +111,19 @@ let
           directory = symlinkJoin {
             name = "crates-io";
             paths = map (v: unpackCrate v.name v.version v.sha256)
-              crateDependencies;
+            crateDependencies ++ [ unpackedGitDependencies ] ;
           };
         };
-      };
+      } // lib.listToAttrs ( map
+          (e:
+            { name = e.url; value =
+                { git = e.url;
+                  rev = e.rev;
+                  replace-with = "nix-sources";
+                };
+            })
+          foo
+          );
     };
 
     outputs = [ "out" ] ++ lib.optional (doDoc && copyDocsToSeparateOutput) "doc";
