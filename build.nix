@@ -62,7 +62,24 @@ let
   gitDependenciesList =
     lib.concatLists (lib.mapAttrsToList (_: ds: ds) gitDependencies);
 
-  # TODO: explain what this is and document
+  # This unpacks all git dependencies:
+  #   $out/rand
+  #   $out/rand/Cargo.toml
+  #   $out/rand_core
+  #   ...
+  # It does so by discovering all the `Cargo.toml`s and creating a directory in
+  # $out for each one.
+  # NOTE:
+  #   Only non-virtual manifests are taken into account. That is, only cargo
+  #   tomls that have a [package] sections with a `name = ...`. The
+  #   implementation is a bit tricky and basically akin to parsing TOML with
+  #   bash. The reason is that there is no lightweight jq-equivalent available
+  #   in nixpkgs (rq fails to build).
+  #   We discover the name (in any) in three steps:
+  #     * grab anything that comes after `[package]`
+  #     * grab the first line that contains `name = ...`
+  #     * grab whatever is surrounded with `"`s.
+  #   The last step is very, very slow.
   unpackedGitDependencies = runCommand "git-deps"
     { nativeBuildInputs = [ jq ]; }
     ''
@@ -73,7 +90,6 @@ let
         url=$(echo "$dep" | jq -cMr '.url')
         tomls=$(find $checkout -name Cargo.toml)
         while read -r toml; do
-          # TODO; explain and say that it's slow
           name=$(cat $toml \
             | sed -n -e '/\[package\]/,$p' \
             | grep -m 1 "^name\W" \
@@ -100,7 +116,8 @@ let
       preBuild
       ;
 
-    # TODO: explain what this is
+    # The cargo config with source replacement. Replaces both crates.io crates
+    # and git dependencies.
     cargoconfig = builtinz.toTOML {
       source = {
         crates-io = { replace-with = "nix-sources"; };
