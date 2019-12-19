@@ -50,7 +50,7 @@ it is converted to an attribute set equivalent to `{ root = theArg; }`.
 | `cargoTestCommands` | The commands to run in the `checkPhase`. Default: `[ ''cargo "''${cargo_options[@]}" test "''${cargo_release[@]}" -j $NIX_BUILD_CORES'' ]` |
 | `buildInputs` | Extra `buildInputs` to all derivations. Default: `[]` |
 | `cargoOptions` | Options passed to cargo before the command (cargo OPTIONS <cmd>) Default: `[]` |
-| `doDoc` | When true, `cargo doc` is run and a new output `doc` is generated. Default: `true` |
+| `doDoc` | When true, `cargo doc` is run and a new output `doc` is generated. Default: `false` |
 | `release` | When true, all cargo builds are run with `--release`. Default: `true` |
 | `override` | An override for all derivations involved in the build. Default: `(x: x)` |
 | `singleStep` | When true, no intermediary (dependency-only) build is run. Enabling `singleStep` greatly reduces the incrementality of the builds. Default: `false` |

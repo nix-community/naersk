@@ -25,7 +25,7 @@ let
       # Options passed to cargo before the command (cargo OPTIONS <cmd>)
       cargoOptions = attrs0.cargoOptions or [];
       # When true, `cargo doc` is run and a new output `doc` is generated.
-      doDoc = attrs0.doDoc or true;
+      doDoc = attrs0.doDoc or false;
       # When true, all cargo builds are run with `--release`.
       release = attrs0.release or true;
       # An override for all derivations involved in the build.
