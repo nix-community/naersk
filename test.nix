@@ -16,7 +16,6 @@ rec
     '';
 
   docparse = naersk.buildPackage {
-    doDoc = false;
     doCheck = false;
     root = ./docparse;
     src = builtins.filterSource (
@@ -89,7 +88,6 @@ rec
   # "targets" is broken
   #lucet = naersk.buildPackage lucetSrc
   #{ nativeBuildInputs = [ pkgs.cmake pkgs.python3 ] ;
-  #doDoc = false;
   #doCheck = false;
   #targets =
   #[ "lucetc"
@@ -107,6 +105,11 @@ rec
 
   simple-dep = naersk.buildPackage ./test/simple-dep;
 
+  simple-dep-doc = naersk.buildPackage
+    { src = ./test/simple-dep;
+      doDoc = true;
+    };
+
   simple-dep-patched = naersk.buildPackage ./test/simple-dep-patched;
 
   dummyfication = naersk.buildPackage ./test/dummyfication;
@@ -120,15 +123,14 @@ rec
     cargoOptions = [ "--locked" ];
   };
 
-  workspace = naersk.buildPackage {
-    src = ./test/workspace;
-    doDoc = false;
-  };
+  workspace = naersk.buildPackage ./test/workspace;
 
-  workspace-patched = naersk.buildPackage {
-    src = ./test/workspace-patched;
-    doDoc = false;
-  };
+  workspace-patched = naersk.buildPackage ./test/workspace-patched;
+
+  workspace-doc = naersk.buildPackage
+    { src = ./test/workspace;
+      doDoc = true;
+    };
 
   # Fails with some remarshal error
   #servo = naersk.buildPackage
