@@ -1,0 +1,8 @@
+[package]
+name = "crate-c"
+version = "0.1.0"
+authors = ["nicolas <nicolas@nmattia.com>"]
+edition = "2018"
+
+[dependencies]
+rand = { git = "https://github.com/rust-random/rand", rev = "703452450770d4b2bb0b117dfc83aea5ba61ec60" }

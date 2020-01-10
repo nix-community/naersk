@@ -89,6 +89,7 @@ let
         checkout=$(echo "$dep" | jq -cMr '.checkout')
         url=$(echo "$dep" | jq -cMr '.url')
         tomls=$(find $checkout -name Cargo.toml)
+        rev=$(echo "$dep" | jq -cMr '.rev')
         while read -r toml; do
           name=$(cat $toml \
             | sed -n -e '/\[package\]/,$p' \
@@ -96,10 +97,16 @@ let
             | grep -oP '(?<=").+(?=")' \
             || true)
           if [ -n "$name" ]; then
-            echo "$url Found crate '$name'"
-            cp -r $(dirname $toml) $out/$name
-            chmod +w $out/$name
-            echo '{"package":null,"files":{}}' > $out/$name/.cargo-checksum.json
+            key="$name-$rev"
+            echo "$url Found crate '$name' ($rev)"
+            if [ -d "$out/$key" ]; then
+              echo "Crate was already unpacked at $out/$key"
+            else
+              cp -r $(dirname $toml) $out/$key
+              chmod +w "$out/$key"
+              echo '{"package":null,"files":{}}' > $out/$key/.cargo-checksum.json
+              echo "Crate unpacked at $out/$key"
+            fi
           fi
         done <<< "$tomls"
       done < <(cat ${
@@ -130,7 +137,7 @@ let
         };
       } // lib.listToAttrs ( map
           (e:
-            { name = e.url; value =
+            { name = "${e.url}?rev=${e.rev}"; value =
                 { git = e.url;
                   rev = e.rev;
                   replace-with = "nix-sources";
