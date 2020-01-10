@@ -253,7 +253,9 @@ let
         ${lib.optionalString copyBins ''
         if [ -d out ]; then
           mkdir -p $out/bin
-          find out -type f -executable -exec cp {} $out/bin \;
+          find out -type f -executable \
+            -not -name '*.so' -a -not -name '*.dylib' \
+            -exec cp {} $out/bin \;
         fi
       ''}
 
