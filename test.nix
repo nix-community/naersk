@@ -123,6 +123,11 @@ rec
     cargoOptions = [ "--locked" ];
   };
 
+  git-dep-dup = naersk.buildPackage {
+    root = ./test/git-dep-dup;
+    cargoOptions = [ "--locked" ];
+  };
+
   workspace = naersk.buildPackage ./test/workspace;
 
   workspace-patched = naersk.buildPackage ./test/workspace-patched;
