@@ -176,9 +176,28 @@ let
                         value = readTOML (root + "/${member}/Cargo.toml");
                       }
                   )
-                  (toplevelCargotoml.workspace.members or [])
+                  members
               )
           );
+
+    # The cargo members
+    members =
+      let
+        # the members, as listed in the virtual manifest
+        listedMembers = toplevelCargotoml.workspace.members or [];
+
+        # this turns members like "foo/*" into [ "foo/bar" "foo/baz" ]
+        # as in https://github.com/rust-analyzer/rust-analyzer/blob/b2ed130ffd9c79de26249a1dfb2a8312d6af12b3/Cargo.toml#L2
+        expandMember = member:
+          if lib.hasSuffix "/*" member
+          then
+            let
+              rootDir = lib.removeSuffix "/*" member;
+              subdirs = builtins.attrNames (builtins.readDir (root + "/${rootDir}"));
+            in map (subdir: "${rootDir}/${subdir}") subdirs
+          else [ member ];
+
+      in lib.concatMap expandMember listedMembers;
 
     patchedSources =
       let

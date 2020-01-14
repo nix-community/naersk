@@ -128,6 +128,8 @@ rec
     cargoOptions = [ "--locked" ];
   };
 
+  cargo-wildcard = naersk.buildPackage ./test/cargo-wildcard;
+
   workspace = naersk.buildPackage ./test/workspace;
 
   workspace-patched = naersk.buildPackage ./test/workspace-patched;
