@@ -42,7 +42,7 @@ let
     let
       ty = tomlTy v;
     in
-      if ty == "bool" then
+      if (ty == "bool" || ty == "int") then
         builtins.toJSON v
       else
         if ty == "string" then
