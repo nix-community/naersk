@@ -142,6 +142,12 @@ rec
                 pushd $out/$member > /dev/null
                 mkdir -p src
                 touch src/lib.rs
+                # pretend there's a `build.rs`, otherwise cargo doesn't build
+                # the `[build-dependencies]`. Custom locations of build scripts
+                # aren't an issue because we strip the `build` field in
+                # `fixupCargoToml`; so cargo always thinks there's a build
+                # script which is `./build.rs`.
+                echo 'fn main(){}' > build.rs
                 popd > /dev/null
             done
           '';
