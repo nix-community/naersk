@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# vim: set ft=bash
+# adapted from https://github.com/cachix/install-nix-action/blob/master/src/main.ts
+
+set -euo pipefail
+
+sudo mkdir -p /etc/nix
+
+# Workaround segfault: https://github.com/NixOS/nix/issues/2733
+sudo sh -c 'echo "http2 = false" >> /etc/nix/nix.conf'
+
+curl https://nixos.org/nix/install | sh
+
+sudo sh -c 'echo "substituters = https://cache.nixos.org https://naersk.cachix.org" > /etc/nix/nix.conf'
+sudo sh -c 'echo "trusted-public-keys = naersk.cachix.org-1:RPZZukECF/0Uq52CdDZq8QDU2z7hUO66jlLTR7LT9W0= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=" >> /etc/nix/nix.conf'
+
+echo "::add-path::/nix/var/nix/profiles/per-user/runner/profile/bin"
+echo "::add-path::/nix/var/nix/profiles/default/bin"

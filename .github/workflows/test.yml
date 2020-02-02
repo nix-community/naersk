@@ -1,0 +1,20 @@
+name: "install nix test"
+on:
+  push:
+    branches:
+      - '*'
+
+jobs:
+  install-nix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: './.github/actions/nix'
+      - name: "Run tests"
+        run: './script/test'
+      - name: "Save cache"
+        run: |
+          nix-env -iA cachix -f https://cachix.org/api/v1/install
+          nix path-info --all | cachix push naersk
+        env:
+          CACHIX_SIGNING_KEY: ${{ secrets.CACHIX_SIGNING_KEY }}
