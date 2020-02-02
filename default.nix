@@ -54,10 +54,12 @@ let
             pname = config.packageName;
             version = config.packageVersion;
             preBuild = lib.optionalString (!config.isSingleStep) ''
-              # Cargo uses mtime, and we write `src/lib.rs` and `src/main.rs`in
-              # the dep build step, so make sure cargo rebuilds stuff
+              # Cargo uses mtime, and we write `src/lib.rs`, `src/main.rs` and
+              # `./build.rs` in the dep build step, so make sure cargo
+              # rebuilds stuff
               if [ -f src/lib.rs ] ; then touch src/lib.rs; fi
               if [ -f src/main.rs ] ; then touch src/main.rs; fi
+              if [ -f build.rs ] ; then touch build.rs; fi
             '';
             inherit (config) src cargoTestCommands copyTarget copyBins copyDocsToSeparateOutput;
             inherit gitDependencies;
