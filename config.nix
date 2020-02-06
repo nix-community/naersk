@@ -47,7 +47,7 @@ let
       # Options passed to cargo before the command (cargo OPTIONS <cmd>)
       # used by the default cargoBuild
       cargoOptions =
-        allowFun attrs0 "cargoOptions" [ "--locked" "-Z" "unstable-options" ];
+        allowFun attrs0 "cargoOptions" [ "-Z" "unstable-options" ];
 
       # When true, `cargo doc` is run and a new output `doc` is generated.
       doDoc = attrs0.doDoc or false;
