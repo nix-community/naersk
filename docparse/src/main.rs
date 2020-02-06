@@ -42,19 +42,36 @@ fn print_mk_attrs(mk_attrs: SyntaxNode) {
     println!("| - | - |");
     for e in body.entries() {
         let k = e.key().expect("No key").path().next().unwrap();
-        let mshown = e
-            .value()
-            .and_then(OrDefault::cast)
-            .expect("Is not OrDefault")
-            .default()
-            .and_then(|def| {
+        let v = e.value();
+        let mshown = if let Some(x) = v.clone().and_then(OrDefault::cast) {
+            x.default().and_then(|def| {
                 let shown = format!("{}", def);
                 if shown != "null" {
                     Some(shown)
                 } else {
                     None
                 }
-            });
+            })
+        } else if let Some(x) = v.clone().and_then(Apply::cast) {
+            let inner = x.lambda().expect("lamdba is not there");
+            let after = Apply::cast(inner)
+                .expect("Not an inner apply")
+                .lambda()
+                .expect("No inner lambda");
+            let inner2 = Apply::cast(after)
+                .expect("Not an inner apply")
+                .lambda()
+                .expect("No inner lambda");
+            if inner2.to_string() == "allowFun" {
+                Some(format!("{}", x.value().unwrap()))
+            } else {
+                None
+            }
+        } else if let Some(x) = v.clone().and_then(Lambda::cast) {
+            Some("lambda".to_string())
+        } else {
+            None
+        };
         let e = e.node().clone();
         let c = find_comment(e).expect("No comment");
         let mut lines = vec![];
@@ -65,7 +82,7 @@ fn print_mk_attrs(mk_attrs: SyntaxNode) {
         let sss;
         if let Some(shown) = mshown {
             lines.push("Default:");
-            sss = format!("`{}`", shown).to_string();
+            sss = format!("`{}`", shown);
             lines.push(&sss);
         }
         let descr = lines.join(" ");

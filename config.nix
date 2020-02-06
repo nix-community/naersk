@@ -1,6 +1,12 @@
 { lib, libb, builtinz, arg }:
 let
-  mkAttrs = attrs0:
+  allowFun = attrs0: attrName: default:
+    if builtins.hasAttr attrName attrs0 then
+      if lib.isFunction attrs0.${attrName} then
+        attrs0.${attrName} default
+      else attrs0.${attrName}
+    else default;
+  mkAttrs = attrs0: rec
   {   # The name of the derivation.
       name = attrs0.name or null;
       # The version of the derivation.
@@ -12,21 +18,41 @@ let
       # be different from `src`. When `src` is not set, `root` is (indirectly)
       # used as `src`.
       root = attrs0.root or null;
+
       # The command to use for the build.
-      cargoBuild = attrs0.cargoBuild or
-          ''cargo "''${cargo_options[@]}" build "''${cargo_release[@]}" -j $NIX_BUILD_CORES -Z unstable-options --out-dir out'';
+      cargoBuild =
+        allowFun attrs0 "cargoBuild"
+          ''cargo $cargo_options build $cargo_build_options'';
+
+      # foo
+      # note: stuff depends on --out-dir
+      # note: is added as cargo_build_options
+      cargoBuildOptions =
+          allowFun attrs0 "cargoBuildOptions" [ "$cargo_release" ''-j "$NIX_BUILD_CORES"'' "--out-dir" "out" ];
+
       # When true, `checkPhase` is run.
       doCheck = attrs0.doCheck or true;
+
       # The commands to run in the `checkPhase`.
-      cargoTestCommands = attrs0.cargoTestCommands or
-          [ ''cargo "''${cargo_options[@]}" test "''${cargo_release[@]}" -j $NIX_BUILD_CORES'' ];
+      cargoTestCommands =
+          allowFun attrs0 "cargoTestCommands" [ ''cargo $cargo_options test $cargo_test_options'' ];
+
+      # baaaar
+      cargoTestOptions =
+        allowFun attrs0 "cargoTestOptions" [ "$cargo_release" ''-j "$NIX_BUILD_CORES"'' ];
+
       # Extra `buildInputs` to all derivations.
       buildInputs = attrs0.buildInputs or [];
+
       # Options passed to cargo before the command (cargo OPTIONS <cmd>)
-      cargoOptions = attrs0.cargoOptions or [];
+      # used by the default cargoBuild
+      cargoOptions =
+        allowFun attrs0 "cargoOptions" [ "--locked" "-Z" "unstable-options" ];
+
       # When true, `cargo doc` is run and a new output `doc` is generated.
       doDoc = attrs0.doDoc or false;
       # When true, all cargo builds are run with `--release`.
+      # sets cargo_release
       release = attrs0.release or true;
       # An override for all derivations involved in the build.
       override = attrs0.override or (x: x);
@@ -109,22 +135,27 @@ let
 
   # config used during build the prebuild and the final build
   buildConfig = {
-    compressTarget = attrs.compressTarget;
-    doCheck = attrs.doCheck;
-    cargoOptions = attrs.cargoOptions;
-    buildInputs = attrs.buildInputs;
-    removeReferencesToSrcFromDocs = attrs.removeReferencesToSrcFromDocs;
-    doDoc = attrs.doDoc;
-    #| Whether or not the rustdoc can fail the build
-    doDocFail = attrs.doDocFail;
+    inherit (attrs)
+      buildInputs
+      release
+      override
+      cargoOptions
+      compressTarget
 
-    release = attrs.release or true;
+      cargoBuild
+      cargoBuildOptions
+      copyBins
+      copyTarget
 
-    override = attrs.override or (x: x);
+      doCheck
+      cargoTestCommands
+      cargoTestOptions
 
-    cargoBuild = attrs.cargoBuild or ''
-      cargo build "''${cargo_release}" -j $NIX_BUILD_CORES -Z unstable-options --out-dir out
-    '';
+      doDoc
+      doDocFail
+      copyDocsToSeparateOutput
+      removeReferencesToSrcFromDocs
+      ;
 
     # The list of _all_ crates (incl. transitive dependencies) with name,
     # version and sha256 of the crate
@@ -234,15 +265,6 @@ let
       if ! isNull attrs.version
       then attrs.version
       else toplevelCargotoml.package.version or "unknown";
-
-    cargoTestCommands = attrs.cargoTestCommands;
-
-    #| Whether or not to forward intermediate build artifacts to $out
-    copyTarget = attrs.copyTarget or false;
-
-    copyBins = attrs.copyBins or true;
-
-    copyDocsToSeparateOutput = attrs.copyDocsToSeparateOutput or true;
   };
 in
 buildPlanConfig // { inherit buildConfig; }

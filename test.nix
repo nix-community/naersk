@@ -110,7 +110,11 @@ rec
       doDoc = true;
     };
 
-  simple-dep-patched = naersk.buildPackage ./test/simple-dep-patched;
+  simple-dep-patched = naersk.buildPackage
+    { root = ./test/simple-dep-patched;
+      # TODO: the lockfile needs to be regenerated
+      cargoOptions = builtins.filter (x: x != "--locked");
+    };
 
   dummyfication = naersk.buildPackage ./test/dummyfication;
   dummyfication_test = pkgs.runCommand
