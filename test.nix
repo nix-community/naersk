@@ -110,11 +110,7 @@ rec
       doDoc = true;
     };
 
-  simple-dep-patched = naersk.buildPackage
-    { root = ./test/simple-dep-patched;
-      # TODO: the lockfile needs to be regenerated
-      cargoOptions = builtins.filter (x: x != "--locked");
-    };
+  simple-dep-patched = ./test/simple-dep-patched;
 
   dummyfication = naersk.buildPackage ./test/dummyfication;
   dummyfication_test = pkgs.runCommand
@@ -124,12 +120,12 @@ rec
 
   git-dep = naersk.buildPackage {
     root = ./test/git-dep;
-    cargoOptions = [ "--locked" ];
+    cargoOptions = (opts: opts ++ [ "--locked" ]);
   };
 
   git-dep-dup = naersk.buildPackage {
     root = ./test/git-dep-dup;
-    cargoOptions = [ "--locked" ];
+    cargoOptions = (opts: opts ++ [ "--locked" ]);
   };
 
   cargo-wildcard = naersk.buildPackage ./test/cargo-wildcard;
