@@ -2,8 +2,10 @@
 , preBuild
   #| What command to run during the build phase
 , cargoBuild
+, cargoBuildOptions
 , #| What command to run during the test phase
   cargoTestCommands
+, cargoTestOptions
 , copyTarget
   #| Whether or not to compress the target when copying it
 , compressTarget
@@ -166,15 +168,16 @@ let
       darwin.cf-private
     ] ++ buildInputs;
 
-    # iff not in a shell
     inherit builtDependencies;
 
+    # some environment variables
     RUSTC = "${rustc}/bin/rustc";
+    cargo_release = lib.optionalString release "--release";
+    cargo_options = cargoOptions;
+    cargo_build_options = cargoBuildOptions;
+    cargo_test_options = cargoTestOptions;
 
     configurePhase = ''
-      cargo_release=( ${lib.optionalString release "--release" } )
-      cargo_options=( ${lib.escapeShellArgs cargoOptions} )
-
       runHook preConfigure
 
       logRun() {
@@ -290,6 +293,7 @@ let
       crate = fetchurl {
         url = "https://crates.io/api/v1/crates/${name}/${version}/download";
         inherit sha256;
+        name = "download-${name}-${version}";
       };
     in
       runCommand "unpack-${name}-${version}" {}
