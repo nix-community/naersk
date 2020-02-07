@@ -85,6 +85,10 @@ let
   unpackedGitDependencies = runCommand "git-deps"
     { nativeBuildInputs = [ jq ]; }
     ''
+      log() {
+        >&2 echo "[naersk]" "$@"
+      }
+
       mkdir -p $out
 
       while read -r dep; do
@@ -100,20 +104,20 @@ let
             || true)
           if [ -n "$name" ]; then
             key="$name-$rev"
-            echo "$url Found crate '$name' ($rev)"
+            log "$url Found crate '$name' ($rev)"
             if [ -d "$out/$key" ]; then
-              echo "Crate was already unpacked at $out/$key"
+              log "Crate was already unpacked at $out/$key"
             else
               cp -r $(dirname $toml) $out/$key
               chmod +w "$out/$key"
               echo '{"package":null,"files":{}}' > $out/$key/.cargo-checksum.json
-              echo "Crate unpacked at $out/$key"
+              log "Crate unpacked at $out/$key"
             fi
           fi
         done <<< "$tomls"
       done < <(cat ${
-        builtins.toFile "git-deps-json" (builtins.toJSON gitDependenciesList)
-        } | jq -cMr '.[]')
+    builtins.toFile "git-deps-json" (builtins.toJSON gitDependenciesList)
+    } | jq -cMr '.[]')
     '';
 
   drv = stdenv.mkDerivation {
@@ -134,19 +138,25 @@ let
           directory = symlinkJoin {
             name = "crates-io";
             paths = map (v: unpackCrate v.name v.version v.sha256)
-              crateDependencies ++ [ unpackedGitDependencies ] ;
+              crateDependencies ++ [ unpackedGitDependencies ];
           };
         };
-      } // lib.listToAttrs ( map
-          (e:
-            { name = "${e.url}?rev=${e.rev}"; value =
-                { git = e.url;
-                  rev = e.rev;
-                  replace-with = "nix-sources";
-                };
-            })
+      } // lib.listToAttrs (
+        map
+          (
+            e:
+              {
+                name = "${e.url}?rev=${e.rev}";
+                value =
+                  {
+                    git = e.url;
+                    rev = e.rev;
+                    replace-with = "nix-sources";
+                  };
+              }
+          )
           gitDependenciesList
-          );
+      );
     };
 
     outputs = [ "out" ] ++ lib.optional (doDoc && copyDocsToSeparateOutput) "doc";
@@ -180,20 +190,27 @@ let
     configurePhase = ''
       runHook preConfigure
 
-      echo "cargo_release: $cargo_release"
-      echo "cargo_options: $cargo_options"
-      echo "cargo_build_options: $cargo_build_options"
-      echo "cargo_test_options: $cargo_test_options"
-
       logRun() {
-        echo "$@"
+        >&2 echo "$@"
         eval "$@"
       }
+
+      log() {
+        >&2 echo "[naersk]" "$@"
+      }
+
+      cargo_build_output_json=$(mktemp)
+
+      log "cargo_release: $cargo_release"
+      log "cargo_options: $cargo_options"
+      log "cargo_build_options: $cargo_build_options"
+      log "cargo_test_options: $cargo_test_options"
+      log "cargo_build_output_json (created): $cargo_build_output_json"
 
       mkdir -p target
 
       for dep in $builtDependencies; do
-          echo pre-installing dep $dep
+          log "pre-installing dep $dep"
           if [ -d "$dep/target" ]; then
             rsync -rl \
               --no-perms \
@@ -222,13 +239,23 @@ let
       runHook postConfigure
     '';
 
-    buildPhase = ''
-      runHook preBuild
+    buildPhase =
 
-      logRun ${cargoBuild}
+      ''
+        runHook preBuild
 
-      runHook postBuild
-    '';
+        cargo_ec=0
+        logRun ${cargoBuild} || cargo_ec="$?"
+
+        if [ "$cargo_ec" -ne "0" ]
+        then
+          cat out.json | jq -cMr 'select(.message.rendered != null) | .message.rendered'
+          log "cargo returned with exit code $cargo_ec, exiting"
+          exit "$cargo_ec"
+        fi
+
+        runHook postBuild
+      '';
 
     checkPhase = ''
       runHook preCheck
@@ -259,8 +286,18 @@ let
         runHook preInstall
 
         ${lib.optionalString copyBins ''
-        if [ -d out ]; then
-          mkdir -p $out/bin
+        mkdir -p $out/bin
+        if [ -f "$cargo_build_output_json" ]
+        then
+          log "Using file $cargo_build_output_json to retrieve build products"
+          while IFS= read -r to_copy; do
+            bin_path=$(jq -cMr '.executable' <<<"$to_copy")
+            bin_name=$(jq -cMr '.target.name' <<<"$to_copy")
+            log "found executable $bin_name -> $out/bin/$bin_name"
+            cp "$bin_path" "$out/bin/$bin_name"
+          done < <(jq -cMr 'select(.reason == "compiler-artifact" and .executable != null and .profile.test == false)' <"$cargo_build_output_json")
+        else
+          log "$cargo_build_output_json: file wasn't written, using less reliable copying method"
           find out -type f -executable \
             -not -name '*.so' -a -not -name '*.dylib' \
             -exec cp {} $out/bin \;
