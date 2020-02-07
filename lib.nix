@@ -31,6 +31,14 @@ rec
         )
           cargolock.package
       )
+    else if builtins.hasAttr "package" cargolock then
+      map (
+        p:
+          {
+            inherit (p) name version;
+            sha256 = p.checksum;
+          }
+      ) (builtins.filter (builtins.hasAttr "checksum") cargolock.package)
     else [];
 
   # Turns "lib-name lib-ver (registry+...)" to [ { name = "lib-name", etc } ]
