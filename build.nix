@@ -180,6 +180,11 @@ let
     configurePhase = ''
       runHook preConfigure
 
+      echo "cargo_release: $cargo_release"
+      echo "cargo_options: $cargo_options"
+      echo "cargo_build_options: $cargo_build_options"
+      echo "cargo_test_options: $cargo_test_options"
+
       logRun() {
         echo "$@"
         eval "$@"
