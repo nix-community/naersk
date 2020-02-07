@@ -43,11 +43,10 @@ fn print_mk_attrs(mk_attrs: SyntaxNode) {
     for e in body.entries() {
         let k = e.key().expect("No key").path().next().unwrap();
         let v = e.value();
-        let mshown = if let Some(x) = v.clone().and_then(OrDefault::cast) {
+        let mextra_note = if let Some(x) = v.clone().and_then(OrDefault::cast) {
             x.default().and_then(|def| {
-                let shown = format!("{}", def);
-                if shown != "null" {
-                    Some(shown)
+                if def.to_string() != "null" {
+                    Some(format!("Default: `{}`", def))
                 } else {
                     None
                 }
@@ -63,12 +62,10 @@ fn print_mk_attrs(mk_attrs: SyntaxNode) {
                 .lambda()
                 .expect("No inner lambda");
             if inner2.to_string() == "allowFun" {
-                Some(format!("{}", x.value().unwrap()))
+                Some(format!("When set to a function, the function is applied to the default value. <br/> Default: `{}`", x.value().unwrap()))
             } else {
                 None
             }
-        } else if let Some(x) = v.clone().and_then(Lambda::cast) {
-            Some("lambda".to_string())
         } else {
             None
         };
@@ -79,14 +76,13 @@ fn print_mk_attrs(mk_attrs: SyntaxNode) {
             lines.push(l);
         }
 
-        let sss;
-        if let Some(shown) = mshown {
-            lines.push("Default:");
-            sss = format!("`{}`", shown);
-            lines.push(&sss);
-        }
         let descr = lines.join(" ");
-        println!("| `{}` | {} |", k, descr);
+        if let Some(extra_note) = mextra_note {
+            println!("| `{}` | {} {} |", k, descr, extra_note);
+            lines.push(extra_note.clone().as_ref());
+        } else {
+            println!("| `{}` | {} |", k, descr);
+        }
     }
 }
 
