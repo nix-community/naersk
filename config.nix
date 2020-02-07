@@ -28,16 +28,17 @@ let
     # The command to use for the build.
     cargoBuild =
       allowFun attrs0 "cargoBuild"
-        ''cargo $cargo_options build $cargo_build_options'';
+        ''cargo $cargo_options build $cargo_build_options >> $cargo_build_output_json'';
 
     # Options passed to cargo build, i.e. `cargo build <OPTS>`. These options
     # can be accessed during the build through the environment variable
     # `cargo_build_options`. <br/>
     # Note: naersk relies on the `--out-dir out` option. <br/>
+    # NOTE: re-used in copy-bins
     # Note: these values are not (shell) escaped, meaning that you can use
     # environment variables but must be careful when introducing e.g. spaces. <br/>
     cargoBuildOptions =
-      allowFun attrs0 "cargoBuildOptions" [ "$cargo_release" ''-j "$NIX_BUILD_CORES"'' "--out-dir" "out" ];
+      allowFun attrs0 "cargoBuildOptions" [ "$cargo_release" ''-j "$NIX_BUILD_CORES"'' "--out-dir" "out" "--message-format=json-diagnostic-rendered-ansi" ];
 
     # When true, `checkPhase` is run.
     doCheck = attrs0.doCheck or true;
