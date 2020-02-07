@@ -25,7 +25,9 @@ let
       allowFun attrs0 "cargoBuild"
         ''cargo $cargo_options build $cargo_build_options'';
 
-    # Options passed to cargo build, i.e. `cargo build <OPTS>`. <br/>
+    # Options passed to cargo build, i.e. `cargo build <OPTS>`. These options
+    # can be accessed during the build through the environment variable
+    # `cargo_build_options`. <br/>
     # Note: naersk relies on the `--out-dir out` option. <br/>
     # Note: these values are not (shell) escaped, meaning that you can use
     # environment variables but must be careful when introducing e.g. spaces. <br/>
@@ -39,7 +41,9 @@ let
     cargoTestCommands =
       allowFun attrs0 "cargoTestCommands" [ ''cargo $cargo_options test $cargo_test_options'' ];
 
-    # Options passed to cargo test, i.e. `cargo test <OPTS>` <br/>
+    # Options passed to cargo test, i.e. `cargo test <OPTS>`. These options
+    # can be accessed during the build through the environment variable
+    # `cargo_test_options`. <br/>
     # Note: these values are not (shell) escaped, meaning that you can use
     # environment variables but must be careful when introducing e.g. spaces. <br/>
     cargoTestOptions =
@@ -48,7 +52,9 @@ let
     # Extra `buildInputs` to all derivations.
     buildInputs = attrs0.buildInputs or [];
 
-    # Options passed to all cargo commands, i.e. `cargo <OPTS> ...` <br/>
+    # Options passed to all cargo commands, i.e. `cargo <OPTS> ...`. These
+    # options can be accessed during the build through the environment variable
+    # `cargo_options`. <br/>
     # Note: these values are not (shell) escaped, meaning that you can use
     # environment variables but must be careful when introducing e.g. spaces. <br/>
     cargoOptions =
@@ -56,8 +62,8 @@ let
 
     # When true, `cargo doc` is run and a new output `doc` is generated.
     doDoc = attrs0.doDoc or false;
-    # When true, all cargo builds are run with `--release`.
-    # sets cargo_release
+    # When true, all cargo builds are run with `--release`. The environment
+    # variable `cargo_release` is set to `--release` iff this option is set.
     release = attrs0.release or true;
     # An override for all derivations involved in the build.
     override = attrs0.override or (x: x);
