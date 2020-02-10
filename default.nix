@@ -61,7 +61,7 @@ let
                 if [ -f "$file" ]; then touch "$file"; fi
               done
             '';
-            inherit (config) src cargoTestCommands copyTarget copyBins copyDocsToSeparateOutput;
+            inherit (config) src cargoTestCommands copyTarget copyBins copyBinsFilter copyDocsToSeparateOutput;
             inherit gitDependencies;
           } // config.buildConfig // {
             builtDependencies = lib.optional (! config.isSingleStep)
@@ -89,6 +89,7 @@ let
                         cargoTestCommands = map (cmd: "${cmd} || true") config.buildConfig.cargoTestCommands;
                         copyTarget = true;
                         copyBins = false;
+                        copyBinsFilter = ".";
                         copyDocsToSeparateOutput = false;
                         builtDependencies = [];
                       }
