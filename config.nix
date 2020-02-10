@@ -33,8 +33,8 @@ let
     # Options passed to cargo build, i.e. `cargo build <OPTS>`. These options
     # can be accessed during the build through the environment variable
     # `cargo_build_options`. <br/>
-    # Note: naersk relies on the `--out-dir out` option. <br/>
-    # NOTE: re-used in copy-bins
+    # Note: naersk relies on the `--out-dir out` option and the
+    # `--message-format=json-diagnostic-rendered-ansi` option. <br/>
     # Note: these values are not (shell) escaped, meaning that you can use
     # environment variables but must be careful when introducing e.g. spaces. <br/>
     cargoBuildOptions =
@@ -78,8 +78,18 @@ let
     singleStep = attrs0.singleStep or false;
     # The targets to build if the `Cargo.toml` is a virtual manifest.
     targets = attrs0.targets or null;
-    # When true, the resulting binaries are copied to `$out/bin`.
+    # When true, the resulting binaries are copied to `$out/bin`. <br/>
+    # Note: this relies on cargo's `--message-format` argument, set in the
+    # default `cargoBuildOptions`.
     copyBins = attrs0.copyBins or true;
+
+    # A [`jq`](https://stedolan.github.io/jq) filter for selecting which build
+    # artifacts to release. This is run on cargo's
+    # [`--message-format`](https://doc.rust-lang.org/cargo/reference/external-tools.html#json-messages)
+    # JSON output. <br/>
+    # The value is written to the `cargo_bins_jq_filter` variable.
+    copyBinsFilter = attrs0.copyBinsFilter or
+      ''select(.reason == "compiler-artifact" and .executable != null and .profile.test == false)'';
     # When true, the documentation is generated in a different output, `doc`.
     copyDocsToSeparateOutput = attrs0.copyDocsToSeparateOutput or true;
     # When true, the build fails if the documentation step fails; otherwise
@@ -162,6 +172,7 @@ let
       cargoBuild
       cargoBuildOptions
       copyBins
+      copyBinsFilter
       copyTarget
 
       doCheck

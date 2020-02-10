@@ -11,6 +11,7 @@
 , compressTarget
   #| Whether or not to copy binaries to $out/bin
 , copyBins
+, copyBinsFilter
 , doCheck
 , doDoc
 , doDocFail
@@ -186,6 +187,7 @@ let
     cargo_options = cargoOptions;
     cargo_build_options = cargoBuildOptions;
     cargo_test_options = cargoTestOptions;
+    cargo_bins_jq_filter = copyBinsFilter;
 
     configurePhase = ''
       runHook preConfigure
@@ -205,6 +207,7 @@ let
       log "cargo_options: $cargo_options"
       log "cargo_build_options: $cargo_build_options"
       log "cargo_test_options: $cargo_test_options"
+      log "cargo_bins_jq_filter: $cargo_bins_jq_filter"
       log "cargo_build_output_json (created): $cargo_build_output_json"
 
       mkdir -p target
@@ -295,7 +298,7 @@ let
             bin_name=$(jq -cMr '.target.name' <<<"$to_copy")
             log "found executable $bin_name -> $out/bin/$bin_name"
             cp "$bin_path" "$out/bin/$bin_name"
-          done < <(jq -cMr 'select(.reason == "compiler-artifact" and .executable != null and .profile.test == false)' <"$cargo_build_output_json")
+          done < <(jq -cMr "$cargo_bins_jq_filter" <"$cargo_build_output_json")
         else
           log "$cargo_build_output_json: file wasn't written, using less reliable copying method"
           find out -type f -executable \
