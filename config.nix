@@ -4,7 +4,12 @@ let
     if builtins.hasAttr attrName attrs0 then
       if lib.isFunction attrs0.${attrName} then
         attrs0.${attrName} default
-      else attrs0.${attrName}
+      else
+        let
+          finalTy = builtins.typeOf default;
+          actualTy = builtins.typeOf attrs0.${attrName};
+        in
+          throw "${attrName} should be a function from ${finalTy} to ${finalTy}, but is a ${actualTy}"
     else default;
   mkAttrs = attrs0: rec
   {
