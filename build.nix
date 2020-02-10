@@ -252,7 +252,7 @@ let
 
         if [ "$cargo_ec" -ne "0" ]
         then
-          cat out.json | jq -cMr 'select(.message.rendered != null) | .message.rendered'
+          cat $cargo_build_output_json | jq -cMr 'select(.message.rendered != null) | .message.rendered'
           log "cargo returned with exit code $cargo_ec, exiting"
           exit "$cargo_ec"
         fi
