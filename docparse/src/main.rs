@@ -62,7 +62,7 @@ fn print_mk_attrs(mk_attrs: SyntaxNode) {
                 .lambda()
                 .expect("No inner lambda");
             if inner2.to_string() == "allowFun" {
-                Some(format!("When set to a function, the function is applied to the default value. <br/> Default: `{}`", x.value().unwrap()))
+                Some(format!("The argument must be a function modifying the default value. <br/> Default: `{}`", x.value().unwrap()))
             } else {
                 None
             }
