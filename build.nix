@@ -212,6 +212,10 @@ let
 
       mkdir -p target
 
+      # make sure that all source files are tagged as "recent" (since we write
+      # some stubs here and there)
+      find . -type f -exec touch {} +
+
       for dep in $builtDependencies; do
           log "pre-installing dep $dep"
           if [ -d "$dep/target" ]; then
@@ -229,15 +233,12 @@ let
           if [ -d "$dep/target" ]; then
             chmod +w -R target
           fi
-        done
+      done
 
       export CARGO_HOME=''${CARGO_HOME:-$PWD/.cargo-home}
       mkdir -p $CARGO_HOME
 
       echo "$cargoconfig" > $CARGO_HOME/config
-
-      # TODO: figure out why "1" works whereas "0" doesn't
-      find . -type f -exec touch --date=@1 {} +
 
       runHook postConfigure
     '';
