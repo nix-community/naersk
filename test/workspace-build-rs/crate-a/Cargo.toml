@@ -1,0 +1,6 @@
+# Cargo.toml
+# adapted from https://doc.rust-lang.org/cargo/reference/build-script-examples.html
+
+[package]
+name = "hello-from-generated-code"
+version = "0.1.0"

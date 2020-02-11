@@ -139,6 +139,8 @@ rec
       doDoc = true;
     };
 
+  workspace-build-rs = naersk.buildPackage ./test/workspace-build-rs;
+
   # Fails with some remarshal error
   #servo = naersk.buildPackage
   #sources.servo
