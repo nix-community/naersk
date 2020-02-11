@@ -53,14 +53,7 @@ let
           defaultBuildAttrs // {
             pname = config.packageName;
             version = config.packageVersion;
-            preBuild = lib.optionalString (!config.isSingleStep) ''
-              # Cargo uses mtime, and we write `src/lib.rs`, `src/main.rs` and
-              # `./build.rs` in the dep build step, so make sure cargo
-              # rebuilds stuff
-              for file in src/lib.rs src/main.rs build.rs; do
-                if [ -f "$file" ]; then touch "$file"; fi
-              done
-            '';
+            preBuild = "";
             inherit (config) src cargoTestCommands copyTarget copyBins copyBinsFilter copyDocsToSeparateOutput;
             inherit gitDependencies;
           } // config.buildConfig // {
