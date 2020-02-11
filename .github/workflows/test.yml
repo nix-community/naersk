@@ -14,7 +14,12 @@ jobs:
         run: './script/test'
       - name: "Save cache"
         run: |
-          nix-env -iA cachix -f https://cachix.org/api/v1/install
-          nix path-info --all | cachix push naersk
+          if [ -n "$CACHIX_SIGNING_KEY" ]
+          then
+              nix-env -iA cachix -f https://cachix.org/api/v1/install
+              nix path-info --all | cachix push naersk
+          else
+              echo "CACHIX_SIGNING_KEY not set, not uploading cache"
+          fi
         env:
           CACHIX_SIGNING_KEY: ${{ secrets.CACHIX_SIGNING_KEY }}
