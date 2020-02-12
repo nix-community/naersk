@@ -1,6 +1,6 @@
 # Naersk
 
-[![CircleCI](https://circleci.com/gh/nmattia/naersk.svg?style=svg)](https://circleci.com/gh/nmattia/naersk)
+[![GitHub Actions](https://github.com/nmattia/naersk/workflows/.github/workflows/test.yml/badge.svg)](https://github.com/nmattia/naersk/actions)
 
 Nix support for building [cargo] crates.
 
