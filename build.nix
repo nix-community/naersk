@@ -202,7 +202,19 @@ let
       }
 
       cargo_build_output_json=$(mktemp)
+      cargo_version=$(cargo --version | grep -oP 'cargo \K.*')
 
+      # ANSI rendered diagnostics were introduced in 1.38:
+      # https://github.com/rust-lang/cargo/blob/master/CHANGELOG.md#cargo-138-2019-09-26
+      if ! [[ "$cargo_version" < "1.38" ]]
+      then
+        cargo_message_format="json-diagnostic-rendered-ansi"
+      else
+        cargo_message_format="json"
+      fi
+
+      log "cargo_version (read): $cargo_version"
+      log "cargo_message_format (set): $cargo_message_format"
       log "cargo_release: $cargo_release"
       log "cargo_options: $cargo_options"
       log "cargo_build_options: $cargo_build_options"
@@ -253,7 +265,7 @@ let
 
         if [ "$cargo_ec" -ne "0" ]
         then
-          cat $cargo_build_output_json | jq -cMr 'select(.message.rendered != null) | .message.rendered'
+          cat "$cargo_build_output_json" | jq -cMr 'select(.message.rendered != null) | .message.rendered'
           log "cargo returned with exit code $cargo_ec, exiting"
           exit "$cargo_ec"
         fi
