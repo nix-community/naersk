@@ -34,11 +34,12 @@ let
     # can be accessed during the build through the environment variable
     # `cargo_build_options`. <br/>
     # Note: naersk relies on the `--out-dir out` option and the
-    # `--message-format=json-diagnostic-rendered-ansi` option. <br/>
+    # `--message-format` option. The `$cargo_message_format` variable is set
+    # based on the cargo version.<br/>
     # Note: these values are not (shell) escaped, meaning that you can use
     # environment variables but must be careful when introducing e.g. spaces. <br/>
     cargoBuildOptions =
-      allowFun attrs0 "cargoBuildOptions" [ "$cargo_release" ''-j "$NIX_BUILD_CORES"'' "--out-dir" "out" "--message-format=json-diagnostic-rendered-ansi" ];
+      allowFun attrs0 "cargoBuildOptions" [ "$cargo_release" ''-j "$NIX_BUILD_CORES"'' "--out-dir" "out" "--message-format=$cargo_message_format" ];
 
     # When true, `checkPhase` is run.
     doCheck = attrs0.doCheck or true;
