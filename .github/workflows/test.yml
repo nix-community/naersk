@@ -1,4 +1,4 @@
-name: "install nix test"
+name: "test"
 on:
   push:
     branches:

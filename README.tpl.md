@@ -1,6 +1,6 @@
 # Naersk
 
-[![GitHub Actions](https://github.com/nmattia/naersk/workflows/.github/workflows/test.yml/badge.svg)](https://github.com/nmattia/naersk/actions)
+[![GitHub Actions](https://github.com/nmattia/naersk/workflows/test/badge.svg?branch=master)](https://github.com/nmattia/naersk/actions)
 
 Nix support for building [cargo] crates.
 
