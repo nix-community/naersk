@@ -48,12 +48,12 @@
 , jq
 , darwin
 , writeText
-, symlinkJoin
 , runCommand
 , remarshal
 , crateDependencies
 , zstd
 , fetchurl
+, lndir
 }:
 
 let
@@ -136,7 +136,7 @@ let
       source = {
         crates-io = { replace-with = "nix-sources"; };
         nix-sources = {
-          directory = symlinkJoin {
+          directory = symlinkJoinPassViaFile {
             name = "crates-io";
             paths = map (v: unpackCrate v.name v.version v.sha256)
               crateDependencies ++ [ unpackedGitDependencies ];
@@ -360,5 +360,44 @@ let
           tar -xzf ${crate} -C $out
           echo '{"package":"${sha256}","files":{}}' > $out/${name}-${version}/.cargo-checksum.json
         '';
+
+  /*
+  * A copy of `symlinkJoin` from `nixpkgs` which passes the `paths` argument via a file
+  * instead of via an environment variable. This should fix the "Argument list too long"
+  * error when `paths` exceeds the limit.
+  *
+  * Create a forest of symlinks to the files in `paths'.
+  *
+  * Examples:
+  * # adds symlinks of hello to current build.
+  * { symlinkJoin, hello }:
+  * symlinkJoin { name = "myhello"; paths = [ hello ]; }
+  *
+  * # adds symlinks of hello to current build and prints "links added"
+  * { symlinkJoin, hello }:
+  * symlinkJoin { name = "myhello"; paths = [ hello ]; postBuild = "echo links added"; }
+  */
+  symlinkJoinPassViaFile =
+    args_@{ name
+         , paths
+         , preferLocalBuild ? true
+         , allowSubstitutes ? false
+         , postBuild ? ""
+         , ...
+         }:
+    let
+      args = removeAttrs args_ [ "name" "postBuild" ]
+        // { inherit preferLocalBuild allowSubstitutes;
+             passAsFile = [ "paths" ];
+           }; # pass the defaults
+    in runCommand name args
+      ''
+        mkdir -p $out
+
+        for i in $(cat $pathsPath); do
+          ${lndir}/bin/lndir -silent $i $out
+        done
+        ${postBuild}
+      '';
 in
 drv.overrideAttrs override

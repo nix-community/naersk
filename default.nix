@@ -1,6 +1,5 @@
 { lib
 , runCommand
-, symlinkJoin
 , stdenv
 , writeText
 , jq
@@ -11,6 +10,7 @@
 , rustc
 , zstd
 , fetchurl
+, lndir
 }:
 
 let
@@ -26,11 +26,11 @@ let
       stdenv
       rsync
       remarshal
-      symlinkJoin
       cargo
       rustc
       zstd
       fetchurl
+      lndir
       ;
   };
 
