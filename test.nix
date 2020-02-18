@@ -16,7 +16,6 @@ rec
     '';
 
   docparse = naersk.buildPackage {
-    doCheck = false;
     root = ./docparse;
     src = builtins.filterSource (
       p: t:
@@ -50,7 +49,11 @@ rec
   #   { buildInputs = [ ripgrep ]; }
   #   "rg --help && touch $out";
 
-  ripgrep-all = naersk.buildPackage sources.ripgrep-all;
+  ripgrep-all = naersk.buildPackage
+    { src = sources.ripgrep-all;
+      doCheck = true;
+    };
+
   ripgrep-all_test = pkgs.runCommand "ripgrep-all-test"
     { buildInputs = [ ripgrep-all ]; }
     "rga --help && touch $out";
@@ -59,18 +62,22 @@ rec
     src = sources.lorri;
     BUILD_REV_COUNT = 1;
     RUN_TIME_CLOSURE = "${sources.lorri}/nix/runtime.nix";
-    doCheck = false;
   };
 
   lorri_test = pkgs.runCommand "lorri-test" { buildInputs = [ lorri ]; }
     "lorri --help && touch $out";
 
-  talent-plan-1 = naersk.buildPackage "${sources.talent-plan}/rust/projects/project-1";
-  talent-plan-2 = naersk.buildPackage "${sources.talent-plan}/rust/projects/project-2";
-  talent-plan-3 = naersk.buildPackage {
-    src = "${sources.talent-plan}/rust/projects/project-3";
-    doCheck = false;
+  talent-plan-1 = naersk.buildPackage {
+    src = "${sources.talent-plan}/rust/projects/project-1";
+    doCheck = true;
   };
+
+  talent-plan-2 = naersk.buildPackage {
+    doCheck = true;
+    src = "${sources.talent-plan}/rust/projects/project-2";
+  };
+
+  talent-plan-3 = naersk.buildPackage "${sources.talent-plan}/rust/projects/project-3";
 
   # TODO: support for git deps
   #test_talent-plan-4 = buildPackage "${sources.talent-plan}/rust/projects/project-4" {};
@@ -101,43 +108,69 @@ rec
 
   rustlings = naersk.buildPackage sources.rustlings;
 
-  simple-dep = naersk.buildPackage ./test/simple-dep;
+  simple-dep = naersk.buildPackage {
+    src = ./test/simple-dep;
+    doCheck = true;
+  };
 
   simple-dep-doc = naersk.buildPackage
     { src = ./test/simple-dep;
       doDoc = true;
+      doCheck = true;
     };
 
-  simple-dep-patched = ./test/simple-dep-patched;
+  simple-dep-patched = naersk.buildPackage {
+    src = ./test/simple-dep-patched;
+    doCheck = true;
+  };
 
-  dummyfication = naersk.buildPackage ./test/dummyfication;
+  dummyfication = naersk.buildPackage {
+    src = ./test/dummyfication;
+    doCheck = true;
+  };
+
   dummyfication_test = pkgs.runCommand
     "dummyfication-test"
     { buildInputs = [ dummyfication ]; }
     "my-bin > $out";
 
   git-dep = naersk.buildPackage {
-    root = ./test/git-dep;
+    doCheck = true;
+    src = ./test/git-dep;
     cargoOptions = (opts: opts ++ [ "--locked" ]);
   };
 
   git-dep-dup = naersk.buildPackage {
-    root = ./test/git-dep-dup;
+    doCheck = true;
+    src = ./test/git-dep-dup;
     cargoOptions = (opts: opts ++ [ "--locked" ]);
   };
 
-  cargo-wildcard = naersk.buildPackage ./test/cargo-wildcard;
+  cargo-wildcard = naersk.buildPackage {
+    src = ./test/cargo-wildcard;
+    doCheck = true;
+  };
 
-  workspace = naersk.buildPackage ./test/workspace;
+  workspace = naersk.buildPackage {
+    src = ./test/workspace;
+    doCheck = true;
+  };
 
-  workspace-patched = naersk.buildPackage ./test/workspace-patched;
+  workspace-patched = naersk.buildPackage {
+    src = ./test/workspace-patched;
+    doCheck = true;
+  };
 
   workspace-doc = naersk.buildPackage
     { src = ./test/workspace;
       doDoc = true;
+      doCheck = true;
     };
 
-  workspace-build-rs = naersk.buildPackage ./test/workspace-build-rs;
+  workspace-build-rs = naersk.buildPackage {
+    src = ./test/workspace-build-rs;
+    doCheck = true;
+  };
 
   # Fails with some remarshal error
   #servo = naersk.buildPackage

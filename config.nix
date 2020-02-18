@@ -41,7 +41,8 @@ let
     cargoBuildOptions =
       allowFun attrs0 "cargoBuildOptions" [ "$cargo_release" ''-j "$NIX_BUILD_CORES"'' "--out-dir" "out" "--message-format=$cargo_message_format" ];
 
-    # The commands to run in the `checkPhase`.
+    # The commands to run in the `checkPhase`. Do not forget to set
+    # [`doCheck`](https://nixos.org/nixpkgs/manual/#ssec-check-phase).
     cargoTestCommands =
       allowFun attrs0 "cargoTestCommands" [ ''cargo $cargo_options test $cargo_test_options'' ];
 
