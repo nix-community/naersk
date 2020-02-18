@@ -121,6 +121,12 @@ let
     } | jq -cMr '.[]')
     '';
 
+  nixSourcesDir = symlinkJoin {
+    name = "crates-io";
+    paths = map (v: unpackCrate v.name v.version v.sha256)
+      crateDependencies ++ [ unpackedGitDependencies ];
+  };
+
   drv = stdenv.mkDerivation {
     name = "${pname}-${version}";
     inherit
@@ -136,11 +142,7 @@ let
       source = {
         crates-io = { replace-with = "nix-sources"; };
         nix-sources = {
-          directory = symlinkJoin {
-            name = "crates-io";
-            paths = map (v: unpackCrate v.name v.version v.sha256)
-              crateDependencies ++ [ unpackedGitDependencies ];
-          };
+          directory = nixSourcesDir;
         };
       } // lib.listToAttrs (
         map
@@ -159,6 +161,9 @@ let
           gitDependenciesList
       );
     };
+
+    # Remove the source path(s) in Rust
+    RUSTFLAGS = "--remap-path-prefix=${nixSourcesDir}=/sources";
 
     outputs = [ "out" ] ++ lib.optional (doDoc && copyDocsToSeparateOutput) "doc";
     preInstallPhases = lib.optional doDoc [ "docPhase" ];
@@ -221,6 +226,7 @@ let
       log "cargo_test_options: $cargo_test_options"
       log "cargo_bins_jq_filter: $cargo_bins_jq_filter"
       log "cargo_build_output_json (created): $cargo_build_output_json"
+      log "RUSTFLAGS: $RUSTFLAGS"
 
       mkdir -p target
 
