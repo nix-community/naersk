@@ -3,6 +3,7 @@
   #| What command to run during the build phase
 , cargoBuild
 , cargoBuildOptions
+, remapPathPrefix
 , #| What command to run during the test phase
   cargoTestCommands
 , cargoTestOptions
@@ -133,7 +134,10 @@ let
       src
       version
       preBuild
+      remapPathPrefix
       ;
+
+    crate_sources = nixSourcesDir;
 
     # The cargo config with source replacement. Replaces both crates.io crates
     # and git dependencies.
@@ -160,9 +164,6 @@ let
           gitDependenciesList
       );
     };
-
-    # Remove the source path(s) in Rust
-    RUSTFLAGS = "--remap-path-prefix=${nixSourcesDir}=/sources";
 
     outputs = [ "out" ] ++ lib.optional (doDoc && copyDocsToSeparateOutput) "doc";
     preInstallPhases = lib.optional doDoc [ "docPhase" ];
@@ -225,7 +226,25 @@ let
       log "cargo_test_options: $cargo_test_options"
       log "cargo_bins_jq_filter: $cargo_bins_jq_filter"
       log "cargo_build_output_json (created): $cargo_build_output_json"
+      log "crate_sources: $crate_sources"
       log "RUSTFLAGS: $RUSTFLAGS"
+      log "CARGO_BUILD_RUSTFLAGS: $CARGO_BUILD_RUSTFLAGS"
+
+      ${lib.optionalString remapPathPrefix ''
+
+      # Remove the source path(s) in Rust
+      if [ -n "$RUSTFLAGS" ]; then
+        RUSTFLAGS="$RUSTFLAGS --remap-path-prefix $crate_sources=/sources"
+        log "RUSTFLAGS (updated): $RUSTFLAGS"
+      elif [ -n "$CARGO_BUILD_RUSTFLAGS" ]; then
+        CARGO_BUILD_RUSTFLAGS="$CARGO_BUILD_RUSTFLAGS --remap-path-prefix $crate_sources=/sources"
+        log "CARGO_BUILD_RUSTFLAGS (updated): $CARGO_BUILD_RUSTFLAGS"
+      else
+        export CARGO_BUILD_RUSTFLAGS="--remap-path-prefix $crate_sources=/sources"
+        log "CARGO_BUILD_RUSTFLAGS (updated): $CARGO_BUILD_RUSTFLAGS"
+      fi
+
+      ''}
 
       mkdir -p target
 
