@@ -31,7 +31,9 @@ _NOTE_: `./path/to/rust/` should contain a `Cargo.lock`.
 ## Configuration
 
 The `buildPackage` function also accepts an attribute set. The attributes are
-described below. When the argument passed in _not_ an attribute set, e.g.
+described below. Any attribute that is _not_ listed below will be forwarded _as
+is_ to `stdenv.mkDerivation`. When the argument passed in _not_ an attribute
+set, e.g.
 
 ``` nix
 naersk.buildPackage theArg

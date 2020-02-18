@@ -41,9 +41,6 @@ let
     cargoBuildOptions =
       allowFun attrs0 "cargoBuildOptions" [ "$cargo_release" ''-j "$NIX_BUILD_CORES"'' "--out-dir" "out" "--message-format=$cargo_message_format" ];
 
-    # When true, `checkPhase` is run.
-    doCheck = attrs0.doCheck or true;
-
     # The commands to run in the `checkPhase`.
     cargoTestCommands =
       allowFun attrs0 "cargoTestCommands" [ ''cargo $cargo_options test $cargo_test_options'' ];
@@ -128,6 +125,11 @@ let
     then mkAttrs arg
     else mkAttrs { root = arg; };
 
+  userAttrs =
+    if argIsAttrs
+    then removeAttrs arg (builtins.attrNames attrs)
+    else {};
+
   # we differentiate 'src' and 'root'. 'src' is used as source for the build;
   # 'root' is used to find files like 'Cargo.toml'. As often as possible 'root'
   # should be a "path" to avoid reading values from the nix-store.
@@ -176,7 +178,6 @@ let
       copyBinsFilter
       copyTarget
 
-      doCheck
       cargoTestCommands
       cargoTestOptions
 
@@ -195,6 +196,7 @@ let
 
   # config used when planning the builds
   buildPlanConfig = rec {
+    inherit userAttrs;
     inherit (sr) src root;
     # Whether we skip pre-building the deps
     isSingleStep = attrs.singleStep;

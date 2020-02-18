@@ -31,7 +31,9 @@ _NOTE_: `./path/to/rust/` should contain a `Cargo.lock`.
 ## Configuration
 
 The `buildPackage` function also accepts an attribute set. The attributes are
-described below. When the argument passed in _not_ an attribute set, e.g.
+described below. Any attribute that is _not_ listed below will be forwarded _as
+is_ to `stdenv.mkDerivation`. When the argument passed in _not_ an attribute
+set, e.g.
 
 ``` nix
 naersk.buildPackage theArg
@@ -47,7 +49,6 @@ it is converted to an attribute set equivalent to `{ root = theArg; }`.
 | `root` | Used by `naersk` to read the `Cargo.toml` and `Cargo.lock` files. May be different from `src`. When `src` is not set, `root` is (indirectly) used as `src`. |
 | `cargoBuild` | The command to use for the build. The argument must be a function modifying the default value. <br/> Default: `''cargo $cargo_options build $cargo_build_options >> $cargo_build_output_json''` |
 | `cargoBuildOptions` | Options passed to cargo build, i.e. `cargo build <OPTS>`. These options can be accessed during the build through the environment variable `cargo_build_options`. <br/> Note: naersk relies on the `--out-dir out` option and the `--message-format` option. The `$cargo_message_format` variable is set based on the cargo version.<br/> Note: these values are not (shell) escaped, meaning that you can use environment variables but must be careful when introducing e.g. spaces. <br/> The argument must be a function modifying the default value. <br/> Default: `[ "$cargo_release" ''-j "$NIX_BUILD_CORES"'' "--out-dir" "out" "--message-format=$cargo_message_format" ]` |
-| `doCheck` | When true, `checkPhase` is run. Default: `true` |
 | `cargoTestCommands` | The commands to run in the `checkPhase`. The argument must be a function modifying the default value. <br/> Default: `[ ''cargo $cargo_options test $cargo_test_options'' ]` |
 | `cargoTestOptions` | Options passed to cargo test, i.e. `cargo test <OPTS>`. These options can be accessed during the build through the environment variable `cargo_test_options`. <br/> Note: these values are not (shell) escaped, meaning that you can use environment variables but must be careful when introducing e.g. spaces. <br/> The argument must be a function modifying the default value. <br/> Default: `[ "$cargo_release" ''-j "$NIX_BUILD_CORES"'' ]` |
 | `buildInputs` | Extra `buildInputs` to all derivations. Default: `[]` |

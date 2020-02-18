@@ -54,7 +54,7 @@ let
             pname = config.packageName;
             version = config.packageVersion;
             preBuild = "";
-            inherit (config) src cargoTestCommands copyTarget copyBins copyBinsFilter copyDocsToSeparateOutput;
+            inherit (config) userAttrs src cargoTestCommands copyTarget copyBins copyBinsFilter copyDocsToSeparateOutput;
             inherit gitDependencies;
           } // config.buildConfig // {
             builtDependencies = lib.optional (! config.isSingleStep)
@@ -77,6 +77,7 @@ let
                         pname = "${config.packageName}-deps";
                         version = config.packageVersion;
                       } // config.buildConfig // {
+                        inherit (config) userAttrs;
                         preBuild = "";
                         # TODO: custom cargoTestCommands should not be needed here
                         cargoTestCommands = map (cmd: "${cmd} || true") config.buildConfig.cargoTestCommands;

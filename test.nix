@@ -57,10 +57,8 @@ rec
 
   lorri = naersk.buildPackage {
     src = sources.lorri;
-    override = _oldAttrs: {
-      BUILD_REV_COUNT = 1;
-      RUN_TIME_CLOSURE = "${sources.lorri}/nix/runtime.nix";
-    };
+    BUILD_REV_COUNT = 1;
+    RUN_TIME_CLOSURE = "${sources.lorri}/nix/runtime.nix";
     doCheck = false;
   };
 
