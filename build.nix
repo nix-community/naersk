@@ -12,7 +12,6 @@
   #| Whether or not to copy binaries to $out/bin
 , copyBins
 , copyBinsFilter
-, doCheck
 , doDoc
 , doDocFail
 , copyDocsToSeparateOutput
@@ -54,6 +53,7 @@
 , zstd
 , fetchurl
 , lndir
+, userAttrs
 }:
 
 let
@@ -121,11 +121,10 @@ let
     } | jq -cMr '.[]')
     '';
 
-  drv = stdenv.mkDerivation {
+  drvAttrs = {
     name = "${pname}-${version}";
     inherit
       src
-      doCheck
       version
       preBuild
       ;
@@ -399,5 +398,6 @@ let
         done
         ${postBuild}
       '';
+  drv = stdenv.mkDerivation (drvAttrs // userAttrs);
 in
 drv.overrideAttrs override
