@@ -41,6 +41,11 @@ let
     cargoBuildOptions =
       allowFun attrs0 "cargoBuildOptions" [ "$cargo_release" ''-j "$NIX_BUILD_CORES"'' "--out-dir" "out" "--message-format=$cargo_message_format" ];
 
+
+    # When `true`, rustc remaps the (`/nix/store`) source paths to `/sources`
+    # to reduce the number of dependencies in the closure.
+    remapPathPrefix = attrs0.remapPathPrefix or true;
+
     # The commands to run in the `checkPhase`. Do not forget to set
     # [`doCheck`](https://nixos.org/nixpkgs/manual/#ssec-check-phase).
     cargoTestCommands =
@@ -175,6 +180,7 @@ let
 
       cargoBuild
       cargoBuildOptions
+      remapPathPrefix
       copyBins
       copyBinsFilter
       copyTarget
