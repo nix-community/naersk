@@ -18,7 +18,16 @@ else
     echo "running all tests"
 fi
 
+if [[ ! $OSTYPE =~ darwin ]]; then
+    echo "Not testing on darwin"
+    echo "Enabling sandbox, running all tests"
+    extraArgs+=("--sandbox")
+else
+    echo "Testing on darwin"
+    echo "Not enabling sandbox"
+fi
+
 # Build and create a root
-nix-build ./test.nix --sandbox --no-link --max-jobs 10 "${extraArgs[@]}"
+nix-build ./test.nix --no-link --max-jobs 10 "${extraArgs[@]}"
 
 echo "all good"
