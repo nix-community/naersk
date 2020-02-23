@@ -9,7 +9,16 @@ export NIX_PATH="nixpkgs=./nix"
 
 echo "Building"
 
+extraArgs=( )
+
+if [ "${1:-}" == "--fast" ]; then
+    echo "running only fast tests"
+    extraArgs+=( --arg fast true )
+else
+    echo "running all tests"
+fi
+
 # Build and create a root
-nix-build ./test.nix --sandbox --no-link --max-jobs 10
+nix-build ./test.nix --sandbox --no-link --max-jobs 10 "${extraArgs[@]}"
 
 echo "all good"
