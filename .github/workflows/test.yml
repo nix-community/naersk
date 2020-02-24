@@ -6,10 +6,7 @@ on:
 
 jobs:
   install-nix:
-    strategy:
-      matrix:
-        os: [ubuntu-18.04, macos]
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
       - uses: './.github/actions/nix'
