@@ -68,22 +68,32 @@ it is converted to an attribute set equivalent to `{ root = theArg; }`.
 | `copyTarget` | When true, the `target/` directory is copied to `$out`. Default: `false` |
 | `usePureFromTOML` | Whether to use the `fromTOML` built-in or not. When set to `false` the python package `remarshal` is used instead (in a derivation) and the JSON output is read with `builtins.fromJSON`. This is a workaround for old versions of Nix. May be used safely from Nix 2.3 onwards where all bugs in `builtins.fromTOML` seem to have been fixed. Default: `true` |
 
-## Comparison
+## Using naersk with nixpkgs-mozilla
 
-There are two other notable Rust frameworks in Nix: `rustPlatform` and
-`carnix`.
+The [nixpkgs-mozilla](https://github.com/mozilla/nixpkgs-mozilla) overlay
+provides nightly versions of `rustc` and `cargo`. Below is an example setup for
+using it with naersk:
 
-`naersk` uses `cargo` directly, as opposed to `carnix` which emulates `cargo`'s
-build logic. Moreover `naersk` sources build information directly from the
-project's `Cargo.lock` which makes any code generation unnecessary.
-
-For the same reason, `naersk` does not need anything like `rustPlatform`'s
-`cargoSha256`. All crates are downloaded using the `sha256` checksums provided
-in the project's `Cargo.lock`.
-
-Finally `naersk` supports incremental builds by first performing a
-dependency-only build, and _then_ a build that depends on the top-level crate's
-code and configuration.
+``` nix
+let
+  sources = import ./nix/sources.nix;
+  nixpkgs-mozilla = import sources.nixpkgs-mozilla;
+  pkgs = import sources.nixpkgs {
+    overlays =
+      [
+        nixpkgs-mozilla
+        (self: super:
+            {
+              rustc = self.latest.rustChannels.nightly.rust;
+              cargo = self.latest.rustChannels.nightly.rust;
+            }
+        )
+      ];
+  };
+  naersk = pkgs.callPackage sources.naersk {};
+in
+naersk.buildPackage ./my-package
+```
 
 [cargo]: https://crates.io/
 [niv]: https://github.com/nmattia/niv
