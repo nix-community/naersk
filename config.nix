@@ -49,7 +49,9 @@ let
     # The commands to run in the `checkPhase`. Do not forget to set
     # [`doCheck`](https://nixos.org/nixpkgs/manual/#ssec-check-phase).
     cargoTestCommands =
-      allowFun attrs0 "cargoTestCommands" [ ''cargo $cargo_options test $cargo_test_options'' ];
+      allowFun attrs0 "cargoTestCommands" [
+        ''cargo $cargo_options test $cargo_test_options ''${cargo_test_arguments:+-- $cargo_test_arguments}''
+      ];
 
     # Options passed to cargo test, i.e. `cargo test <OPTS>`. These options
     # can be accessed during the build through the environment variable
@@ -58,6 +60,12 @@ let
     # environment variables but must be careful when introducing e.g. spaces. <br/>
     cargoTestOptions =
       allowFun attrs0 "cargoTestOptions" [ "$cargo_release" ''-j "$NIX_BUILD_CORES"'' ];
+
+    # Arguments passed to the test binary, i.e. `--test-threads=...`. These
+    # arguments can be accessed during the build through the environment
+    # variable `cargo_test_arguments`.
+    cargoTestArguments =
+      allowFun attrs0 "cargoTestArguments" [ ''--test-threads="$NIX_BUILD_CORES"'' ];
 
     # Extra `buildInputs` to all derivations.
     buildInputs = attrs0.buildInputs or [];
@@ -187,6 +195,7 @@ let
 
       cargoTestCommands
       cargoTestOptions
+      cargoTestArguments
 
       doDoc
       doDocFail

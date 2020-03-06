@@ -7,6 +7,7 @@
 , #| What command to run during the test phase
   cargoTestCommands
 , cargoTestOptions
+, cargoTestArguments
 , copyTarget
   #| Whether or not to compress the target when copying it
 , compressTarget
@@ -192,6 +193,7 @@ let
     cargo_options = cargoOptions;
     cargo_build_options = cargoBuildOptions;
     cargo_test_options = cargoTestOptions;
+    cargo_test_arguments = cargoTestArguments;
     cargo_bins_jq_filter = copyBinsFilter;
 
     configurePhase = ''
@@ -224,6 +226,7 @@ let
       log "cargo_options: $cargo_options"
       log "cargo_build_options: $cargo_build_options"
       log "cargo_test_options: $cargo_test_options"
+      log "cargo_test_arguments: $cargo_test_arguments"
       log "cargo_bins_jq_filter: $cargo_bins_jq_filter"
       log "cargo_build_output_json (created): $cargo_build_output_json"
       log "crate_sources: $crate_sources"
