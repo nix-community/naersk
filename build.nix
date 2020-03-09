@@ -218,12 +218,18 @@ let
         cargo_message_format="json"
       fi
 
+      # Rust's `libtest` defaults to running tests in parallel and uses as many
+      # threads as there are cores. This is often too much parallelism so we
+      # reduce it to $NIX_BUILD_CORES if not specified by the caller.
+      export RUST_TEST_THREADS="''${RUST_TEST_THREADS:-$NIX_BUILD_CORES}"
+
       log "cargo_version (read): $cargo_version"
       log "cargo_message_format (set): $cargo_message_format"
       log "cargo_release: $cargo_release"
       log "cargo_options: $cargo_options"
       log "cargo_build_options: $cargo_build_options"
       log "cargo_test_options: $cargo_test_options"
+      log "RUST_TEST_THREADS: $RUST_TEST_THREADS"
       log "cargo_bins_jq_filter: $cargo_bins_jq_filter"
       log "cargo_build_output_json (created): $cargo_build_output_json"
       log "crate_sources: $crate_sources"
