@@ -91,6 +91,15 @@ rec
                   checkout = builtins.fetchGit {
                     url = v.git;
                     rev = v.rev;
+                    # This is to work around a bug in `builtins.fetchGit` where
+                    # specifying a `rev` which is not an ancestor of HEAD
+                    # results in a git error. When setting `ref` to `rev` we
+                    # force Nix to fetch the `rev`.
+                    #
+                    # TODO: This hack can be removed once the following is
+                    # merged and released:
+                    # https://github.com/NixOS/nix/pull/3408
+                    ref = v.rev;
                   };
                 }
             ) cargotoml.dependencies or {});
