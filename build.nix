@@ -97,7 +97,7 @@ let
         checkout=$(echo "$dep" | jq -cMr '.checkout')
         url=$(echo "$dep" | jq -cMr '.url')
         tomls=$(find $checkout -name Cargo.toml)
-        rev=$(echo "$dep" | jq -cMr '.rev')
+        key=$(echo "$dep" | jq -cMr '.key')
         while read -r toml; do
           name=$(cat $toml \
             | sed -n -e '/\[package\]/,$p' \
@@ -105,8 +105,9 @@ let
             | grep -oP '(?<=").+(?=")' \
             || true)
           if [ -n "$name" ]; then
-            key="$name-$rev"
-            log "$url Found crate '$name' ($rev)"
+            # Most filesystmes have a maximum filename length of 255
+            key="$(echo "$name-$key" | head -c 255)"
+            log "$url Found crate '$name' ($key)"
             if [ -d "$out/$key" ]; then
               log "Crate was already unpacked at $out/$key"
             else
@@ -151,14 +152,18 @@ let
         map
           (
             e:
+              let
+                key = if e ? rev    then "rev=${e.rev}"       else
+                      if e ? tag    then "tag=${e.tag}"       else
+                      if e ? branch then "branch=${e.branch}" else
+                      throw "No 'rev', 'tag' or 'branch' specified";
+              in
               {
-                name = "${e.url}?rev=${e.rev}";
-                value =
-                  {
-                    git = e.url;
-                    rev = e.rev;
-                    replace-with = "nix-sources";
-                  };
+                name = "${e.url}?${key}";
+                value = lib.filterAttrs (n: _: n == "rev" || n == "tag" || n == "branch") e // {
+                  git = e.url;
+                  replace-with = "nix-sources";
+                };
               }
           )
           gitDependenciesList
