@@ -84,14 +84,20 @@ rec
             (k: v:
               if ! (lib.isAttrs v && builtins.hasAttr "git" v)
               then null
-              else
+              else lib.filterAttrs (n: _: n == "rev" || n == "tag" || n == "branch") v //
                 { name = k;
                   url = v.git;
-                  rev = v.rev;
-                  checkout = builtins.fetchGit {
+                  key = v.rev or v.tag or v.branch or
+                        (throw "No 'rev', 'tag' or 'branch' available to specify key");
+                  checkout = builtins.fetchGit ({
                     url = v.git;
+                  } // lib.optionalAttrs (v ? rev) {
                     rev = v.rev;
-                  };
+                  } // lib.optionalAttrs (v ? branch) {
+                    ref = v.branch;
+                  } // lib.optionalAttrs (v ? tag) {
+                    ref = v.tag;
+                  });
                 }
             ) cargotoml.dependencies or {});
       in
