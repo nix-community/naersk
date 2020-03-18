@@ -258,7 +258,7 @@ let
         # this turns members like "foo/*" into [ "foo/bar" "foo/baz" ]
         # as in https://github.com/rust-analyzer/rust-analyzer/blob/b2ed130ffd9c79de26249a1dfb2a8312d6af12b3/Cargo.toml#L2
         expandMember = member:
-          if lib.hasInfix "*" member
+          if (lib.hasSuffix "/*" member) || (lib.hasSuffix "/*/" member)
           then
             let
               rootDir = lib.replaceStrings [ "/*/" "/*" ] [ "" "" ] member;
