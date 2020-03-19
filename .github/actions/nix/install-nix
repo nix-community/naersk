@@ -62,7 +62,7 @@ save_cache() {
     echo "Using cache '$cachix_cache' for '$GITHUB_REPOSITORY'"
 
     set +x
-    if [ -z "${CACHIX_SIGNING_KEY:-}" ] && [ -n "${INPUT_CACHIX_SIGNING_KEY:-}" ]; then
+    if [ -z "${CACHIX_SIGNING_KEY:=}" ] && [ -n "${INPUT_CACHIX_SIGNING_KEY:-}" ]; then
         echo "CACHIX_SIGNING_KEY not set, but INPUT_CACHIX_SIGNING_KEY is present"
         echo "setting CACHIX_SIGNING_KEY"
         export CACHIX_SIGNING_KEY="$INPUT_CACHIX_SIGNING_KEY"
