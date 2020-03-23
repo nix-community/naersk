@@ -1,4 +1,11 @@
-{ system ? builtins.currentSystem }:
+{ system ? builtins.currentSystem
+, nixpkgs ? "nixpkgs"
+}:
 let
   sources = import ./sources.nix;
-in import sources.nixpkgs { inherit system; }
+  sources_nixpkgs =
+    if builtins.hasAttr nixpkgs sources
+    then sources."${nixpkgs}"
+    else abort "No entry ${nixpkgs} in sources.json";
+in
+import sources_nixpkgs { inherit system; }

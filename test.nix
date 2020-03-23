@@ -1,9 +1,10 @@
 { system ? builtins.currentSystem
 , fast ? false
+, nixpkgs ? "nixpkgs"
 }:
 let
   sources = import ./nix/sources.nix;
-  pkgs = import ./nix { inherit system; };
+  pkgs = import ./nix { inherit system nixpkgs; };
   naersk = pkgs.callPackage ./default.nix
     { inherit (pkgs.rustPackages) cargo rustc; };
 
