@@ -11,20 +11,26 @@ echo "Building"
 
 extraArgs=( )
 
-if [ "${1:-}" == "--fast" ]; then
-    echo "running only fast tests"
-    extraArgs+=( --arg fast true )
-else
-    echo "running all tests"
-fi
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        "--fast")
+            echo "running only fast tests"
+            extraArgs+=( --arg fast true )
+            shift
+            ;;
+        "--nixpkgs")
+            echo "using $2 as niv entry for nixpkgs"
+            extraArgs+=( --argstr nixpkgs "$2" )
+            shift; shift;
+            ;;
+    esac
+done
 
 if [[ ! $OSTYPE =~ darwin ]]; then
-    echo "Not testing on darwin"
-    echo "Enabling sandbox, running all tests"
+    echo "NOT testing on darwin, enabling sandbox"
     extraArgs+=("--sandbox")
 else
-    echo "Testing on darwin"
-    echo "Not enabling sandbox"
+    echo "Testing on darwin, NOT enabling sandbox"
 fi
 
 # Build and create a root

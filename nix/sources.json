@@ -71,6 +71,30 @@
         "url": "https://github.com/NixOS/nixpkgs/archive/5a952d08220d4690d2d448e6776ddf5d6ac13e09.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
+    "nixpkgs-19.09": {
+        "branch": "release-19.09",
+        "description": "Nix Packages collection",
+        "homepage": null,
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "216cd6c5a30af9018d59556f549af9e1c50bdb0a",
+        "sha256": "0sm1hnl25x4icajcyzqnjzq9wvy71phygy80xnqfh5dnp14rf310",
+        "type": "tarball",
+        "url": "https://github.com/NixOS/nixpkgs/archive/216cd6c5a30af9018d59556f549af9e1c50bdb0a.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    },
+    "nixpkgs-20.03": {
+        "branch": "release-20.03",
+        "description": "Nix Packages collection",
+        "homepage": null,
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "fd11f3af1ea12402b13dbabac4a117542c33ec60",
+        "sha256": "0chbvkvb0p0gl222cd0sxbxs4n2afz75n9090g9sww3ay1nfyp5i",
+        "type": "tarball",
+        "url": "https://github.com/NixOS/nixpkgs/archive/fd11f3af1ea12402b13dbabac4a117542c33ec60.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    },
     "noria": {
         "branch": "master",
         "description": "Dynamically changing, partially-stateful data-flow for web application backends.",

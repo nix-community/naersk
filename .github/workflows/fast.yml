@@ -6,11 +6,22 @@ on:
       - 'master'
 
 jobs:
-  install-nix:
+  linux:
     strategy:
-      matrix:
-        os: [ubuntu-18.04, macos]
-    runs-on: ${{ matrix.os }}
+        matrix:
+            nixpkgs: [ nixpkgs, nixpkgs-19.09, nixpkgs-20.03 ]
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v2
+      - uses: './.github/actions/nix'
+        with:
+          CACHIX_SIGNING_KEY: ${{ secrets.CACHIX_SIGNING_KEY }}
+      - name: "Run tests"
+        run: './script/test --fast --nixpkgs "$nixpkgs" '
+        env:
+            nixpkgs: ${{ matrix.nixpkgs }}
+  darwin:
+    runs-on: macos
     steps:
       - uses: actions/checkout@v2
       - uses: './.github/actions/nix'
