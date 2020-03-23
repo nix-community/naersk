@@ -46,7 +46,7 @@ let
     let
       config = mkConfig arg;
       gitDependencies =
-        libb.findGitDependencies { inherit (config) cargotomls; };
+        libb.findGitDependencies { inherit (config) cargotomls cargolock; };
     in
       import ./build.nix
         (

@@ -76,6 +76,7 @@ rec
   #   }
   findGitDependencies =
     { cargotomls
+    , cargolock
     }:
       let
         tomlDependencies = cargotoml:
@@ -92,7 +93,14 @@ rec
                   checkout = builtins.fetchGit ({
                     url = v.git;
                   } // lib.optionalAttrs (v ? rev) {
-                    rev = v.rev;
+                    rev = let
+                            query = p: p.name == k && (lib.substring 0 (4 + lib.stringLength v.git) p.source) == "git+${v.git}";
+                            extractRevision = url: lib.last (lib.splitString "#" url);
+                            parseLock = lock: rec { inherit (lock) name source; revision = extractRevision source; };
+                            packageLocks = builtins.map parseLock (lib.filter query cargolock.package);
+                            match = lib.findFirst (p: lib.substring 0 7 p.revision == lib.substring 0 7 v.rev) null packageLocks;
+                          in
+                            if ! (isNull match) then match.revision else v.rev;
                   } // lib.optionalAttrs (v ? branch) {
                     ref = v.branch;
                   } // lib.optionalAttrs (v ? tag) {
