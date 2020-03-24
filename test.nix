@@ -8,10 +8,36 @@ let
   naersk = pkgs.callPackage ./default.nix
     { inherit (pkgs.rustPackages) cargo rustc; };
 
+  # very temporary musl tests, just to make sure 1_41_0 builds on 20.03
+  muslTests =
+    {
+      customRust_1_41_0 =
+        let
+          pkgs' = pkgs.appendOverlays
+            [
+              (
+                self: super: rec {
+                  rust_1_41_0 = (
+                    self.callPackage ./rust/1_41_0.nix {
+                      inherit (self.darwin.apple_sdk.frameworks) CoreFoundation Security;
+                      inherit (self) path;
+                    }
+                  );
+                  rust = rust_1_41_0;
+                  rustPackages = self.rust.packages.stable;
+                  inherit (self.rustPackages) rustPlatform;
+                }
+              )
+            ];
+        in
+          pkgs'.rustc;
+    };
+
   # local tests, that run pretty fast
   fastTests =
     rec
     {
+
       readme = pkgs.runCommand "readme-gen" {}
         ''
           cat ${./README.tpl.md} > $out
@@ -152,4 +178,4 @@ let
     rustlings = naersk.buildPackage sources.rustlings;
   };
 in
-fastTests // pkgs.lib.optionalAttrs (! fast) heavyTests
+fastTests // pkgs.lib.optionalAttrs (! fast) heavyTests // pkgs.lib.optionalAttrs (pkgs.lib.trivial.release == "20.03") muslTests
