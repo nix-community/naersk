@@ -9,6 +9,7 @@ let
     { inherit (pkgs.rustPackages) cargo rustc; };
 
   # very temporary musl tests, just to make sure 1_41_0 builds on 20.03
+  # (okay, it's actually a wasm test)
   muslTests =
     {
       customRust_1_41_0 =
@@ -29,8 +30,14 @@ let
                 }
               )
             ];
+          naersk' = pkgs'.callPackage ./default.nix {};
         in
-          pkgs'.rustc;
+          naersk'.buildPackage
+            { src = ./test/simple-dep;
+              CARGO_BUILD_TARGET = "wasm32-unknown-unknown";
+              CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_LINKER = "${pkgs'.llvmPackages_9.lld}/bin/lld";
+
+            };
     };
 
   # local tests, that run pretty fast
