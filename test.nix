@@ -33,7 +33,8 @@ let
           naersk' = pkgs'.callPackage ./default.nix {};
         in
           naersk'.buildPackage
-            { src = ./test/simple-dep;
+            {
+              src = ./test/simple-dep;
               CARGO_BUILD_TARGET = "wasm32-unknown-unknown";
               CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_LINKER = "${pkgs'.llvmPackages_9.lld}/bin/lld";
 
@@ -185,4 +186,6 @@ let
     rustlings = naersk.buildPackage sources.rustlings;
   };
 in
-fastTests // pkgs.lib.optionalAttrs (! fast) heavyTests // pkgs.lib.optionalAttrs (pkgs.lib.trivial.release == "20.03") muslTests
+fastTests
+// pkgs.lib.optionalAttrs (! fast) heavyTests
+// pkgs.lib.optionalAttrs (nixpkgs == "nixpkgs-20.03" && pkgs.stdenv.isLinux) muslTests
