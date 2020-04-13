@@ -59,6 +59,9 @@ let
     cargoTestOptions =
       allowFun attrs0 "cargoTestOptions" [ "$cargo_release" ''-j "$NIX_BUILD_CORES"'' ];
 
+    # Extra `nativeBuildInputs` to all derivations.
+    nativeBuildInputs = attrs0.nativeBuildInputs or [];
+
     # Extra `buildInputs` to all derivations.
     buildInputs = attrs0.buildInputs or [];
 
@@ -172,6 +175,7 @@ let
   # config used during build the prebuild and the final build
   buildConfig = {
     inherit (attrs)
+      nativeBuildInputs
       buildInputs
       release
       override

@@ -38,6 +38,7 @@
 , rustc
 , cargo
 , override
+, nativeBuildInputs
 , buildInputs
 , builtDependencies
 , release
@@ -181,7 +182,7 @@ let
       # needed at various steps in the build
       jq
       rsync
-    ];
+    ] ++ nativeBuildInputs;
 
     buildInputs = stdenv.lib.optionals stdenv.isDarwin [
       darwin.Security
