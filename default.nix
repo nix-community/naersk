@@ -1,44 +1,24 @@
-{ lib
+{ cargo
+, darwin
+, fetchurl
+, jq
+, lib
+, lndir
+, remarshal
+, rsync
 , runCommand
+, rustc
 , stdenv
 , writeText
-, jq
-, rsync
-, darwin
-, remarshal
-, cargo
-, rustc
 , zstd
-, fetchurl
-, lndir
-}:
+}@defaultBuildAttrs:
 
 let
   libb = import ./lib.nix { inherit lib writeText runCommand remarshal; };
 
-  defaultBuildAttrs = {
-    inherit
-      jq
-      runCommand
-      lib
-      darwin
-      writeText
-      stdenv
-      rsync
-      remarshal
-      cargo
-      rustc
-      zstd
-      fetchurl
-      lndir
-      ;
-  };
-
   builtinz = builtins // import ./builtins
     { inherit lib writeText remarshal runCommand; };
-in
-  # Crate building
-let
+
   mkConfig = arg:
     import ./config.nix { inherit lib arg libb builtinz; };
 
@@ -47,50 +27,45 @@ let
       config = mkConfig arg;
       gitDependencies =
         libb.findGitDependencies { inherit (config) cargotomls cargolock; };
-    in
-      import ./build.nix
-        (
-          defaultBuildAttrs // {
+      cargoconfig =
+        if builtinz.pathExists (toString config.root + "/.cargo/config")
+        then builtins.readFile (config.root + "/.cargo/config")
+        else null;
+      build = args: import ./build.nix (
+        {
+          inherit gitDependencies;
+          version = config.packageVersion;
+        } // config.buildConfig // defaultBuildAttrs // args
+      );
+
+      # the dependencies from crates.io
+      buildDeps =
+        build
+          {
+            pname = "${config.packageName}-deps";
+            src = libb.dummySrc {
+              inherit cargoconfig;
+              inherit (config) cargolock cargotomls patchedSources;
+            };
+            inherit (config) userAttrs;
+            # TODO: custom cargoTestCommands should not be needed here
+            cargoTestCommands = map (cmd: "${cmd} || true") config.buildConfig.cargoTestCommands;
+            copyTarget = true;
+            copyBins = false;
+            copyBinsFilter = ".";
+            copyDocsToSeparateOutput = false;
+            builtDependencies = [];
+          };
+
+      # the top-level build
+      buildTopLevel =
+        build
+          {
             pname = config.packageName;
-            version = config.packageVersion;
-            preBuild = "";
-            inherit (config) userAttrs src cargoTestCommands copyTarget copyBins copyBinsFilter copyDocsToSeparateOutput;
-            inherit gitDependencies;
-          } // config.buildConfig // {
-            builtDependencies = lib.optional (! config.isSingleStep)
-              (
-                import ./build.nix
-                  (
-                    {
-                      inherit gitDependencies;
-                      src = libb.dummySrc {
-                        cargoconfig =
-                          if builtinz.pathExists (toString config.root + "/.cargo/config")
-                          then builtins.readFile (config.root + "/.cargo/config")
-                          else null;
-                        cargolock = config.cargolock;
-                        cargotomls = config.cargotomls;
-                        inherit (config) patchedSources;
-                      };
-                    } // (
-                      defaultBuildAttrs // {
-                        pname = "${config.packageName}-deps";
-                        version = config.packageVersion;
-                      } // config.buildConfig // {
-                        inherit (config) userAttrs;
-                        preBuild = "";
-                        # TODO: custom cargoTestCommands should not be needed here
-                        cargoTestCommands = map (cmd: "${cmd} || true") config.buildConfig.cargoTestCommands;
-                        copyTarget = true;
-                        copyBins = false;
-                        copyBinsFilter = ".";
-                        copyDocsToSeparateOutput = false;
-                        builtDependencies = [];
-                      }
-                    )
-                  )
-              );
-          }
-        );
+            inherit (config) userAttrs src;
+            builtDependencies = lib.optional (! config.isSingleStep) buildDeps;
+          };
+    in
+      buildTopLevel;
 in
-  { inherit buildPackage; }
+{ inherit buildPackage; }

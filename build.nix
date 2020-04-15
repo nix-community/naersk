@@ -1,5 +1,4 @@
 { src
-, preBuild
   #| What command to run during the build phase
 , cargoBuild
 , cargoBuildOptions
@@ -135,7 +134,6 @@ let
     inherit
       src
       version
-      preBuild
       remapPathPrefix
       ;
 
