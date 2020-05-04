@@ -446,13 +446,14 @@ let
       args = removeAttrs args_ [ "name" "postBuild" ]
         // { inherit preferLocalBuild allowSubstitutes;
              passAsFile = [ "paths" ];
+             nativeBuildInputs = [ lndir ];
            }; # pass the defaults
     in runCommand name args
       ''
         mkdir -p $out
 
         for i in $(cat $pathsPath); do
-          ${lndir}/bin/lndir -silent $i $out
+          lndir -silent $i $out
         done
         ${postBuild}
       '';
