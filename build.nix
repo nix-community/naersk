@@ -12,6 +12,9 @@
   #| Whether or not to copy binaries to $out/bin
 , copyBins
 , copyBinsFilter
+  #| Whether or not to copy libraries to $out/bin
+, copyLibs
+, copyLibsFilter
 , doDoc
 , doDocFail
 , copyDocsToSeparateOutput
@@ -197,6 +200,7 @@ let
     cargo_build_options = cargoBuildOptions;
     cargo_test_options = cargoTestOptions;
     cargo_bins_jq_filter = copyBinsFilter;
+    cargo_libs_jq_filter = copyLibsFilter;
 
     configurePhase = ''
       runHook preConfigure
@@ -339,7 +343,7 @@ let
         mkdir -p $out/bin
         if [ -f "$cargo_build_output_json" ]
         then
-          log "Using file $cargo_build_output_json to retrieve build products"
+          log "Using file $cargo_build_output_json to retrieve build (executable) products"
           while IFS= read -r to_copy; do
             bin_path=$(jq -cMr '.executable' <<<"$to_copy")
             bin_name=$(jq -cMr '.target.name' <<<"$to_copy")
@@ -352,7 +356,26 @@ let
             -not -name '*.so' -a -not -name '*.dylib' \
             -exec cp {} $out/bin \;
         fi
-      ''}
+        ''}
+        ${lib.optionalString copyLibs ''
+        mkdir -p $out/lib
+        if [ -f "$cargo_build_output_json" ]
+        then
+          log "Using file $cargo_build_output_json to retrieve build (library) products"
+          while IFS= read -r to_copy; do
+            lib_paths=$(jq -cMr '.filenames[]' <<<"$to_copy")
+            for lib in $lib_paths; do
+              log "found library $lib"
+              cp "$lib" "$out/lib/"
+            done
+          done < <(jq -cMr "$cargo_libs_jq_filter" <"$cargo_build_output_json")
+        else
+          log "$cargo_build_output_json: file wasn't written, using less reliable copying method"
+          find out -type f \
+            -name '*.so' -or -name '*.dylib' -or -name '*.a' \
+            -exec cp {} $out/lib \;
+        fi
+        ''}
 
         ${lib.optionalString copyTarget ''
         mkdir -p $out

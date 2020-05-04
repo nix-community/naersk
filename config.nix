@@ -89,6 +89,7 @@ let
     # Note: this relies on cargo's `--message-format` argument, set in the
     # default `cargoBuildOptions`.
     copyBins = attrs0.copyBins or true;
+    copyLibs = attrs0.copyLibs or true;
 
     # A [`jq`](https://stedolan.github.io/jq) filter for selecting which build
     # artifacts to release. This is run on cargo's
@@ -97,6 +98,8 @@ let
     # The value is written to the `cargo_bins_jq_filter` variable.
     copyBinsFilter = attrs0.copyBinsFilter or
       ''select(.reason == "compiler-artifact" and .executable != null and .profile.test == false)'';
+    copyLibsFilter = attrs0.copyLibsFilter or
+      ''select(.reason == "compiler-artifact" and ((.target.kind | contains(["staticlib"])) or (.target.kind | contains(["cdylib"]))) and .filenames != null and .profile.test == false)'';
     # When true, the documentation is generated in a different output, `doc`.
     copyDocsToSeparateOutput = attrs0.copyDocsToSeparateOutput or true;
     # When true, the build fails if the documentation step fails; otherwise
@@ -187,6 +190,8 @@ let
       remapPathPrefix
       copyBins
       copyBinsFilter
+      copyLibs
+      copyLibsFilter
       copyTarget
 
       cargoTestCommands
