@@ -121,6 +121,12 @@ let
         cargoOptions = (opts: opts ++ [ "--locked" ]);
       };
 
+      git-dep-with-submodule = naersk.buildPackage {
+        doCheck = true;
+        src = ./test/git-dep-with-submodule;
+        cargoOptions = (opts: opts ++ [ "--locked" ]);
+      };
+
       cargo-wildcard = naersk.buildPackage {
         src = ./test/cargo-wildcard;
         doCheck = true;
