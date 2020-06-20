@@ -1,4 +1,4 @@
-{ lib, writeText, runCommand, remarshal }:
+{ lib, writeText, runCommand, remarshal, fetchgit }:
 let
   builtinz =
     builtins // import ./builtins

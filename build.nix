@@ -55,6 +55,7 @@
 , fetchurl
 , lndir
 , userAttrs
+, fetchgit
 }:
 
 let

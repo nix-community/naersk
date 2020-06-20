@@ -1,0 +1,8 @@
+[package]
+name = "git-dep"
+version = "0.1.0"
+authors = ["nicolas <nicolas@nmattia.com>"]
+edition = "2018"
+
+[dependencies]
+lucet-wasi = { git = "https://github.com/bytecodealliance/lucet.git", rev = "d741e2e30df19d1f8abd1a8660219ac494336b76", optional = true }

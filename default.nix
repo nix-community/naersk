@@ -11,10 +11,11 @@
 , stdenv
 , writeText
 , zstd
+, fetchgit
 }@defaultBuildAttrs:
 
 let
-  libb = import ./lib.nix { inherit lib writeText runCommand remarshal; };
+  libb = import ./lib.nix { inherit lib writeText runCommand remarshal fetchgit; };
 
   builtinz = builtins // import ./builtins
     { inherit lib writeText remarshal runCommand; };
