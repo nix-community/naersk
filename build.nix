@@ -106,15 +106,15 @@ let
             || true)
           if [ -n "$name" ]; then
             # Most filesystmes have a maximum filename length of 255
-            key="$(echo "$name-$key" | head -c 255)"
-            log "$url Found crate '$name' ($key)"
-            if [ -d "$out/$key" ]; then
-              log "Crate was already unpacked at $out/$key"
+            nkey="$(echo "$name-$key" | head -c 255)"
+            log "$url Found crate '$name' ($nkey)"
+            if [ -d "$out/$nkey" ]; then
+              log "Crate was already unpacked at $out/$nkey"
             else
-              cp -r $(dirname $toml) $out/$key
-              chmod +w "$out/$key"
-              echo '{"package":null,"files":{}}' > $out/$key/.cargo-checksum.json
-              log "Crate unpacked at $out/$key"
+              cp -r $(dirname $toml) $out/$nkey
+              chmod +w "$out/$nkey"
+              echo '{"package":null,"files":{}}' > $out/$nkey/.cargo-checksum.json
+              log "Crate unpacked at $out/$nkey"
             fi
           fi
         done <<< "$tomls"
