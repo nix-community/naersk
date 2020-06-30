@@ -107,10 +107,15 @@ let
             | grep -m 1 "^name\W" \
             | grep -oP '(?<=").+(?=")' \
             || true)
-          if [ -n "$name" ]; then
+          version=$(cat $toml \
+            | sed -n -e '/\[package\]/,$p' \
+            | grep -m 1 "^version\W" \
+            | grep -oP '(?<=").+(?=")' \
+            || true)
+          if [ -n "$name" -a -n "$version" ]; then
             # Most filesystmes have a maximum filename length of 255
-            nkey="$(echo "$name-$key" | head -c 255)"
-            log "$url Found crate '$name' ($nkey)"
+            nkey="$(echo "$name-$version-$key" | head -c 255)"
+            log "$url Found crate '$name-$version' ($nkey)"
             if [ -d "$out/$nkey" ]; then
               log "Crate was already unpacked at $out/$nkey"
             else
