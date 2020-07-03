@@ -8,5 +8,7 @@
   in {
     # Naersk is not a package, not an app, not a module... It's just a Library
     lib = forAllSystems (system: nixpkgs.legacyPackages."${system}".callPackage ./default.nix {});
+    # Useful when composing with other flakes
+    overlay = import ./overlay.nix;
   };
 }
