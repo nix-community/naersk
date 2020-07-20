@@ -103,12 +103,6 @@ let
         cargoOptions = (opts: opts ++ [ "--locked" ]);
       };
 
-      git-dep-by-branch = naersk.buildPackage {
-        doCheck = true;
-        src = ./test/git-dep-by-branch;
-        cargoOptions = (opts: opts ++ [ "--locked" ]);
-      };
-
       git-dep-by-tag = naersk.buildPackage {
         doCheck = true;
         src = ./test/git-dep-by-tag;
