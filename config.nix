@@ -92,7 +92,7 @@ let
     # When true, the resulting binaries are copied to `$out/lib`. <br/> Note:
     # this relies on cargo's `--message-format` argument, set in the default
     # `cargoBuildOptions`.
-    copyLibs = attrs0.copyLibs or true;
+    copyLibs = attrs0.copyLibs or false;
 
     # A [`jq`](https://stedolan.github.io/jq) filter for selecting which build
     # artifacts to release. This is run on cargo's
