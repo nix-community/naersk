@@ -100,3 +100,34 @@ naersk.buildPackage ./my-package
 
 [cargo]: https://crates.io/
 [niv]: https://github.com/nmattia/niv
+
+## Using with Nix Flakes
+Copy this `flake.nix` into your repo.
+```nix
+{
+
+  inputs = {
+    naersk.url = "github:nmattia/naersk/master";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    utils.url = "github:numtide/flake-utils";
+  };
+
+  outputs = { self, nixpkgs, utils, naersk }:
+    utils.lib.eachDefaultSystem (system:
+      let
+        pkgs = import nixpkgs { inherit system; };
+        naersk-lib = pkgs.callPackage naersk { };
+      in {
+
+        defaultPackage = naersk-lib.buildPackage ./.;
+        
+        # If you have a default binary in your project, add path to it here
+        # defaultApp = {
+        #   type = "app";
+        #   program = "${self.defaultPackage."${system}"}/bin/%BINARY_PATH_HERE%";
+        # };
+      });
+}
+
+```
+ 
