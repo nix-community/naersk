@@ -34,6 +34,6 @@ else
 fi
 
 # Build and create a root
-nix-build ./test.nix --no-link --max-jobs 10 "${extraArgs[@]}"
+nix-build ./test.nix --no-link --max-jobs 4 "${extraArgs[@]}"
 
 echo "all good"

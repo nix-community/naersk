@@ -130,4 +130,3 @@ Copy this `flake.nix` into your repo.
 }
 
 ```
- 
