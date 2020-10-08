@@ -59,12 +59,16 @@ let
 
       # the top-level build
       buildTopLevel =
-        build
-          {
-            pname = config.packageName;
-            inherit (config) userAttrs src;
-            builtDependencies = lib.optional (! config.isSingleStep) buildDeps;
-          };
+        let
+          drv =
+            build
+              {
+                pname = config.packageName;
+                inherit (config) userAttrs src;
+                builtDependencies = lib.optional (! config.isSingleStep) buildDeps;
+              };
+        in
+          drv.overrideAttrs config.overrideMain;
     in
       buildTopLevel;
 in
