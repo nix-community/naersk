@@ -80,6 +80,12 @@ let
     release = attrs0.release or true;
     # An override for all derivations involved in the build.
     override = attrs0.override or (x: x);
+
+    # An override for the top-level (last, main) derivation. If both `override`
+    # and `overrideMain` are specified, _both_ will be applied to the top-level
+    # derivation.
+    overrideMain = attrs0.overrideMain or (x: x);
+
     # When true, no intermediary (dependency-only) build is run. Enabling
     # `singleStep` greatly reduces the incrementality of the builds.
     singleStep = attrs0.singleStep or false;
@@ -227,6 +233,8 @@ let
     inherit (sr) src root;
     # Whether we skip pre-building the deps
     isSingleStep = attrs.singleStep;
+
+    inherit (attrs) overrideMain;
 
     # The members we want to build
     # (list of directory names)
