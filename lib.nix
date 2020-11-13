@@ -126,7 +126,9 @@ rec
             attrs =
               # Since we pretend everything is a lib, we remove any mentions
               # of binaries
-              removeAttrs cargotoml [ "bin" "example" "lib" "test" "bench" ];
+              removeAttrs cargotoml [ "bin" "example" "lib" "test" "bench" "default-run" ]
+                // lib.optionalAttrs (builtins.hasAttr "package" cargotoml) ({ package = removeAttrs cargotoml.package [ "default-run" ] ; })
+                ;
           in
             attrs // lib.optionalAttrs (lib.hasAttr "package" attrs) {
               package = removeAttrs attrs.package [ "build" ];
