@@ -141,6 +141,11 @@ let
         src = ./test/workspace-build-rs;
         doCheck = true;
       };
+
+      default-run = naersk.buildPackage {
+        src = ./test/default-run;
+        doCheck = true;
+      };
     };
 
   # extra crates, that are kinda slow to build
