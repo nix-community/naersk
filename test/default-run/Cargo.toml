@@ -1,0 +1,11 @@
+# Tests that default-run doesn't break the dependency build, see
+# https://github.com/nmattia/naersk/issues/123
+
+[package]
+name = "default-run"
+version = "0.1.0"
+authors = ["nicolas <nicolas@nmattia.com>"]
+edition = "2018"
+default-run = "other"
+
+[dependencies]
