@@ -22,21 +22,36 @@
   in platform.rustc.config
     or "${cpu_}-${vendor.name}-${kernel.name}${lib.optionalString (abi.name != "unknown") "-${abi.name}"}";
 
+  # Returns the name of the rust target if it is standard, or the json file
+  # containing the custom target spec.
+  toRustTargetSpec = platform:
+    if (platform.rustc or {}) ? platform
+    then builtins.toFile (toRustTarget platform + ".json") (builtins.toJSON platform.rustc.platform)
+    else toRustTarget platform;
+
   makeRustPlatform = { rustc, cargo, ... }: rec {
     rust = {
       inherit rustc cargo;
     };
 
+    rustcSrc = callPackage ./rust-src.nix {
+      inherit rustc;
+    };
+  } // lib.optionalAttrs (builtins.pathExists (path + /pkgs/build-support/rust/fetchCargoTarball.nix)) rec {
+    fetchCargoTarball = buildPackages.callPackage (path + /pkgs/build-support/rust/fetchCargoTarball.nix) {
+      inherit cargo;
+    };
+
+    buildRustPackage = callPackage (path + /pkgs/build-support/rust) {
+      inherit rustc cargo fetchCargoTarball;
+    };
+  } // lib.optionalAttrs (builtins.pathExists (path + /pkgs/build-support/rust/fetchcargo.nix)) rec {
     fetchcargo = buildPackages.callPackage (path + /pkgs/build-support/rust/fetchcargo.nix) {
       inherit cargo;
     };
 
     buildRustPackage = callPackage (path + /pkgs/build-support/rust) {
       inherit rustc cargo fetchcargo;
-    };
-
-    rustcSrc = callPackage ./rust-src.nix {
-      inherit rustc;
     };
   };
 

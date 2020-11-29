@@ -214,4 +214,4 @@ let
 in
 fastTests
 // pkgs.lib.optionalAttrs (! fast) heavyTests
-// pkgs.lib.optionalAttrs (nixpkgs == "nixpkgs-20.03" && pkgs.stdenv.isLinux) muslTests
+// pkgs.lib.optionalAttrs (nixpkgs == "nixpkgs-20.09" && pkgs.stdenv.isLinux) muslTests
