@@ -13,9 +13,11 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
-      - uses: './.github/actions/nix'
+      - uses: cachix/install-nix-action@v12
+      - uses: cachix/cachix-action@v8
         with:
-          CACHIX_SIGNING_KEY: ${{ secrets.CACHIX_SIGNING_KEY }}
+          name: naersk
+          signingKey: ${{ secrets.CACHIX_SIGNING_KEY }}
       - name: "Run tests"
         run: './script/test --fast --nixpkgs "$nixpkgs" '
         env:
@@ -24,8 +26,10 @@ jobs:
     runs-on: macos-10.15
     steps:
       - uses: actions/checkout@v2
-      - uses: './.github/actions/nix'
+      - uses: cachix/install-nix-action@v12
+      - uses: cachix/cachix-action@v8
         with:
-          CACHIX_SIGNING_KEY: ${{ secrets.CACHIX_SIGNING_KEY }}
+          name: naersk
+          signingKey: ${{ secrets.CACHIX_SIGNING_KEY }}
       - name: "Run tests"
         run: './script/test --fast'
