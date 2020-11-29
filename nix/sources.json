@@ -71,18 +71,6 @@
         "url": "https://github.com/NixOS/nixpkgs/archive/e23f098b6946c3eae45e66d16746a65903fc3d74.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
-    "nixpkgs-19.09": {
-        "branch": "release-19.09",
-        "description": "Nix Packages collection",
-        "homepage": null,
-        "owner": "NixOS",
-        "repo": "nixpkgs",
-        "rev": "216cd6c5a30af9018d59556f549af9e1c50bdb0a",
-        "sha256": "0sm1hnl25x4icajcyzqnjzq9wvy71phygy80xnqfh5dnp14rf310",
-        "type": "tarball",
-        "url": "https://github.com/NixOS/nixpkgs/archive/216cd6c5a30af9018d59556f549af9e1c50bdb0a.tar.gz",
-        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
-    },
     "nixpkgs-20.03": {
         "branch": "release-20.03",
         "description": "Nix Packages collection",
