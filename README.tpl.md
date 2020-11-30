@@ -74,31 +74,92 @@ naersk.buildPackage ./my-package
 [niv]: https://github.com/nmattia/niv
 
 ## Using with Nix Flakes
-Copy this `flake.nix` into your repo.
-```nix
-{
 
+Copy this `flake.nix` into your repo.
+
+``` nix
+{
   inputs = {
-    naersk.url = "github:nmattia/naersk/master";
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     utils.url = "github:numtide/flake-utils";
+    naersk.url = "github:nmattia/naersk";
   };
 
   outputs = { self, nixpkgs, utils, naersk }:
-    utils.lib.eachDefaultSystem (system:
-      let
-        pkgs = import nixpkgs { inherit system; };
-        naersk-lib = pkgs.callPackage naersk { };
-      in {
+    utils.lib.eachDefaultSystem (system: let
+      pkgs = nixpkgs.legacyPackages."${system}";
+      naersk-lib = naersk.lib."${system}";
+    in rec {
+      # `nix build`
+      packages.my-project = naersk-lib.buildPackage {
+        pname = "my-project";
+        root = ./.;
+      };
+      defaultPackage = packages.my-project;
 
-        defaultPackage = naersk-lib.buildPackage ./.;
-        
-        # If you have a default binary in your project, add path to it here
-        # defaultApp = {
-        #   type = "app";
-        #   program = "${self.defaultPackage."${system}"}/bin/%BINARY_PATH_HERE%";
-        # };
-      });
+      # `nix run`
+      apps.my-project = utils.lib.mkApp {
+        drv = packages.my-project;
+      };
+      defaultApp = apps.my-project;
+
+      # `nix develop`
+      devShell = pkgs.mkShell {
+        nativeBuildInputs = with pkgs; [ rustc cargo ];
+      };
+    });
 }
+```
 
+If you want to use a specific toolchain version instead of the latest stable
+available in nixpkgs, you can use mozilla's nixpkgs overlay in your flake.
+
+``` nix
+{
+  inputs = {
+    utils.url = "github:numtide/flake-utils";
+    naersk.url = "github:nmattia/naersk";
+    mozillapkgs = {
+      url = "github:mozilla/nixpkgs-mozilla";
+      flake = false;
+    };
+  };
+
+  outputs = { self, nixpkgs, utils, naersk, mozillapkgs }:
+    utils.lib.eachDefaultSystem (system: let
+      pkgs = nixpkgs.legacyPackages."${system}";
+
+      # Get a specific rust version
+      mozilla = pkgs.callPackage (mozillapkgs + "/package-set.nix") {};
+      rust = (mozilla.rustChannelOf {
+        date = "2020-01-01"; # get the current date with `date -I`
+        channel = "nightly";
+        sha256 = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+      }).rust;
+
+      # Override the version used in naersk
+      naersk-lib = naersk.lib."${system}".override {
+        cargo = rust;
+        rustc = rust;
+      };
+    in rec {
+      # `nix build`
+      packages.my-project = naersk-lib.buildPackage {
+        pname = "my-project";
+        root = ./.;
+      };
+      defaultPackage = packages.my-project;
+
+      # `nix run`
+      apps.my-project = utils.lib.mkApp {
+        drv = packages.my-project;
+      };
+      defaultApp = apps.my-project;
+
+      # `nix develop`
+      devShell = pkgs.mkShell {
+        # supply the specific rust version
+        nativeBuildInputs = [ rust ];
+      };
+    });
+}
 ```
