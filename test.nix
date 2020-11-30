@@ -12,7 +12,7 @@ let
   # (okay, it's actually a wasm test)
   muslTests =
     {
-      customRust_1_41_0 =
+      wasm_rust_1_41_0 =
         let
           pkgs' = pkgs.appendOverlays
             [
@@ -37,6 +37,33 @@ let
               src = ./test/simple-dep;
               CARGO_BUILD_TARGET = "wasm32-unknown-unknown";
               CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_LINKER = "${pkgs'.llvmPackages_9.lld}/bin/lld";
+
+            };
+
+      musl_rust_1_41_0 =
+        let
+          pkgs' = pkgs.appendOverlays
+            [
+              (
+                self: super: rec {
+                  rust_1_41_0 = (
+                    self.callPackage ./rust/1_41_0.nix {
+                      inherit (self.darwin.apple_sdk.frameworks) CoreFoundation Security;
+                      inherit (self) path;
+                    }
+                  );
+                  rust = rust_1_41_0;
+                  rustPackages = self.rust.packages.stable;
+                  inherit (self.rustPackages) rustPlatform;
+                }
+              )
+            ];
+          naersk' = pkgs'.callPackage ./default.nix {};
+        in
+          naersk'.buildPackage
+            {
+              src = ./test/simple-dep;
+              CARGO_BUILD_TARGET = "x86_64-unknown-linux-musl";
 
             };
     };
