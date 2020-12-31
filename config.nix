@@ -303,13 +303,20 @@ let
       in
         lib.unique (lib.concatMap expandMember listedMembers);
 
-    patchedSources =
+    # If `copySourcesFrom` is set, then it looks like the benefits brought by
+    # two-step caching break, for unclear reasons as of now. As such, do not set
+    # `copySourcesFrom` if there is no source to actually copy from.
+    copySourcesFrom = if copySources != [] then src else null;
+
+    copySources =
       let
         mkRelative = po:
           if lib.hasPrefix "/" po.path
           then throw "'${toString src}/Cargo.toml' contains the absolute path '${toString po.path}' which is not allowed under a [patch] section by naersk. Please make it relative to '${toString src}'"
-          else src + "/" + po.path;
+          else po.path;
       in
+        arg.copySources or []
+      ++
         lib.optionals (builtins.hasAttr "patch" toplevelCargotoml)
           (
             map mkRelative

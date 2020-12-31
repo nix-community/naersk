@@ -116,7 +116,8 @@ rec
     { cargoconfig   # string
     , cargotomls   # attrset
     , cargolock   # attrset
-    , patchedSources # list of paths that should be copied to the output
+    , copySources # list of paths that should be copied to the output
+    , copySourcesFrom # path from which to copy ${copySources}
     }:
       let
         config = writeText "config" cargoconfig;
@@ -142,15 +143,18 @@ rec
 
       in
         runCommand "dummy-src"
-          { inherit patchedSources cargotomlss; }
+          { inherit copySources copySourcesFrom cargotomlss; }
           ''
             mkdir -p $out/.cargo
             ${lib.optionalString (! isNull cargoconfig) "cp ${config} $out/.cargo/config"}
             cp ${cargolock'} $out/Cargo.lock
 
-            for p in $patchedSources; do
+            for p in $copySources; do
               echo "Copying patched source $p to $out..."
-              cp -R "$p" "$out/"
+              # Create all the directories but $p itself, so `cp -R` does the
+              # right thing below
+              mkdir -p "$out/$(dirname "$p")"
+              cp -R "$copySourcesFrom/$p" "$out/$p"
             done
 
             for tuple in $cargotomlss; do
