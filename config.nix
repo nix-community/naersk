@@ -303,21 +303,33 @@ let
       in
         lib.unique (lib.concatMap expandMember listedMembers);
 
-    patchedSources =
+    copySourcesFrom = src;
+
+    copySources =
       let
-        mkRelative = po:
+        chkRelative = po:
           if lib.hasPrefix "/" po.path
           then throw "'${toString src}/Cargo.toml' contains the absolute path '${toString po.path}' which is not allowed under a [patch] section by naersk. Please make it relative to '${toString src}'"
-          else src + "/" + po.path;
+          else po.path;
       in
+        arg.copySources or []
+      ++
         lib.optionals (builtins.hasAttr "patch" toplevelCargotoml)
           (
-            map mkRelative
+            map chkRelative
               (
                 lib.collect (as: lib.isAttrs as && builtins.hasAttr "path" as)
                   toplevelCargotoml.patch
               )
-          );
+          )
+      ++
+        # TODO: this should probably recurse into these other Cargo.toml's? In
+        # the meantime, use copySources as a fallback
+        lib.concatMap
+          (d: lib.optional
+            (lib.isAttrs d && lib.hasAttr "path" d)
+            (chkRelative d))
+          (lib.attrValues (toplevelCargotoml.dependencies or {}));
 
     # Are we building a workspace (or is this a simple crate) ?
     isWorkspace = builtins.hasAttr "workspace" toplevelCargotoml;
