@@ -79,35 +79,39 @@ rec
     , cargolock
     }:
       let
-        tomlDependencies = cargotoml:
-          lib.filter (x: ! isNull x) (
+      tomlDependencies = cargotoml:
+        lib.filter (x: ! isNull x) (
           lib.mapAttrsToList
             (k: v:
               if ! (lib.isAttrs v && builtins.hasAttr "git" v)
               then null
-              else lib.filterAttrs (n: _: n == "rev" || n == "tag" || n == "branch") v //
-                { name = k;
-                  url = v.git;
-                  key = v.rev or v.tag or v.branch or
-                        (throw "No 'rev', 'tag' or 'branch' available to specify key");
+              else
+                let
+                  query = p: p.name == k && (lib.substring 0 (4 + lib.stringLength v.git) p.source) == "git+${v.git}";
+                  extractRevision = url: lib.last (lib.splitString "#" url);
+                  parseLock = lock: rec { inherit (lock) name source; revision = extractRevision source; };
+                  packageLocks = builtins.map parseLock (lib.filter query cargolock.package);
+                  matchByName = lib.findFirst (p: p.name == k) null packageLocks;
+                  # Cargo.lock revision is prioritized, because in Cargo.toml short revisions are allowed
+                  val = v // { rev = matchByName.revision or v.rev or null; };
+                in
+                lib.filterAttrs (n: _: n == "rev" || n == "tag" || n == "branch") val //
+                {
+                  name = k;
+                  url = val.git;
+                  key = val.rev or val.tag or val.branch or
+                    (throw "No 'rev', 'tag' or 'branch' available to specify key, nor a git revision was found in Cargo.lock");
                   checkout = builtins.fetchGit ({
-                    url = v.git;
-                  } // lib.optionalAttrs (v ? rev) {
-                    rev = let
-                            query = p: p.name == k && (lib.substring 0 (4 + lib.stringLength v.git) p.source) == "git+${v.git}";
-                            extractRevision = url: lib.last (lib.splitString "#" url);
-                            parseLock = lock: rec { inherit (lock) name source; revision = extractRevision source; };
-                            packageLocks = builtins.map parseLock (lib.filter query cargolock.package);
-                            match = lib.findFirst (p: lib.substring 0 7 p.revision == lib.substring 0 7 v.rev) null packageLocks;
-                          in
-                            if ! (isNull match) then match.revision else v.rev;
-                  } // lib.optionalAttrs (v ? branch) {
-                    ref = v.branch;
-                  } // lib.optionalAttrs (v ? tag) {
-                    ref = v.tag;
+                    url = val.git;
+                  } // lib.optionalAttrs (val ? rev) {
+                    rev = val.rev;
+                  } // lib.optionalAttrs (val ? branch) {
+                    ref = val.branch;
+                  } // lib.optionalAttrs (val ? tag) {
+                    ref = val.tag;
                   });
                 }
-            ) cargotoml.dependencies or {});
+            ) cargotoml.dependencies or { });
       in
         lib.mapAttrs (_: tomlDependencies) cargotomls;
 
