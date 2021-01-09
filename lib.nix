@@ -87,17 +87,20 @@ rec
               then null
               else
                 let
-                  query = p: p.name == k && (lib.substring 0 (4 + lib.stringLength v.git) p.source) == "git+${v.git}";
+                  # Use the 'package' attribute if it exists, which means this is a renamed dependency
+                  # https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#renaming-dependencies-in-cargotoml
+                  key = v.package or k;
+                  query = p: p.name == key && (lib.substring 0 (4 + lib.stringLength v.git) p.source) == "git+${v.git}";
                   extractRevision = url: lib.last (lib.splitString "#" url);
                   parseLock = lock: rec { inherit (lock) name source; revision = extractRevision source; };
                   packageLocks = builtins.map parseLock (lib.filter query cargolock.package);
-                  matchByName = lib.findFirst (p: p.name == k) null packageLocks;
+                  matchByName = lib.findFirst (p: p.name == key) null packageLocks;
                   # Cargo.lock revision is prioritized, because in Cargo.toml short revisions are allowed
                   val = v // { rev = matchByName.revision or v.rev or null; };
                 in
                 lib.filterAttrs (n: _: n == "rev" || n == "tag" || n == "branch") val //
                 {
-                  name = k;
+                  name = key;
                   url = val.git;
                   key = val.rev or val.tag or val.branch or
                     (throw "No 'rev', 'tag' or 'branch' available to specify key, nor a git revision was found in Cargo.lock");
