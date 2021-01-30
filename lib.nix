@@ -162,7 +162,7 @@ rec
               # Create all the directories but $p itself, so `cp -R` does the
               # right thing below
               mkdir -p "$out/$(dirname "$p")"
-              cp -R "$copySourcesFrom/$p" "$out/$p"
+              cp --no-preserve=mode -R "$copySourcesFrom/$p" "$out/$p"
             done
 
             for tuple in $cargotomlss; do
