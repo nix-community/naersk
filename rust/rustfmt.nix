@@ -1,4 +1,4 @@
-{ stdenv, rustPlatform, Security }:
+{ stdenv, lib, rustPlatform, Security }:
 
 rustPlatform.buildRustPackage rec {
   pname = "rustfmt";
@@ -12,7 +12,7 @@ rustPlatform.buildRustPackage rec {
   # changes hash of vendor directory otherwise
   dontUpdateAutotoolsGnuConfigScripts = true;
 
-  buildInputs = stdenv.lib.optional stdenv.isDarwin Security;
+  buildInputs = lib.optional stdenv.isDarwin Security;
 
   # As of 1.0.0 and rustc 1.30 rustfmt requires a nightly compiler
   RUSTC_BOOTSTRAP = 1;
@@ -23,7 +23,7 @@ rustPlatform.buildRustPackage rec {
     cargo build
   '';
 
-  meta = with stdenv.lib; {
+  meta = with lib; {
     description = "A tool for formatting Rust code according to style guidelines";
     homepage = https://github.com/rust-lang-nursery/rustfmt;
     license = with licenses; [ mit asl20 ];

@@ -39,7 +39,7 @@ let
     ++ lib.optionals stdenv.isLinux [ "x86_64-unknown-linux-musl" ]
     ;
   host = stdenv.buildPlatform.config;
-  inherit (stdenv.lib) optionals optional optionalString;
+  inherit (lib) optionals optional optionalString;
   inherit (darwin.apple_sdk.frameworks) Security;
 
 /* [naersk]: no need for this
@@ -225,7 +225,7 @@ in stdenv.mkDerivation rec {
   outputs = [ "out" "man" "doc" ];
   setOutputFlags = false;
 
-  postInstall = stdenv.lib.optionalString enableRustcDev ''
+  postInstall = lib.optionalString enableRustcDev ''
     # install rustc-dev components. Necessary to build rls, clippy...
     python x.py dist rustc-dev
     tar xf build/dist/rustc-dev*tar.gz
@@ -249,7 +249,7 @@ in stdenv.mkDerivation rec {
 
   passthru.llvm = llvmShared;
 
-  meta = with stdenv.lib; {
+  meta = with lib; {
     homepage = "https://www.rust-lang.org/";
     description = "A safe, concurrent, practical language";
     maintainers = with maintainers; [ madjar cstrahan globin havvy ];

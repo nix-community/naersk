@@ -1,4 +1,4 @@
-{ stdenv, makeWrapper, bash, curl, darwin
+{ stdenv, lib, makeWrapper, bash, curl, darwin
 , version
 , src
 , platform
@@ -6,7 +6,7 @@
 }:
 
 let
-  inherit (stdenv.lib) optionalString;
+  inherit (lib) optionalString;
   inherit (darwin.apple_sdk.frameworks) Security;
 
   bootstrapping = versionType == "bootstrap";
@@ -24,7 +24,7 @@ rec {
     inherit version;
     inherit src;
 
-    meta = with stdenv.lib; {
+    meta = with lib; {
       homepage = http://www.rust-lang.org/;
       description = "A safe, concurrent, practical language";
       maintainers = with maintainers; [ qknight ];
@@ -32,7 +32,7 @@ rec {
     };
 
     buildInputs = [ bash ]
-      ++ stdenv.lib.optional stdenv.isDarwin Security;
+      ++ lib.optional stdenv.isDarwin Security;
 
     postPatch = ''
       patchShebangs .
@@ -70,7 +70,7 @@ rec {
     inherit version;
     inherit src;
 
-    meta = with stdenv.lib; {
+    meta = with lib; {
       homepage = http://www.rust-lang.org/;
       description = "A safe, concurrent, practical language";
       maintainers = with maintainers; [ qknight ];
@@ -78,7 +78,7 @@ rec {
     };
 
     buildInputs = [ makeWrapper bash ]
-      ++ stdenv.lib.optional stdenv.isDarwin Security;
+      ++ lib.optional stdenv.isDarwin Security;
 
     postPatch = ''
       patchShebangs .
