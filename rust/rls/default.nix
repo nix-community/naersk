@@ -1,4 +1,4 @@
-{ stdenv, fetchFromGitHub, rustPlatform
+{ stdenv, lib, fetchFromGitHub, rustPlatform
 , openssh, openssl, pkgconfig, cmake, zlib, curl, libiconv
 , CoreFoundation, Security }:
 
@@ -24,7 +24,7 @@ rustPlatform.buildRustPackage {
 
   nativeBuildInputs = [ pkgconfig cmake ];
   buildInputs = [ openssh openssl curl zlib libiconv rustPlatform.rust.rustc.llvm ]
-    ++ (stdenv.lib.optionals stdenv.isDarwin [ CoreFoundation Security ]);
+    ++ (lib.optionals stdenv.isDarwin [ CoreFoundation Security ]);
 
   doCheck = true;
 
@@ -35,7 +35,7 @@ rustPlatform.buildRustPackage {
     $out/bin/rls --version
   '';
 
-  meta = with stdenv.lib; {
+  meta = with lib; {
     description = "Rust Language Server - provides information about Rust programs to IDEs and other tools";
     homepage = "https://github.com/rust-lang/rls/";
     license = with licenses; [ asl20 /* or */ mit ];

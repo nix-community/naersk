@@ -190,7 +190,7 @@ let
       rsync
     ] ++ nativeBuildInputs;
 
-    buildInputs = stdenv.lib.optionals stdenv.isDarwin [
+    buildInputs = lib.optionals stdenv.isDarwin [
       darwin.Security
       darwin.apple_sdk.frameworks.CoreServices
       darwin.cf-private

@@ -1,7 +1,7 @@
 # [naersk] this is needed for proper musl builds
 # We need libunwind-9.0.0 because earlier versions link c++ symbols we don't
 # have to have to link to
-{ fetchurl, stdenv, cmake, enableShared ? true }:
+{ fetchurl, stdenv, lib, cmake, enableShared ? true }:
 let
   version = "9.0.0";
   fetch = sha256: fetchurl {
@@ -19,5 +19,5 @@ stdenv.mkDerivation rec {
 
   enableParallelBuilding = true;
 
-  cmakeFlags = stdenv.lib.optional (!enableShared) "-DLIBUNWIND_ENABLE_SHARED=OFF";
+  cmakeFlags = lib.optional (!enableShared) "-DLIBUNWIND_ENABLE_SHARED=OFF";
 }
