@@ -2,7 +2,7 @@
 , lib
 , fetchurl, file, python3
 , llvm_9, darwin, git, cmake, rust, rustPlatform
-, pkgconfig, openssl
+, pkg-config, openssl
 , which, libffi
 , withBundledLLVM ? false
 , enableRustcDev ? true
@@ -215,7 +215,7 @@ in stdenv.mkDerivation rec {
 
   nativeBuildInputs = [
     file python3 rustPlatform.rust.rustc git cmake
-    which libffi removeReferencesTo pkgconfig
+    which libffi removeReferencesTo pkg-config
   ];
 
   buildInputs = [ openssl ]
