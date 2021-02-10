@@ -149,21 +149,28 @@ rec
           (k: v: "${k}:${builtinz.writeTOML "Cargo.toml" (fixupCargoToml v)}")
           cargotomls;
 
+      ifdForceCopy = path:
+        let
+          derivation = runCommand "ifd-force-copy" {} ''
+            mkdir -p $out
+            echo "./path" > $out/default.nix
+            cp --no-preserve=mode -R ${path} $out/path
+          '';
+        in import "${derivation}";
+
       in
         runCommand "dummy-src"
-          { inherit copySources copySourcesFrom cargotomlss; }
+          { inherit copySources cargotomlss; }
           ''
             mkdir -p $out/.cargo
             ${lib.optionalString (! isNull cargoconfig) "cp ${config} $out/.cargo/config"}
             cp ${cargolock'} $out/Cargo.lock
 
-            for p in $copySources; do
+            ${lib.concatStrings (builtins.map (p: ''
               echo "Copying patched source $p to $out..."
-              # Create all the directories but $p itself, so `cp -R` does the
-              # right thing below
-              mkdir -p "$out/$(dirname "$p")"
-              cp --no-preserve=mode -R "$copySourcesFrom/$p" "$out/$p"
-            done
+              mkdir -p "$out/$(dirname "${p}")"
+              cp --no-preserve=mode -R ${ifdForceCopy (copySourcesFrom + "/${p}")} "$out/${p}"
+            '') copySources)}
 
             for tuple in $cargotomlss; do
                 member="''${tuple%%:*}"
