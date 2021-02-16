@@ -77,7 +77,7 @@ let
     let
       ty = tomlTy v;
     in
-      if ty == "bool" then
+      if ty == "bool" || ty == "int" then
         [ "${quoteKey k} = ${outputValInner v}" ]
       else
         if ty == "string" then
