@@ -75,6 +75,19 @@ let
 
     # When true, `cargo doc` is run and a new output `doc` is generated.
     doDoc = attrs0.doDoc or false;
+
+    # The commands to run in the `docPhase`. Do not forget to set `doDoc`.
+    cargoDocCommands =
+      allowFun attrs0 "cargoDocCommands" [ ''cargo $cargo_options doc $cargo_doc_options'' ];
+
+    # Options passed to cargo doc, i.e. `cargo doc <OPTS>`. These options
+    # can be accessed during the build through the environment variable
+    # `cargo_doc_options`. <br/>
+    # Note: these values are not (shell) escaped, meaning that you can use
+    # environment variables but must be careful when introducing e.g. spaces. <br/>
+    cargoDocOptions =
+      allowFun attrs0 "cargoDocOptions" [ "--offline" "$cargo_release" ''-j "$NIX_BUILD_CORES"'' ];
+
     # When true, all cargo builds are run with `--release`. The environment
     # variable `cargo_release` is set to `--release` iff this option is set.
     release = attrs0.release or true;
@@ -216,6 +229,8 @@ let
 
       doDoc
       doDocFail
+      cargoDocCommands
+      cargoDocOptions
       copyDocsToSeparateOutput
       removeReferencesToSrcFromDocs
       ;
