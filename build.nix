@@ -17,6 +17,8 @@
 , copyLibsFilter
 , doDoc
 , doDocFail
+, cargoDocCommands
+, cargoDocOptions
 , copyDocsToSeparateOutput
   #| Whether to remove references to source code from the generated cargo docs
   #  to reduce Nix closure size. By default cargo doc includes snippets like the
@@ -204,6 +206,7 @@ let
     cargo_options = cargoOptions;
     cargo_build_options = cargoBuildOptions;
     cargo_test_options = cargoTestOptions;
+    cargo_doc_options = cargoDocOptions;
     cargo_bins_jq_filter = copyBinsFilter;
     cargo_libs_jq_filter = copyLibsFilter;
 
@@ -328,7 +331,7 @@ let
     docPhase = lib.optionalString doDoc ''
       runHook preDoc
 
-      logRun cargo doc --offline "''${cargo_release[*]}" || ${if doDocFail then "false" else "true" }
+      ${lib.concatMapStringsSep "\n" (cmd: "logRun ${cmd}  || ${if doDocFail then "false" else "true" }") cargoDocCommands}
 
       ${lib.optionalString removeReferencesToSrcFromDocs ''
       # Remove references to the source derivation to reduce closure size
