@@ -351,7 +351,7 @@ let
           log "Using file $cargo_build_output_json to retrieve build (executable) products"
           while IFS= read -r to_copy; do
             bin_path=$(jq -cMr '.executable' <<<"$to_copy")
-            bin_name=$(jq -cMr '.target.name' <<<"$to_copy")
+            bin_name="$(basename "$bin_path")"
             log "found executable $bin_name -> $out/bin/$bin_name"
             cp "$bin_path" "$out/bin/$bin_name"
           done < <(jq -cMr "$cargo_bins_jq_filter" <"$cargo_build_output_json")
