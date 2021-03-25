@@ -104,7 +104,14 @@ naersk.buildPackage ./my-package
 
 ## Using with Nix Flakes
 
-Copy this `flake.nix` into your repo.
+Initialize flakes within your repo by running:
+
+``` bash
+nix flake init -t github:nmattia/naersk
+nix flake lock
+```
+
+Alternatively, copy this `flake.nix` into your repo.
 
 ``` nix
 {
