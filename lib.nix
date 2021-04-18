@@ -73,7 +73,7 @@ rec
   #   }
   # ]
   findGitDependencies =
-    { cargolock, allRefs }:
+    { cargolock, allRefs, gitSubmodules }:
     let
       query = p: (lib.substring 0 4 (p.source or "")) == "git+";
 
@@ -113,6 +113,8 @@ rec
           ref = lock.tag;
         } // lib.optionalAttrs allRefs {
           allRefs = true;
+        } // lib.optionalAttrs gitSubmodules {
+          submodules = true;
         });
       } // lock;
     in lib.foldl' (acc: e: if lib.any (oe: (oe.url == e.url) && (oe.key == e.key)) acc then acc else acc ++ [e]) [] (builtins.map mkFetch packageLocks);
