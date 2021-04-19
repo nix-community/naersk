@@ -78,7 +78,7 @@ naersk.buildPackage ./my-package
 Initialize flakes within your repo by running:
 
 ``` bash
-nix flake init github:nmattia/naersk
+nix flake init -t github:nmattia/naersk
 nix flake lock
 ```
 
