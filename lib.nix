@@ -64,99 +64,58 @@ rec
   mkMetadataKey = name: version:
     "checksum ${name} ${version} (registry+https://github.com/rust-lang/crates.io-index)";
 
-  # a record:
-  #   { "." = # '.' is the directory of the cargotoml
-  #     [
-  #       {
-  #         name = "rand";
-  #         url = "https://github.com/...";
-  #         checkout = "/nix/store/checkout"
-  #       }
-  #     ]
+  # Gets all git dependencies in Cargo.lock as a list.
+  # [
+  #   {
+  #     name = "rand";
+  #     url = "https://github.com/...";
+  #     checkout = "/nix/store/checkout"
   #   }
+  # ]
   findGitDependencies =
-    { cargotomls
-    , cargolock
-    }:
+    { cargolock, allRefs }:
+    let
+      query = p: (lib.substring 0 4 (p.source or "")) == "git+";
+
+      extractRevision = source: lib.last (lib.splitString "#" source);
+      extractPart = part: source: if lib.hasInfix part source then lib.last (lib.splitString part (lib.head (lib.splitString "#" source))) else null;
+      extractRepoUrl = source:
+        let
+          splitted = lib.head (lib.splitString "?" source);
+          split = lib.substring 4 (lib.stringLength splitted) splitted;
+        in lib.head (lib.splitString "#" split);
+
+      parseLock = lock:
       let
-        # This returns all the git dependencies of a particular Cargo.toml.
-        # tomlDependencies : Cargo.toml ->
-        #   [
-        #     {
-        #       checkout = { rev = "abcd"; shortRev = "abcd"; outPath = ...; ... };
-        #       key = "abcd";
-        #       name = "rand";
-        #       url = "https://github.com/...";
-        #     }
-        #     ...
-        #   ]
-        #
-        # NOTE: this is terribly inefficient _and_ confusing:
-        # * the lockfile is read once for every cargo toml entry (n^2)
-        # * 'fromLockfile' is odd, instead of returning the first matched
-        # revision it'll return a pseudo lockfile entry
-      tomlDependencies = cargotoml:
-        lib.filter (x: ! isNull x) (
-          lib.mapAttrsToList
-            (entryName: v: # The dependecy name + the entry from the cargo toml
-              if ! (lib.isAttrs v && builtins.hasAttr "git" v)
-              then null
-              else
-                let
-                  # Use the 'package' attribute if it exists, which means this is a renamed dependency
-                  # https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#renaming-dependencies-in-cargotoml
-                  depName = v.package or entryName;
-                  # predicate that holds if the given lockfile entry is the
-                  # Cargo.toml dependency being looked at (depName)
-                  pred = entry: entry.name == depName && (lib.substring 0 (4 + lib.stringLength v.git) entry.source) == "git+${v.git}";
-
-                  # extract the revision from a Cargo.lock "package.source"
-                  # entry
-                  #   git+https://gi.../rand?rev=703452...#703452
-                  #                                        ^^^^^^
-                  extractRevision = url: lib.last (lib.splitString "#" url);
-
-                  # parse a lockfile entry:
-                  #     { name = "rand";
-                  #       version = ...;
-                  #       source = "git+https://...rev=703452...#703452";
-                  #     } ->
-                  #     { name = "rand";
-                  #       source = "git+https://...rev=703452...#703452";
-                  #       revision = "703452";
-                  #     }
-                  parseLockfileEntry = entry: rec { inherit (entry) name source; revision = extractRevision source; };
-
-                  # List of all entries: [ { name, source, revision } ]
-                  packageLocks = builtins.map parseLockfileEntry (lib.filter pred cargolock.package);
-
-                  # Find the first revision from the lockfile that:
-                  #   * has the same name as the cargo toml entry _if_ the cargo toml does not specify a revision, or
-                  #   * has the same name and revision as the cargo toml entry
-                  fromLockfile = lib.findFirst (p: p.name == depName && ((! v?rev) || v.rev == p.revision)) null packageLocks;
-
-                  # Cargo.lock revision is prioritized, because in Cargo.toml short revisions are allowed
-                  val = v // { rev = fromLockfile.revision or v.rev or null; };
-                in
-                lib.filterAttrs (n: _: n == "rev" || n == "tag" || n == "branch") val //
-                {
-                  name = depName;
-                  url = val.git;
-                  key = val.rev or val.tag or val.branch or
-                    (throw "No 'rev', 'tag' or 'branch' available to specify key, nor a git revision was found in Cargo.lock");
-                  checkout = builtins.fetchGit ({
-                    url = val.git;
-                  } // lib.optionalAttrs (val ? rev) {
-                    rev = val.rev;
-                  } // lib.optionalAttrs (val ? branch) {
-                    ref = val.branch;
-                  } // lib.optionalAttrs (val ? tag) {
-                    ref = "refs/tags/${val.tag}";
-                  });
-                }
-            ) cargotoml.dependencies or { });
+        source = lock.source;
+        rev = extractPart "?rev=" source;
+        tag = extractPart "?tag=" source;
+        branch = extractPart "?branch=" source;
       in
-        lib.mapAttrs (_: x: tomlDependencies x) cargotomls;
+      {
+        inherit (lock) name;
+        revision = extractRevision source;
+        url = extractRepoUrl source;
+      } // (lib.optionalAttrs (! isNull branch) { inherit branch; })
+        // (lib.optionalAttrs (! isNull tag) { inherit tag; })
+        // (lib.optionalAttrs (! isNull rev) { inherit rev; });
+      packageLocks = builtins.map parseLock (lib.filter query cargolock.package);
+
+      mkFetch = lock: {
+        key = lock.rev or lock.tag or lock.branch or lock.revision
+          or (throw "No 'rev', 'tag' or 'branch' available to specify key, nor a git revision was found in Cargo.lock");
+        checkout = builtins.fetchGit ({
+          url = lock.url;
+          rev = lock.revision;
+        } // lib.optionalAttrs (lock ? branch) {
+          ref = lock.branch;
+        } // lib.optionalAttrs (lock ? tag) {
+          ref = lock.tag;
+        } // lib.optionalAttrs allRefs {
+          allRefs = true;
+        });
+      } // lock;
+    in lib.foldl' (acc: e: if lib.any (oe: (oe.url == e.url) && (oe.key == e.key)) acc then acc else acc ++ [e]) [] (builtins.map mkFetch packageLocks);
 
   # A very minimal 'src' which makes cargo happy nonetheless
   dummySrc =
