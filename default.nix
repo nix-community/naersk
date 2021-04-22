@@ -26,7 +26,7 @@ let
     let
       config = mkConfig arg;
       gitDependencies =
-        libb.findGitDependencies { inherit (config) cargotomls cargolock; };
+        libb.findGitDependencies { inherit (config) cargolock allRefs; };
       cargoconfig =
         if builtinz.pathExists (toString config.root + "/.cargo/config")
         then builtins.readFile (config.root + "/.cargo/config")
