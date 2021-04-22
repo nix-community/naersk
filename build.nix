@@ -67,10 +67,6 @@ let
     builtins // import ./builtins
       { inherit lib writeText remarshal runCommand; };
 
-  # All the git dependencies, as a list
-  gitDependenciesList =
-    lib.concatLists (lib.mapAttrsToList (_: ds: ds) gitDependencies);
-
   # This unpacks all git dependencies:
   #   $out/rand
   #   $out/rand/Cargo.toml
@@ -129,7 +125,7 @@ let
           fi
         done <<< "$tomls"
       done < <(cat ${
-    builtins.toFile "git-deps-json" (builtins.toJSON gitDependenciesList)
+    builtins.toFile "git-deps-json" (builtins.toJSON gitDependencies)
     } | jq -cMr '.[]')
     '';
 
@@ -162,20 +158,20 @@ let
           (
             e:
               let
-                key = if e ? rev    then "rev=${e.rev}"       else
-                      if e ? tag    then "tag=${e.tag}"       else
-                      if e ? branch then "branch=${e.branch}" else
-                      throw "No 'rev', 'tag' or 'branch' specified";
+                key = if e ? rev    then "?rev=${e.rev}"       else
+                      if e ? tag    then "?tag=${e.tag}"       else
+                      if e ? branch then "?branch=${e.branch}" else
+                      "";
               in
               {
-                name = "${e.url}?${key}";
+                name = "${e.url}${key}";
                 value = lib.filterAttrs (n: _: n == "rev" || n == "tag" || n == "branch") e // {
                   git = e.url;
                   replace-with = "nix-sources";
                 };
               }
           )
-          gitDependenciesList
+          gitDependencies
       );
     };
 
