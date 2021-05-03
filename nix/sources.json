@@ -65,10 +65,10 @@
         "homepage": null,
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "e23f098b6946c3eae45e66d16746a65903fc3d74",
-        "sha256": "10sp5bb4xg948qyfa19zbyxs1qdw23fx4lbxm5cc49498mp1xy7f",
+        "rev": "3e930b7e4af198da958cd3abc614aded8500314f",
+        "sha256": "1d91yif58aqw7l2cl02rwrcl3hkfxmbl9rkavk3p9jwd91kvdck0",
         "type": "tarball",
-        "url": "https://github.com/NixOS/nixpkgs/archive/e23f098b6946c3eae45e66d16746a65903fc3d74.tar.gz",
+        "url": "https://github.com/NixOS/nixpkgs/archive/3e930b7e4af198da958cd3abc614aded8500314f.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "nixpkgs-20.03": {
@@ -77,10 +77,10 @@
         "homepage": null,
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "df25e214c8e662d693ef89e45ce56bbf58d6c59e",
-        "sha256": "117ir2ysw310q87mndv6czph5qjbhvggmhawcvak6x507yf0dxin",
+        "rev": "6d1a044fc9ff3cc96fca5fa3ba9c158522bbf2a5",
+        "sha256": "07a3nyrj3pwl017ig0rbn5rbmbf14gl3vqggvkyrdby01726p5fg",
         "type": "tarball",
-        "url": "https://github.com/NixOS/nixpkgs/archive/df25e214c8e662d693ef89e45ce56bbf58d6c59e.tar.gz",
+        "url": "https://github.com/NixOS/nixpkgs/archive/6d1a044fc9ff3cc96fca5fa3ba9c158522bbf2a5.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "nixpkgs-20.09": {
@@ -89,10 +89,10 @@
         "homepage": null,
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "ae47c79479a086e96e2977c61e538881913c0c08",
-        "sha256": "1yaa02zdbmd4j5lrhbynk5xdv6dkfhajlbsf5fkhx73hj9knmfgn",
+        "rev": "dc326c78a93862efb30a76216f527a56496e6284",
+        "sha256": "094zb1p5i5f2nlxny3dc814jvs90nimdj6wwd80495hgs9z76wgp",
         "type": "tarball",
-        "url": "https://github.com/NixOS/nixpkgs/archive/ae47c79479a086e96e2977c61e538881913c0c08.tar.gz",
+        "url": "https://github.com/NixOS/nixpkgs/archive/dc326c78a93862efb30a76216f527a56496e6284.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "noria": {
