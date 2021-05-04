@@ -1,4 +1,16 @@
 {
+    "agent-rs": {
+        "branch": "paulliu/add-cargo-lock",
+        "description": "A collection of libraries and tools for building software around the Internet Computer, in Rust.",
+        "homepage": "https://sdk.dfinity.org/",
+        "owner": "ninegua",
+        "repo": "agent-rs",
+        "rev": "4a22e590516bc79ec3c75a320f7941e7762ea098",
+        "sha256": "0sacddc34nlfgldqghlwchgzjki177h5dsgpmdv70cm8hfy0sg7l",
+        "type": "tarball",
+        "url": "https://github.com/ninegua/agent-rs/archive/4a22e590516bc79ec3c75a320f7941e7762ea098.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    },
     "cargo": {
         "branch": "nm/canonicalize-path-args",
         "description": "The Rust package manager",
