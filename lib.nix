@@ -196,14 +196,6 @@ rec
             ${lib.optionalString (! isNull cargoconfig) "cp ${config} $out/.cargo/config"}
             cp ${cargolock'} $out/Cargo.lock
 
-            for p in $copySources; do
-              echo "Copying patched source $p to $out..."
-              # Create all the directories but $p itself, so `cp -R` does the
-              # right thing below
-              mkdir -p "$out/$(dirname "$p")"
-              cp --no-preserve=mode -R "$copySourcesFrom/$p" "$out/$p"
-            done
-
             for tuple in $cargotomlss; do
                 member="''${tuple%%:*}"
                 cargotoml="''${tuple##*:}"
@@ -225,6 +217,20 @@ rec
                 # script which is `./build.rs`.
                 echo 'fn main(){}' > build.rs
                 popd > /dev/null
+            done
+
+            # Copy all the "patched" sources which are used by dependencies.
+            # This needs to be done after the creation of the dummy to make
+            # sure the dummy source files do not tramp on the patch
+            # dependencies.
+            for p in $copySources; do
+              echo "Copying patched source $p to $out..."
+              mkdir -p "$out/$p"
+
+              chmod -R +w "$out/$p"
+              echo copying "$copySourcesFrom/$p"/ to "$out/$p"
+
+              cp --no-preserve=mode -R "$copySourcesFrom/$p"/* "$out/$p"
             done
           '';
 
