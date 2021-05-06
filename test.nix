@@ -210,6 +210,18 @@ let
     talent-plan-3 = naersk.buildPackage "${sources.talent-plan}/rust/projects/project-3";
 
     rustlings = naersk.buildPackage sources.rustlings;
+
+    agent-rs = naersk.buildPackage {
+      doCheck = true;
+      src = sources.agent-rs;
+      buildInputs =
+        [
+          pkgs.openssl
+          pkgs.pkg-config
+          pkgs.perl
+        ] ++ pkgs.lib.optional pkgs.stdenv.isDarwin pkgs.libiconv;
+    };
+
   };
 in
 fastTests
