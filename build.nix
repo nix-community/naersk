@@ -196,6 +196,7 @@ let
       darwin.Security
       darwin.apple_sdk.frameworks.CoreServices
       darwin.cf-private
+      darwin.libiconv
     ] ++ buildInputs;
 
     inherit builtDependencies;
