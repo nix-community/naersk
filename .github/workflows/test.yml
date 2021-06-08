@@ -5,7 +5,10 @@ on:
       - 'master'
 
 jobs:
-  install-nix:
+  linux:
+    strategy:
+        matrix:
+            nixpkgs: [ nixpkgs, nixpkgs-20.03, nixpkgs-20.09 ]
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
@@ -13,4 +16,15 @@ jobs:
         with:
           CACHIX_SIGNING_KEY: ${{ secrets.CACHIX_SIGNING_KEY }}
       - name: "Run tests"
-        run: './script/test'
+        run: './script/test --nixpkgs "$nixpkgs" '
+        env:
+            nixpkgs: ${{ matrix.nixpkgs }}
+  darwin:
+    runs-on: macos-10.15
+    steps:
+      - uses: actions/checkout@v2
+      - uses: './.github/actions/nix'
+        with:
+          CACHIX_SIGNING_KEY: ${{ secrets.CACHIX_SIGNING_KEY }}
+      - name: "Run tests"
+        run: './script/test
