@@ -27,4 +27,4 @@ jobs:
         with:
           CACHIX_SIGNING_KEY: ${{ secrets.CACHIX_SIGNING_KEY }}
       - name: "Run tests"
-        run: './script/test
+        run: './script/test'
