@@ -33,13 +33,13 @@ let
     # Options passed to cargo build, i.e. `cargo build <OPTS>`. These options
     # can be accessed during the build through the environment variable
     # `cargo_build_options`. <br/>
-    # Note: naersk relies on the `--out-dir out` option and the
+    # Note: naersk relies on the the
     # `--message-format` option. The `$cargo_message_format` variable is set
     # based on the cargo version.<br/>
     # Note: these values are not (shell) escaped, meaning that you can use
     # environment variables but must be careful when introducing e.g. spaces. <br/>
     cargoBuildOptions =
-      allowFun attrs0 "cargoBuildOptions" [ "$cargo_release" ''-j "$NIX_BUILD_CORES"'' "--out-dir" "out" "--message-format=$cargo_message_format" ];
+      allowFun attrs0 "cargoBuildOptions" [ "$cargo_release" ''-j "$NIX_BUILD_CORES"'' "--message-format=$cargo_message_format" ];
 
 
     # When `true`, rustc remaps the (`/nix/store`) source paths to `/sources`
@@ -71,7 +71,7 @@ let
     # Note: these values are not (shell) escaped, meaning that you can use
     # environment variables but must be careful when introducing e.g. spaces. <br/>
     cargoOptions =
-      allowFun attrs0 "cargoOptions" [ "-Z" "unstable-options" ];
+      allowFun attrs0 "cargoOptions" [ ];
 
     # When true, `cargo doc` is run and a new output `doc` is generated.
     doDoc = attrs0.doDoc or false;

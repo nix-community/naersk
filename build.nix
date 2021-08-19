@@ -239,6 +239,7 @@ let
       # threads as there are cores. This is often too much parallelism so we
       # reduce it to $NIX_BUILD_CORES if not specified by the caller.
       export RUST_TEST_THREADS="''${RUST_TEST_THREADS:-$NIX_BUILD_CORES}"
+      export CARGO_TARGET_DIR="out"
 
       log "cargo_version (read): $cargo_version"
       log "cargo_message_format (set): $cargo_message_format"
