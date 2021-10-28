@@ -41,7 +41,7 @@ install_cachix() {
 
     echo "Setting up cachix"
 
-    cachix_cache="${GITHUB_REPOSITORY##*/}"
+    cachix_cache="${GITHUB_REPOSITORY%%/*}"
 
     echo "Using cache '$cachix_cache' for '$GITHUB_REPOSITORY'"
 
@@ -53,7 +53,7 @@ install_cachix() {
 
 save_cache() {
 
-    cachix_cache="${GITHUB_REPOSITORY##*/}"
+    cachix_cache="${GITHUB_REPOSITORY%%/*}"
 
     echo "Using cache '$cachix_cache' for '$GITHUB_REPOSITORY'"
 
