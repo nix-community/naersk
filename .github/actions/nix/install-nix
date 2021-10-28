@@ -13,7 +13,7 @@ install_nix() {
     # Allow binary caches for runner user
     sudo sh -c 'echo trusted-users = root runner >> /tmp/nix.conf'
 
-    sh <(curl -L ${INPUT_INSTALL_URL:-https://nixos.org/nix/install}) \
+    sh <(curl -L "${INPUT_INSTALL_URL:-https://nixos.org/nix/install}") \
       --daemon --daemon-user-count 4 --nix-extra-conf-file /tmp/nix.conf --darwin-use-unencrypted-nix-store-volume --no-channel-add
 
     if [[ $OSTYPE =~ darwin ]]; then
@@ -30,6 +30,7 @@ install_nix() {
     # Set paths
     echo "/nix/var/nix/profiles/per-user/runner/profile/bin" >>"$GITHUB_PATH"
     echo "/nix/var/nix/profiles/default/bin" >>"$GITHUB_PATH"
+    # shellcheck disable=SC1091
     . '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh'
 }
 
@@ -47,7 +48,7 @@ install_cachix() {
     cachix use "$cachix_cache"
 
     script_path="$HOME/.local/bin/save-cache"
-    mkdir -p "$(dirname $script_path)"
+    mkdir -p "$(dirname "$script_path")"
 }
 
 save_cache() {
@@ -66,7 +67,7 @@ save_cache() {
     if [ -n "${CACHIX_SIGNING_KEY:-}" ];
     then
         echo "CACHIX_SIGNING_KEY is set, uploading cache"
-        nix path-info --all | grep -v '.*.drv$' | cachix push $cachix_cache
+        nix path-info --all | grep -v '.*.drv$' | cachix push "$cachix_cache"
     else
         echo "CACHIX_SIGNING_KEY not set, not uploading cache"
     fi
