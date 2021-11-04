@@ -213,6 +213,7 @@ let
 
     configurePhase = ''
       runHook preConfigure
+      export SOURCE_DATE_EPOCH=1
 
       logRun() {
         >&2 echo "$@"
@@ -307,6 +308,7 @@ let
 
       ''
         runHook preBuild
+        export SOURCE_DATE_EPOCH=1
 
         cargo_ec=0
         logRun ${cargoBuild} || cargo_ec="$?"
@@ -323,6 +325,7 @@ let
 
     checkPhase = ''
       runHook preCheck
+      export SOURCE_DATE_EPOCH=1
 
       ${lib.concatMapStringsSep "\n" (cmd: "logRun ${cmd}") cargoTestCommands}
 
@@ -332,6 +335,7 @@ let
 
     docPhase = lib.optionalString doDoc ''
       runHook preDoc
+      export SOURCE_DATE_EPOCH=1
 
       ${lib.concatMapStringsSep "\n" (cmd: "logRun ${cmd}  || ${if doDocFail then "false" else "true" }") cargoDocCommands}
 
@@ -348,8 +352,11 @@ let
     installPhase =
       ''
         runHook preInstall
+        export SOURCE_DATE_EPOCH=1
 
         ${lib.optionalString copyBins ''
+        export SOURCE_DATE_EPOCH=1
+
         mkdir -p $out/bin
         if [ -f "$cargo_build_output_json" ]
         then
@@ -368,6 +375,8 @@ let
         fi
         ''}
         ${lib.optionalString copyLibs ''
+        export SOURCE_DATE_EPOCH=1
+
         mkdir -p $out/lib
         if [ -f "$cargo_build_output_json" ]
         then
@@ -388,10 +397,17 @@ let
         ''}
 
         ${lib.optionalString copyTarget ''
+        export SOURCE_DATE_EPOCH=1
+
         mkdir -p $out
         ${if compressTarget then
         ''
-          tar -c target | ${zstd}/bin/zstd -o $out/target.tar.zst
+          # See: https://reproducible-builds.org/docs/archives/
+          tar --sort=name \
+            --mtime="@''${SOURCE_DATE_EPOCH}" \
+            --owner=0 --group=0 --numeric-owner \
+            --pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime \
+            -c target | ${zstd}/bin/zstd -o $out/target.tar.zst
         '' else
         ''
           cp -r target $out
@@ -399,6 +415,8 @@ let
       ''}
 
         ${lib.optionalString (doDoc && copyDocsToSeparateOutput) ''
+        export SOURCE_DATE_EPOCH=1
+
         cp -r target/doc $doc
         if [[ -n "$CARGO_BUILD_TARGET" && -d "target/$CARGO_BUILD_TARGET/doc" ]]; then
           cp -r target/$CARGO_BUILD_TARGET/doc/. $doc/
