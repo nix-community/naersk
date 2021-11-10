@@ -343,7 +343,7 @@ let
       # Remove references to the source derivation to reduce closure size
             match='<meta name="description" content="Source to the Rust file `${builtins.storeDir}[^`]*`.">'
       replacement='<meta name="description" content="Source to the Rust file removed to reduce Nix closure size.">'
-      find target/doc ''${CARGO_BUILD_TARGET:+target/$CARGO_BUILD_TARGET/doc} -name "*\.rs\.html" -exec sed -i "s|$match|$replacement|" {} +
+      find out/doc ''${CARGO_BUILD_TARGET:+target/$CARGO_BUILD_TARGET/doc} -name "*\.rs\.html" -exec sed -i "s|$match|$replacement|" {} +
     ''}
 
       runHook postDoc
@@ -417,7 +417,7 @@ let
         ${lib.optionalString (doDoc && copyDocsToSeparateOutput) ''
         export SOURCE_DATE_EPOCH=1
 
-        cp -r target/doc $doc
+        cp -r out/doc $doc
         if [[ -n "$CARGO_BUILD_TARGET" && -d "target/$CARGO_BUILD_TARGET/doc" ]]; then
           cp -r target/$CARGO_BUILD_TARGET/doc/. $doc/
         fi
