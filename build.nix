@@ -240,7 +240,6 @@ let
       # threads as there are cores. This is often too much parallelism so we
       # reduce it to $NIX_BUILD_CORES if not specified by the caller.
       export RUST_TEST_THREADS="''${RUST_TEST_THREADS:-$NIX_BUILD_CORES}"
-      export CARGO_TARGET_DIR="out"
 
       log "cargo_version (read): $cargo_version"
       log "cargo_message_format (set): $cargo_message_format"
@@ -369,7 +368,7 @@ let
           done < <(jq -cMr "$cargo_bins_jq_filter" <"$cargo_build_output_json")
         else
           log "$cargo_build_output_json: file wasn't written, using less reliable copying method"
-          find out -type f -executable \
+          find target -type f -executable \
             -not -name '*.so' -a -not -name '*.dylib' \
             -exec cp {} $out/bin \;
         fi
@@ -390,7 +389,7 @@ let
           done < <(jq -cMr "$cargo_libs_jq_filter" <"$cargo_build_output_json")
         else
           log "$cargo_build_output_json: file wasn't written, using less reliable copying method"
-          find out -type f \
+          find target -type f \
             -name '*.so' -or -name '*.dylib' -or -name '*.a' \
             -exec cp {} $out/lib \;
         fi

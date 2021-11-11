@@ -97,9 +97,56 @@ let
           touch $out
         '';
 
+      # Tests that the builtDependencies derivation can successfully be unpacked
+      # and that it actually contains cargo's output artifacts. If the result is
+      # ever empty, cargo will still succeed in building the top level crate, except
+      # it will need to rebuild all dependencies from scratch, which is wasteful.
+      # See https://github.com/nix-community/naersk/issues/202
+      depsTargetNotEmpty = pkgs.runCommand "depsTargetNotEmpty"
+        { inherit (simple-dep) builtDependencies; }
+        ''
+          for dep in $builtDependencies; do
+            # Make destination directory for unarchiving
+            mkdir dst
+            ${pkgs.zstd}/bin/zstd -d "$dep/target.tar.zst" --stdout | tar -x -C ./dst
+
+            if [ -z "$(ls -A ./dst)" ]; then
+              echo target directory is empty: "$dep"
+              return 1
+            fi
+
+            rm -rf ./dst
+          done
+
+          # Success
+          touch $out
+        '';
+
+      # Same as the test above except checks when the builtDependencies
+      # derivation is not compressed.
+      depsUncompressedTargetNotEmpty = pkgs.runCommand "depsUncompressedTargetNotEmpty"
+        { inherit (simple-dep-no-compress) builtDependencies; }
+        ''
+          for dep in $builtDependencies; do
+            if [ -z "$(ls -A "$dep"/target)" ]; then
+              echo target directory is empty: "$dep"
+              return 1
+            fi
+          done
+
+          # Success
+          touch $out
+        '';
+
       simple-dep = naersk.buildPackage {
         src = ./test/simple-dep;
         doCheck = true;
+      };
+
+      simple-dep-no-compress = naersk.buildPackage {
+        src = ./test/simple-dep;
+        doCheck = true;
+        compressTarget = false;
       };
 
       simple-dep-doc = naersk.buildPackage
