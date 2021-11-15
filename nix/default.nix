@@ -1,5 +1,6 @@
 { system ? builtins.currentSystem
 , nixpkgs ? "nixpkgs"
+, inNixShell ? null
 }:
 let
   sources = import ./sources.nix;
