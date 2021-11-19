@@ -1,6 +1,6 @@
 # Naersk
 
-[![GitHub Actions](https://github.com/nmattia/naersk/workflows/test/badge.svg?branch=master)](https://github.com/nmattia/naersk/actions)
+[![GitHub Actions](https://github.com/nix-community/naersk/workflows/test/badge.svg?branch=master)](https://github.com/nix-community/naersk/actions)
 
 Nix support for building [cargo] crates.
 
@@ -13,7 +13,7 @@ Nix support for building [cargo] crates.
 Use [niv]:
 
 ``` shell
-$ niv add nmattia/naersk
+$ niv add nix-community/naersk
 ```
 
 And then
@@ -78,7 +78,7 @@ naersk.buildPackage ./my-package
 Initialize flakes within your repo by running:
 
 ``` bash
-nix flake init -t github:nmattia/naersk
+nix flake init -t github:nix-community/naersk
 nix flake lock
 ```
 
@@ -88,7 +88,7 @@ Alternatively, copy this `flake.nix` into your repo.
 {
   inputs = {
     utils.url = "github:numtide/flake-utils";
-    naersk.url = "github:nmattia/naersk";
+    naersk.url = "github:nix-community/naersk";
   };
 
   outputs = { self, nixpkgs, utils, naersk }:
@@ -124,7 +124,7 @@ available in nixpkgs, you can use mozilla's nixpkgs overlay in your flake.
 {
   inputs = {
     utils.url = "github:numtide/flake-utils";
-    naersk.url = "github:nmattia/naersk";
+    naersk.url = "github:nix-community/naersk";
     mozillapkgs = {
       url = "github:mozilla/nixpkgs-mozilla";
       flake = false;
