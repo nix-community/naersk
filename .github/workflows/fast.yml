@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
-      - uses: './.github/actions/nix'
+      - uses: cachix/install-nix-action@v16
         with:
           CACHIX_SIGNING_KEY: ${{ secrets.CACHIX_SIGNING_KEY }}
       - name: "Run tests"
@@ -24,7 +24,7 @@ jobs:
     runs-on: macos-10.15
     steps:
       - uses: actions/checkout@v2
-      - uses: './.github/actions/nix'
+      - uses: cachix/install-nix-action@v16
         with:
           CACHIX_SIGNING_KEY: ${{ secrets.CACHIX_SIGNING_KEY }}
       - name: "Run tests"
