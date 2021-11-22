@@ -102,7 +102,7 @@ naersk.buildPackage ./my-package
 ```
 
 [cargo]: https://crates.io/
-[niv]: https://github.com/nix-community/niv
+[niv]: https://github.com/nmattia/niv
 
 ## Using with Nix Flakes
 
