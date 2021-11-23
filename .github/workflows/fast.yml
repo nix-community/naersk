@@ -1,5 +1,6 @@
 name: "fast test"
 on:
+  pull_request:
   push:
     # master tests are run in test.yml
     branches-ignore:
