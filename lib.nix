@@ -148,6 +148,7 @@ rec
                     url = val.git;
                   } // lib.optionalAttrs (val ? rev) {
                     rev = val.rev;
+                    allRefs = true;
                   } // lib.optionalAttrs (val ? branch) {
                     ref = val.branch;
                   } // lib.optionalAttrs (val ? tag) {
