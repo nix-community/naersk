@@ -349,7 +349,14 @@ let
     toplevelCargotoml = readTOML (root + "/Cargo.toml");
 
     # The cargo lock
-    cargolock = readTOML (root + "/Cargo.lock");
+    cargolock = 
+      let
+        cargolock-file = root + "/Cargo.lock";
+      in
+      if builtins.pathExists cargolock-file then
+        readTOML (cargolock-file)
+      else 
+        throw "Naersk requires Cargo.lock to be available in root. Check that it is not in .gitignore when using git to filer (which flakes does)";
 
     packageName =
       if ! isNull attrs.name
