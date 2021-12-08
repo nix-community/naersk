@@ -19,18 +19,25 @@ let
   builtinz = builtins // import ./builtins
     { inherit lib writeText remarshal runCommand; };
 
-  mkConfig = arg:
-    import ./config.nix { inherit lib arg libb builtinz; };
+  mkConfig = { arg, cargoConfig }:
+    import ./config.nix { inherit lib arg libb builtinz cargoConfig; };
 
   buildPackage = arg:
     let
-      config = mkConfig arg;
+      # Config for cargo itself
+      source = libb.resolveSource arg;
+      configFile = source.root + "/.cargo/config.toml";
+      cargoConfigText =
+        if builtinz.pathExists configFile
+        then builtins.readFile configFile
+        else "";
+      usePureFromTOML = arg.usePureFromTOML or true;
+      readTOML = builtinz.readTOML usePureFromTOML;
+      cargoConfig = readTOML cargoConfigText;
+      # The project config
+      config = mkConfig { inherit arg cargoConfig; };
       gitDependencies =
         libb.findGitDependencies { inherit (config) cargotomls cargolock; };
-      cargoconfig =
-        if builtinz.pathExists (toString config.root + "/.cargo/config")
-        then builtins.readFile (config.root + "/.cargo/config")
-        else null;
       build = args: import ./build.nix (
         {
           inherit gitDependencies;
@@ -44,7 +51,7 @@ let
           {
             pname = "${config.packageName}-deps";
             src = libb.dummySrc {
-              inherit cargoconfig;
+              inherit cargoConfigText;
               inherit (config) cargolock cargotomls copySources copySourcesFrom;
             };
             inherit (config) userAttrs;

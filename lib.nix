@@ -6,11 +6,40 @@ let
 in
 rec
 {
+  # we differentiate 'src' and 'root'. 'src' is used as source for the build;
+  # 'root' is used to find files like 'Cargo.toml'. As often as possible 'root'
+  # should be a "path" to avoid reading values from the nix-store.
+  # Below we try to come up with some good values for src and root if they're
+  # not defined.
+  resolveSource = attrs:
+    let
+      hasRoot = ! isNull (attrs.root or null);
+      hasSrc = ! isNull (attrs.src or null);
+      isPath = x: builtins.typeOf x == "path";
+      root = attrs.root;
+      src = attrs.src;
+    in
+      # src: yes, root: no
+      if hasSrc && ! hasRoot then
+        if isPath src then
+          { src = lib.cleanSource src; root = src; }
+        else { inherit src; root = src; }
+        # src: yes, root: yes
+      else if hasRoot && hasSrc then
+        { inherit src root; }
+        # src: no, root: yes
+      else if hasRoot && ! hasSrc then
+        if isPath root then
+          { inherit root; src = lib.cleanSource root; }
+        else
+          { inherit root; src = root; }
+        # src: no, root: yes
+      else throw "please specify either 'src' or 'root'";
   # The list of _all_ crates (incl. transitive dependencies) with name,
   # version and sha256 of the crate
   # Example:
   #   [ { name = "wabt", version = "2.0.6", sha256 = "..." } ]
-  mkVersions = cargolock:
+  mkVersions = { cargolock, registries ? {} }:
     if builtins.hasAttr "metadata" cargolock then
 
       # TODO: this should nub by <pkg-name>-<pkg-version>
@@ -37,7 +66,10 @@ rec
           {
             inherit (p) name version;
             sha256 = p.checksum;
-          }
+          } // (lib.optionalAttrs (builtins.hasAttr "registry" p) {
+              inherit (registries.${p.registry}) index;
+            }
+          )
       ) (builtins.filter (builtins.hasAttr "checksum") cargolock.package)
     else [];
 
@@ -160,14 +192,14 @@ rec
 
   # A very minimal 'src' which makes cargo happy nonetheless
   dummySrc =
-    { cargoconfig   # string
+    { cargoConfigText   # string
     , cargotomls   # attrset
     , cargolock   # attrset
     , copySources # list of paths that should be copied to the output
     , copySourcesFrom # path from which to copy ${copySources}
     }:
       let
-        config = writeText "config" cargoconfig;
+        config = writeText "config" cargoConfigText;
         cargolock' = builtinz.writeTOML "Cargo.lock" cargolock;
         fixupCargoToml = cargotoml:
           let
@@ -193,7 +225,7 @@ rec
           { inherit copySources copySourcesFrom cargotomlss; }
           ''
             mkdir -p $out/.cargo
-            ${lib.optionalString (! isNull cargoconfig) "cp ${config} $out/.cargo/config"}
+            ${lib.optionalString (! isNull cargoConfigText) "cp ${config} $out/.cargo/config"}
             cp ${cargolock'} $out/Cargo.lock
 
             for tuple in $cargotomlss; do
