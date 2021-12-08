@@ -356,7 +356,7 @@ let
       if builtins.pathExists cargolock-file then
         readTOML (cargolock-file)
       else 
-        throw "Naersk requires Cargo.lock to be available in root. Check that it is not in .gitignore when using git to filer (which flakes does)";
+        throw "Naersk requires Cargo.lock to be available in root. Check that it is not in .gitignore and stage it when using git to filer (which flakes does)";
 
     packageName =
       if ! isNull attrs.name
