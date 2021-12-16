@@ -77,34 +77,34 @@
         "homepage": null,
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "e23f098b6946c3eae45e66d16746a65903fc3d74",
-        "sha256": "10sp5bb4xg948qyfa19zbyxs1qdw23fx4lbxm5cc49498mp1xy7f",
+        "rev": "6c2318e451fc0eaf338fb461d9bfcc99869de758",
+        "sha256": "1djwkvjnn26v0xw1swwh7dgmi0yl0b1kb8kansrdwk0jhhqbl7zq",
         "type": "tarball",
-        "url": "https://github.com/NixOS/nixpkgs/archive/e23f098b6946c3eae45e66d16746a65903fc3d74.tar.gz",
+        "url": "https://github.com/NixOS/nixpkgs/archive/6c2318e451fc0eaf338fb461d9bfcc99869de758.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
-    "nixpkgs-20.03": {
-        "branch": "release-20.03",
+    "nixpkgs-21.05": {
+        "branch": "release-21.05",
         "description": "Nix Packages collection",
-        "homepage": null,
+        "homepage": "",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "df25e214c8e662d693ef89e45ce56bbf58d6c59e",
-        "sha256": "117ir2ysw310q87mndv6czph5qjbhvggmhawcvak6x507yf0dxin",
+        "rev": "6d684ea3adef590a2174f2723134e1ea377272d2",
+        "sha256": "1kq37gqh51cqik5p7ma50g7v5rcfr3mzf8qwbc0h3jlp0av7lw6p",
         "type": "tarball",
-        "url": "https://github.com/NixOS/nixpkgs/archive/df25e214c8e662d693ef89e45ce56bbf58d6c59e.tar.gz",
+        "url": "https://github.com/NixOS/nixpkgs/archive/6d684ea3adef590a2174f2723134e1ea377272d2.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
-    "nixpkgs-20.09": {
-        "branch": "release-20.09",
+    "nixpkgs-21.11": {
+        "branch": "release-21.11",
         "description": "Nix Packages collection",
-        "homepage": null,
+        "homepage": "",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "ae47c79479a086e96e2977c61e538881913c0c08",
-        "sha256": "1yaa02zdbmd4j5lrhbynk5xdv6dkfhajlbsf5fkhx73hj9knmfgn",
+        "rev": "432864f33c84af53192d4b23ee5871697e57f094",
+        "sha256": "0sqmasma9qin7nhfzv50d1la1mi1yazn7gx2lrxi9j61i9j8l3zm",
         "type": "tarball",
-        "url": "https://github.com/NixOS/nixpkgs/archive/ae47c79479a086e96e2977c61e538881913c0c08.tar.gz",
+        "url": "https://github.com/NixOS/nixpkgs/archive/432864f33c84af53192d4b23ee5871697e57f094.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "noria": {
@@ -137,10 +137,10 @@
         "homepage": "",
         "owner": "phiresky",
         "repo": "ripgrep-all",
-        "rev": "9c285670fd128d5f142df170ffc38bda82cf15b5",
-        "sha256": "19w10ba0wjrlr0zfg4axaii48dc8a03isrwz9nhjgq3pa5v025b7",
+        "rev": "v0.9.6",
+        "sha256": "1wjpgi7m3lxybllkr3r60zaphp02ykq2syq72q9ail2760cjcir6",
         "type": "tarball",
-        "url": "https://github.com/phiresky/ripgrep-all/archive/9c285670fd128d5f142df170ffc38bda82cf15b5.tar.gz",
+        "url": "https://github.com/phiresky/ripgrep-all/archive/v0.9.6.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "rust": {

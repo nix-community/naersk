@@ -8,7 +8,7 @@ jobs:
   linux:
     strategy:
         matrix:
-            nixpkgs: [ nixpkgs, nixpkgs-20.03, nixpkgs-20.09 ]
+            nixpkgs: [ nixpkgs, nixpkgs-21.05, nixpkgs-21.11 ]
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
