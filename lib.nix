@@ -151,7 +151,7 @@ rec
                   } // lib.optionalAttrs (val ? branch) {
                     ref = val.branch;
                   } // lib.optionalAttrs (val ? tag) {
-                    ref = val.tag;
+                    ref = "refs/tags/${val.tag}";
                   });
                 }
             ) cargotoml.dependencies or { });
