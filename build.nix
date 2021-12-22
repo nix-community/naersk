@@ -90,7 +90,7 @@ let
   #     * grab whatever is surrounded with `"`s.
   #   The last step is very, very slow.
   unpackedGitDependencies = runCommand "git-deps"
-    { nativeBuildInputs = [ jq ]; }
+    { nativeBuildInputs = [ cargo jq ]; }
     ''
       log() {
         >&2 echo "[naersk]" "$@"
@@ -104,6 +104,10 @@ let
         tomls=$(find $checkout -name Cargo.toml)
         key=$(echo "$dep" | jq -cMr '.key')
         while read -r toml; do
+          if ! cargo verify-project --manifest-path=$toml > /dev/null; then 
+            log "Skipped invalid manifest at $toml"
+            continue
+          fi
           name=$(cat $toml \
             | sed -n -e '/\[package\]/,$p' \
             | grep -m 1 "^name\W" \
