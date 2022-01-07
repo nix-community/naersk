@@ -117,7 +117,7 @@ rec
           submodules = true;
         });
       } // lock;
-    in lib.foldl' (acc: e: if lib.any (oe: (oe.url == e.url) && (oe.key == e.key)) acc then acc else acc ++ [e]) [] (builtins.map mkFetch packageLocks);
+    in builtins.map mkFetch packageLocks;
 
   # A very minimal 'src' which makes cargo happy nonetheless
   dummySrc =
