@@ -86,44 +86,80 @@ let
   #     * grab whatever is surrounded with `"`s.
   #   The last step is very, very slow.
   unpackedGitDependencies = runCommand "git-deps"
-    { nativeBuildInputs = [ jq ]; }
+    { nativeBuildInputs = [ jq cargo ]; }
     ''
       log() {
         >&2 echo "[naersk]" "$@"
       }
 
+      unpack() {
+        toml=$1; nkey=$2
+        # Most filesystems have a maximum filename length of 255
+        dest="$out/$(echo "$nkey" | head -c 255)"
+        if [ -d "$dest" ]; then
+          log "Crate was already unpacked at $dest"
+        else
+          cp -r $(dirname $toml) $dest
+          chmod +w "$dest"
+          echo '{"package":null,"files":{}}' > $dest/.cargo-checksum.json
+          log "Crate unpacked at $dest"
+        fi
+      }
+
       mkdir -p $out
 
       while read -r dep; do
-        checkout=$(echo "$dep" | jq -cMr '.checkout')
-        url=$(echo "$dep" | jq -cMr '.url')
+        checkout=$(echo "$dep" | jq -r '.checkout')
+        key=$(echo "$dep" | jq -r '.key')
+        name=$(echo "$dep" | jq -r '.name')
+        url=$(echo "$dep" | jq -r '.url')
+
+        if [ -f $checkout/Cargo.toml ]; then
+          package=$(cargo metadata --no-deps --format-version 1 \
+                                   --manifest-path $checkout/Cargo.toml \
+                    | jq -cMr ".packages[] | select(.name == \"$name\")")
+
+          if [ -n "$package" ]; then
+            version=$(echo "$package" | jq -r '.version')
+            toml=$(echo "$package" | jq -r '.manifest_path')
+            nkey="$name-$version-$key"
+
+            log "$url Extracted crate '$name-$version' ($nkey)"
+            unpack $toml $nkey
+            continue
+          fi
+        fi
+
+        success=0
         tomls=$(find $checkout -name Cargo.toml)
-        key=$(echo "$dep" | jq -cMr '.key')
         while read -r toml; do
-          name=$(cat $toml \
+          pname=$(cat $toml \
             | sed -n -e '/\[package\]/,$p' \
             | grep -m 1 "^name\W" \
             | grep -oP '(?<=").+(?=")' \
             || true)
+
+          if [ "$name" -ne "$pname" ]; then
+            continue
+          fi
+
           version=$(cat $toml \
             | sed -n -e '/\[package\]/,$p' \
             | grep -m 1 "^version\W" \
             | grep -oP '(?<=").+(?=")' \
             || true)
-          if [ -n "$name" -a -n "$version" ]; then
-            # Most filesystmes have a maximum filename length of 255
-            nkey="$(echo "$name-$version-$key" | head -c 255)"
+
+          if [ -n "$version" ]; then
+            nkey="$name-$version-$key"
             log "$url Found crate '$name-$version' ($nkey)"
-            if [ -d "$out/$nkey" ]; then
-              log "Crate was already unpacked at $out/$nkey"
-            else
-              cp -r $(dirname $toml) $out/$nkey
-              chmod +w "$out/$nkey"
-              echo '{"package":null,"files":{}}' > $out/$nkey/.cargo-checksum.json
-              log "Crate unpacked at $out/$nkey"
-            fi
+            unpack $toml $nkey
+            success=1
           fi
         done <<< "$tomls"
+
+        if [ $success -eq 0 ]; then
+          log "$url Failed to unpack $name"
+        fi
       done < <(cat ${
     builtins.toFile "git-deps-json" (builtins.toJSON gitDependencies)
     } | jq -cMr '.[]')
