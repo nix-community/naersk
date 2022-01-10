@@ -135,7 +135,7 @@ let
 
   nixSourcesDir = symlinkJoinPassViaFile {
     name = "crates-io";
-    paths = map (v: unpackCrate v.name v.version v.sha256)
+    paths = map (v: unpackCrate { inherit (v) name version sha256; })
       crateDependencies ++ [ unpackedGitDependencies ];
   };
 
@@ -433,11 +433,17 @@ let
   # XXX: the actual crate format is not documented but in practice is a
   # gzipped tar; we simply unpack it and introduce a ".cargo-checksum.json"
   # file that cargo itself uses to double check the sha256
-  unpackCrate = name: version: sha256:
+  unpackCrate = 
+    { name
+    , version
+    , sha256
+    , host ? "crates.io"
+    , index ? "https://${host}/api/v1/crates"
+    , url ? "${index}/${name}/${version}/download"
+    }:
     let
       crate = fetchurl {
-        url = "https://crates.io/api/v1/crates/${name}/${version}/download";
-        inherit sha256;
+        inherit sha256 url;
         name = "download-${name}-${version}";
       };
     in

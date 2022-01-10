@@ -1,4 +1,10 @@
-{ lib, libb, builtinz, arg }:
+{ lib
+, libb
+, builtinz
+, arg
+# Custom cargo configurations
+, cargoConfig
+}:
 let
   allowFun = attrs0: attrName: default:
     if builtins.hasAttr attrName attrs0 then
@@ -173,36 +179,6 @@ let
     then removeAttrs arg (builtins.attrNames attrs)
     else {};
 
-  # we differentiate 'src' and 'root'. 'src' is used as source for the build;
-  # 'root' is used to find files like 'Cargo.toml'. As often as possible 'root'
-  # should be a "path" to avoid reading values from the nix-store.
-  # Below we try to come up with some good values for src and root if they're
-  # not defined.
-  sr =
-    let
-      hasRoot = ! isNull attrs.root;
-      hasSrc = ! isNull attrs.src;
-      isPath = x: builtins.typeOf x == "path";
-      root = attrs.root;
-      src = attrs.src;
-    in
-      # src: yes, root: no
-      if hasSrc && ! hasRoot then
-        if isPath src then
-          { src = lib.cleanSource src; root = src; }
-        else { inherit src; root = src; }
-        # src: yes, root: yes
-      else if hasRoot && hasSrc then
-        { inherit src root; }
-        # src: no, root: yes
-      else if hasRoot && ! hasSrc then
-        if isPath root then
-          { inherit root; src = lib.cleanSource root; }
-        else
-          { inherit root; src = root; }
-        # src: no, root: yes
-      else throw "please specify either 'src' or 'root'";
-
   usePureFromTOML = attrs.usePureFromTOML;
   readTOML = builtinz.readTOML usePureFromTOML;
 
@@ -240,13 +216,16 @@ let
     # version and sha256 of the crate
     # Example:
     #   [ { name = "wabt", version = "2.0.6", sha256 = "..." } ]
-    crateDependencies = libb.mkVersions buildPlanConfig.cargolock;
+    crateDependencies = libb.mkVersions { 
+      inherit (buildPlanConfig) cargolock;
+      inherit (cargoConfig) registries;
+    };
   };
 
   # config used when planning the builds
   buildPlanConfig = rec {
     inherit userAttrs;
-    inherit (sr) src root;
+    inherit (libb.resolveSource attrs) src root;
     # Whether we skip pre-building the deps
     isSingleStep = attrs.singleStep;
 
