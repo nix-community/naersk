@@ -26,9 +26,11 @@ let
     root = attrs0.root or null;
 
     # Whether to fetch all refs while fetching Git dependencies. Useful if
-    # the wanted revision isn't in the default branch.
-    allRefs = attrs0.allRefs or false;
-    # Whether to fetch submodules while fetching Git dependencies.
+    # the wanted revision isn't in the default branch. Requires Nix 2.4+.
+    gitAllRefs = attrs0.gitAllRefs or false;
+
+    # Whether to fetch submodules while fetching Git dependencies. Requires Nix
+    # 2.4+.
     gitSubmodules = attrs0.gitSubmodules or false;
 
     # The command to use for the build.
@@ -256,7 +258,7 @@ let
     # Whether we skip pre-building the deps
     isSingleStep = attrs.singleStep;
 
-    inherit (attrs) overrideMain allRefs gitSubmodules;
+    inherit (attrs) overrideMain gitAllRefs gitSubmodules;
 
     # The members we want to build
     # (list of directory names)

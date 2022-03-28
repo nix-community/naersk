@@ -73,7 +73,7 @@ rec
   #   }
   # ]
   findGitDependencies =
-    { cargolock, allRefs, gitSubmodules }:
+    { cargolock, gitAllRefs, gitSubmodules }:
     let
       query = p: (lib.substring 0 4 (p.source or "")) == "git+";
 
@@ -111,7 +111,7 @@ rec
           ref = lock.branch;
         } // lib.optionalAttrs (lock ? tag) {
           ref = lock.tag;
-        } // lib.optionalAttrs allRefs {
+        } // lib.optionalAttrs gitAllRefs {
           allRefs = true;
         } // lib.optionalAttrs gitSubmodules {
           submodules = true;
