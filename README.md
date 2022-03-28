@@ -6,7 +6,6 @@ Nix support for building [cargo] crates.
 
 * [Install](#install)
 * [Configuration](#configuration)
-* [Comparison](#install)
 
 ## Install
 
