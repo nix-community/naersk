@@ -72,7 +72,6 @@ let
   fastTests =
     rec
     {
-
       readme = pkgs.runCommand "readme-gen" {}
         ''
           cat ${./README.tpl.md} > $out
@@ -174,8 +173,50 @@ let
       git-dep = naersk.buildPackage {
         doCheck = true;
         src = ./test/git-dep;
+      };
+
+      git-dep-by-branch = naersk.buildPackage {
+        doCheck = true;
+        src = ./test/git-dep-by-branch;
         cargoOptions = (opts: opts ++ [ "--locked" ]);
       };
+
+      git-dep-by-branch-with-slash =
+        let
+          dep = pkgs.runCommand "dep" {
+            buildInputs = [ pkgs.git ];
+          } ''
+            mkdir $out
+            cd $out
+            cp -ar ${./test/git-dep-by-branch-with-slash/dep}/* .
+
+            git init --initial-branch=with/slash
+            git add .
+            git config user.email 'someone'
+            git config user.name 'someone'
+            git commit -am 'Initial commit'
+          '';
+
+          app = pkgs.runCommand "app" {
+            buildInputs = [ pkgs.git ];
+          } ''
+            mkdir $out
+            cd $out
+            cp -ar ${./test/git-dep-by-branch-with-slash/app}/* .
+
+            depPath="${dep}"
+            depRev=$(cd ${dep} && git rev-parse HEAD)
+
+            sed "s:\$depPath:$depPath:" -is Cargo.*
+            sed "s:\$depRev:$depRev:" -is Cargo.*
+          '';
+
+        in
+        naersk.buildPackage {
+          doCheck = true;
+          src = app;
+          cargoOptions = (opts: opts ++ [ "--locked" ]);
+        };
 
       git-dep-by-tag = naersk.buildPackage {
         doCheck = true;
