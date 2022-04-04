@@ -94,8 +94,17 @@ let
 
       unpack() {
         toml=$1; nkey=$2
+
+        # If a dependency gets fetched from Git, it's possible that its name
+        # will contain slashes (since Git allows for slashes in branch names).
+        #
+        # To properly handle those kind of dependencies, we have to sanitize
+        # their names first - in this case by replacing `/` with `_`.
+        nkey=''${nkey/\//_}
+
         # Most filesystems have a maximum filename length of 255
         dest="$out/$(echo "$nkey" | head -c 255)"
+
         if [ -d "$dest" ]; then
           log "Crate was already unpacked at $dest"
         else
@@ -132,6 +141,7 @@ let
 
         success=0
         tomls=$(find $checkout -name Cargo.toml)
+
         while read -r toml; do
           pname=$(cat $toml \
             | sed -n -e '/\[package\]/,$p' \
@@ -335,24 +345,21 @@ let
       runHook postConfigure
     '';
 
-    buildPhase =
+    buildPhase = ''
+      runHook preBuild
+      export SOURCE_DATE_EPOCH=1
 
-      ''
-        runHook preBuild
-        export SOURCE_DATE_EPOCH=1
+      cargo_ec=0
+      logRun ${cargoBuild} || cargo_ec="$?"
 
-        cargo_ec=0
-        logRun ${cargoBuild} || cargo_ec="$?"
+      if [ "$cargo_ec" -ne "0" ]; then
+        cat "$cargo_build_output_json" | jq -cMr 'select(.message.rendered != null) | .message.rendered'
+        log "cargo returned with exit code $cargo_ec, exiting"
+        exit "$cargo_ec"
+      fi
 
-        if [ "$cargo_ec" -ne "0" ]
-        then
-          cat "$cargo_build_output_json" | jq -cMr 'select(.message.rendered != null) | .message.rendered'
-          log "cargo returned with exit code $cargo_ec, exiting"
-          exit "$cargo_ec"
-        fi
-
-        runHook postBuild
-      '';
+      runHook postBuild
+    '';
 
     checkPhase = ''
       runHook preCheck
@@ -362,7 +369,6 @@ let
 
       runHook postCheck
     '';
-
 
     docPhase = lib.optionalString doDoc ''
       runHook preDoc
@@ -456,6 +462,7 @@ let
 
         runHook postInstall
       '';
+
     passthru = {
       # Handy for debugging
       inherit builtDependencies;
