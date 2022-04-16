@@ -170,6 +170,43 @@ let
         { buildInputs = [ dummyfication ]; }
         "my-bin > $out";
 
+      git-symlink =
+        let
+          dep = pkgs.runCommand "dep" {
+            buildInputs = [ pkgs.git ];
+          } ''
+            mkdir $out
+            cd $out
+            cp -ar ${./test/git-symlink/dep-workspace}/* .
+
+            git init
+            git add .
+            git config user.email 'someone'
+            git config user.name 'someone'
+            git commit -am 'Initial commit'
+          '';
+
+          app = pkgs.runCommand "app" {
+            buildInputs = [ pkgs.git ];
+          } ''
+            mkdir $out
+            cd $out
+            cp -ar ${./test/git-symlink/app}/* .
+
+            depPath="${dep}"
+            depRev=$(cd ${dep} && git rev-parse HEAD)
+
+            sed "s:\$depPath:$depPath:" -is Cargo.*
+            sed "s:\$depRev:$depRev:" -is Cargo.*
+          '';
+
+        in
+        naersk.buildPackage {
+          doCheck = true;
+          src = app;
+          cargoOptions = (opts: opts ++ [ "--locked" ]);
+        };
+
       git-dep = naersk.buildPackage {
         doCheck = true;
         src = ./test/git-dep;
@@ -245,12 +282,11 @@ let
         doCheck = true;
       };
 
-      workspace-doc = naersk.buildPackage
-        {
-          src = ./test/workspace;
-          doDoc = true;
-          doCheck = true;
-        };
+      workspace-doc = naersk.buildPackage {
+        src = ./test/workspace;
+        doDoc = true;
+        doCheck = true;
+      };
 
       workspace-build-rs = naersk.buildPackage {
         src = ./test/workspace-build-rs;

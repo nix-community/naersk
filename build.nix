@@ -108,7 +108,7 @@ let
         if [ -d "$dest" ]; then
           log "Crate was already unpacked at $dest"
         else
-          cp -r $(dirname $toml) $dest
+          cp -rL $(dirname $toml) $dest
           chmod +w "$dest"
           echo '{"package":null,"files":{}}' > $dest/.cargo-checksum.json
           log "Crate unpacked at $dest"
