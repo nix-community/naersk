@@ -1,8 +1,8 @@
-{ lib, writeText, runCommand, remarshal }:
+{ lib, writeText, runCommandLocal, remarshal }:
 let
   builtinz =
     builtins // import ./builtins
-      { inherit lib writeText remarshal runCommand; };
+      { inherit lib writeText remarshal runCommandLocal; };
 in
 rec
 {
@@ -150,7 +150,7 @@ rec
           cargotomls;
 
       in
-        runCommand "dummy-src"
+        runCommandLocal "dummy-src"
           { inherit copySources copySourcesFrom cargotomlss; }
           ''
             mkdir -p $out/.cargo

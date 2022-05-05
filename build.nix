@@ -54,7 +54,7 @@
 , jq
 , darwin
 , writeText
-, runCommand
+, runCommandLocal
 , remarshal
 , crateDependencies
 , zstd
@@ -66,121 +66,7 @@
 let
   builtinz =
     builtins // import ./builtins
-      { inherit lib writeText remarshal runCommand; };
-
-  # This unpacks all git dependencies:
-  #   $out/rand
-  #   $out/rand/Cargo.toml
-  #   $out/rand_core
-  #   ...
-  # It does so by discovering all the `Cargo.toml`s and creating a directory in
-  # $out for each one.
-  # NOTE:
-  #   Only non-virtual manifests are taken into account. That is, only cargo
-  #   tomls that have a [package] sections with a `name = ...`. The
-  #   implementation is a bit tricky and basically akin to parsing TOML with
-  #   bash. The reason is that there is no lightweight jq-equivalent available
-  #   in nixpkgs (rq fails to build).
-  #   We discover the name (in any) in three steps:
-  #     * grab anything that comes after `[package]`
-  #     * grab the first line that contains `name = ...`
-  #     * grab whatever is surrounded with `"`s.
-  #   The last step is very, very slow.
-  unpackedGitDependencies = runCommand "git-deps"
-    { nativeBuildInputs = [ jq cargo ]; }
-    ''
-      log() {
-        >&2 echo "[naersk]" "$@"
-      }
-
-      unpack() {
-        toml=$1; nkey=$2
-
-        # If a dependency gets fetched from Git, it's possible that its name
-        # will contain slashes (since Git allows for slashes in branch names).
-        #
-        # To properly handle those kind of dependencies, we have to sanitize
-        # their names first - in this case by replacing `/` with `_`.
-        nkey=''${nkey/\//_}
-
-        # Most filesystems have a maximum filename length of 255
-        dest="$out/$(echo "$nkey" | head -c 255)"
-
-        if [ -d "$dest" ]; then
-          log "Crate was already unpacked at $dest"
-        else
-          cp -r $(dirname $toml) $dest
-          chmod +w "$dest"
-          echo '{"package":null,"files":{}}' > $dest/.cargo-checksum.json
-          log "Crate unpacked at $dest"
-        fi
-      }
-
-      mkdir -p $out
-
-      while read -r dep; do
-        checkout=$(echo "$dep" | jq -r '.checkout')
-        key=$(echo "$dep" | jq -r '.key')
-        name=$(echo "$dep" | jq -r '.name')
-        url=$(echo "$dep" | jq -r '.url')
-
-        if [ -f $checkout/Cargo.toml ]; then
-          package=$(cargo metadata --no-deps --format-version 1 \
-                                   --manifest-path $checkout/Cargo.toml \
-                    | jq -cMr ".packages[] | select(.name == \"$name\")")
-
-          if [ -n "$package" ]; then
-            version=$(echo "$package" | jq -r '.version')
-            toml=$(echo "$package" | jq -r '.manifest_path')
-            nkey="$name-$version-$key"
-
-            log "$url Extracted crate '$name-$version' ($nkey)"
-            unpack $toml $nkey
-            continue
-          fi
-        fi
-
-        success=0
-        tomls=$(find $checkout -name Cargo.toml)
-
-        while read -r toml; do
-          pname=$(cat $toml \
-            | sed -n -e '/\[package\]/,$p' \
-            | grep -m 1 "^name\W" \
-            | grep -oP '(?<=").+(?=")' \
-            || true)
-
-          if [ "$name" -ne "$pname" ]; then
-            continue
-          fi
-
-          version=$(cat $toml \
-            | sed -n -e '/\[package\]/,$p' \
-            | grep -m 1 "^version\W" \
-            | grep -oP '(?<=").+(?=")' \
-            || true)
-
-          if [ -n "$version" ]; then
-            nkey="$name-$version-$key"
-            log "$url Found crate '$name-$version' ($nkey)"
-            unpack $toml $nkey
-            success=1
-          fi
-        done <<< "$tomls"
-
-        if [ $success -eq 0 ]; then
-          log "$url Failed to unpack $name"
-        fi
-      done < <(cat ${
-    builtins.toFile "git-deps-json" (builtins.toJSON gitDependencies)
-    } | jq -cMr '.[]')
-    '';
-
-  nixSourcesDir = symlinkJoinPassViaFile {
-    name = "crates-io";
-    paths = map (v: unpackCrate v.name v.version v.sha256)
-      crateDependencies ++ [ unpackedGitDependencies ];
-  };
+      { inherit lib writeText remarshal runCommandLocal; };
 
   drvAttrs = {
     name = "${pname}-${version}";
@@ -191,7 +77,7 @@ let
       postInstall
       ;
 
-    crate_sources = nixSourcesDir;
+    crate_sources = unpackedDependencies;
 
     # The cargo config with source replacement. Replaces both crates.io crates
     # and git dependencies.
@@ -199,7 +85,7 @@ let
       source = {
         crates-io = { replace-with = "nix-sources"; };
         nix-sources = {
-          directory = nixSourcesDir;
+          directory = unpackedDependencies;
         };
       } // lib.listToAttrs (
         map
@@ -231,7 +117,6 @@ let
 
     nativeBuildInputs = [
       cargo
-      # needed at various steps in the build
       jq
       rsync
     ] ++ nativeBuildInputs;
@@ -245,7 +130,6 @@ let
 
     inherit builtDependencies;
 
-    # some environment variables
     RUSTC = "${rustc}/bin/rustc";
     cargo_release = lib.optionalString release "--release";
     cargo_options = cargoOptions;
@@ -471,23 +355,134 @@ let
     };
   };
 
-  # XXX: the actual crate format is not documented but in practice is a
-  # gzipped tar; we simply unpack it and introduce a ".cargo-checksum.json"
-  # file that cargo itself uses to double check the sha256
-  unpackCrate = name: version: sha256:
+  # Unpacks all dependencies required to compile user's crate.
+  #
+  # As an output, for each dependency, this derivation produces a subdirectory
+  # containing `.cargo-checksum.json` (required for Cargo to process the crate)
+  # and a symlink to the crate's source code - e.g.:
+  #
+  # ```
+  # rand-0.1.0/.cargo-checksum.json
+  # rand-0.1.0/Cargo.toml                      (-> /nix/store/...-rand-0.1.0/Cargo.toml)
+  # rand-0.1.0/src                             (-> /nix/store/...-rand-0.1.0/src)
+  # something-else-1.2.3/.cargo-checksum.json
+  # something-else-1.2.3/Cargo.toml            (-> /nix/store/...)
+  # something-else-1.2.3/src                   (-> /nix/store/...)
+  # ...
+  # ```
+  #
+  # (note that the actual crate format is not document, but in practice it's a
+  # gzipped tar.)
+  unpackedDependencies = symlinkJoinPassViaFile {
+    name = "dependencies";
+
+    paths =
+      (map unpackCrateDependency crateDependencies) ++
+      (map unpackGitDependency gitDependencies);
+  };
+
+  unpackCrateDependency = { name, version, sha256 }:
     let
       crate = fetchurl {
-        url = "https://crates.io/api/v1/crates/${name}/${version}/download";
         inherit sha256;
+
+        url = "https://crates.io/api/v1/crates/${name}/${version}/download";
         name = "download-${name}-${version}";
       };
+
     in
-      runCommand "unpack-${name}-${version}" {}
-        ''
-          mkdir -p $out
-          tar -xzf ${crate} -C $out
-          echo '{"package":"${sha256}","files":{}}' > $out/${name}-${version}/.cargo-checksum.json
-        '';
+    runCommandLocal "unpack-${name}-${version}" { }
+    ''
+      mkdir -p $out
+      tar -xzf ${crate} -C $out
+      echo '{"package":"${sha256}","files":{}}' > $out/${name}-${version}/.cargo-checksum.json
+    '';
+
+  unpackGitDependency = { checkout, key, name, url, ... }:
+    runCommandLocal "unpack-${name}-${version}" {
+      inherit checkout key name url;
+      nativeBuildInputs = [ jq cargo ];
+    }
+    ''
+      log() {
+        >&2 echo "[naersk] ($url)" "$@"
+      }
+
+      unpack() {
+        toml=$1
+        nkey=$2
+
+        # If a dependency gets fetched from Git, it's possible that its name
+        # will contain slashes (since Git allows for slashes in branch names).
+        #
+        # To properly handle those kind of dependencies, we have to sanitize
+        # their names first - in this case by replacing `/` with `_`.
+        nkey=''${nkey/\//_}
+
+        # Most filesystems have a maximum filename length of 255
+        dest="$out/$(echo "$nkey" | head -c 255)"
+
+        mkdir -p $dest
+        ln -s $(dirname $toml)/* $dest
+        echo '{"package":null,"files":{}}' > $dest/.cargo-checksum.json
+        log "Crate unpacked at $dest"
+      }
+
+      if [ -f $checkout/Cargo.toml ]; then
+        package=$(
+          cargo metadata \
+              --no-deps \
+              --format-version 1 \
+              --manifest-path $checkout/Cargo.toml \
+          | jq -cMr ".packages[] | select(.name == \"$name\")"
+        )
+
+        if [ ! -z "$package" ]; then
+          version=$(echo "$package" | jq -r '.version')
+          toml=$(echo "$package" | jq -r '.manifest_path')
+          nkey="$name-$version-$key"
+
+          log "Extracted crate '$name-$version' ($nkey)"
+          unpack $toml $nkey
+          exit 0
+        fi
+      fi
+
+      tomls=$(find $checkout -name Cargo.toml)
+
+      while read -r toml; do
+        # TODO switch to `rq` (or anything that's not just parsing-toml-in-bash)
+        pname=$(
+          cat $toml \
+            | sed -n -e '/\[package\]/,$p' \
+            | grep -m 1 "^name\W" \
+            | grep -oP '(?<=").+(?=")' \
+          || true
+        )
+
+        if [ "$name" != "$pname" ]; then
+          continue
+        fi
+
+        version=$(
+          cat $toml \
+            | sed -n -e '/\[package\]/,$p' \
+            | grep -m 1 "^version\W" \
+            | grep -oP '(?<=").+(?=")' \
+          || true
+        )
+
+        if [ ! -z "$version" ]; then
+          nkey="$name-$version-$key"
+          log "Found crate '$name-$version' ($nkey)"
+          unpack $toml $nkey
+          exit 0
+        fi
+      done <<< "$tomls"
+
+      log "Could not find any Cargo.toml with 'package.name' equal to $name"
+      exit 1
+    '';
 
   /*
   * A copy of `symlinkJoin` from `nixpkgs` which passes the `paths` argument via a file
@@ -519,7 +514,7 @@ let
              passAsFile = [ "paths" ];
              nativeBuildInputs = [ lndir ];
            }; # pass the defaults
-    in runCommand name args
+    in runCommandLocal name args
       ''
         mkdir -p $out
 
