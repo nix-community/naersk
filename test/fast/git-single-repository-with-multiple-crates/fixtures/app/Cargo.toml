@@ -1,0 +1,9 @@
+[package]
+name = "app"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+dep-a = { git = "file://$depPath" }
+dep-b = { git = "file://$depPath" }
+dep-c = { git = "file://$depPath" }

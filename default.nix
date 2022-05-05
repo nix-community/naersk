@@ -6,7 +6,7 @@
 , lndir
 , remarshal
 , rsync
-, runCommand
+, runCommandLocal
 , rustc
 , stdenv
 , writeText
@@ -14,10 +14,10 @@
 }@defaultBuildAttrs:
 
 let
-  libb = import ./lib.nix { inherit lib writeText runCommand remarshal; };
+  libb = import ./lib.nix { inherit lib writeText runCommandLocal remarshal; };
 
   builtinz = builtins // import ./builtins
-    { inherit lib writeText remarshal runCommand; };
+    { inherit lib writeText remarshal runCommandLocal; };
 
   mkConfig = arg:
     import ./config.nix { inherit lib arg libb builtinz; };

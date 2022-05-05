@@ -1,7 +1,7 @@
 # some extra "builtins"
 { lib
 , writeText
-, runCommand
+, runCommandLocal
 , remarshal
 }:
 
@@ -35,12 +35,9 @@ rec
     else
       builtins.fromJSON (
         builtins.readFile (
-          runCommand "from-toml"
-            {
-              buildInputs = [ remarshal ];
-              allowSubstitutes = false;
-              preferLocalBuild = true;
-            }
+          runCommandLocal "from-toml" {
+            buildInputs = [ remarshal ];
+          }
             ''
               echo "$from_toml_in" > in.toml
               remarshal \
