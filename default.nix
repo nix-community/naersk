@@ -54,6 +54,7 @@ let
             copyBins = false;
             copyBinsFilter = ".";
             copyDocsToSeparateOutput = false;
+            postInstall = false;
             builtDependencies = [];
           };
 

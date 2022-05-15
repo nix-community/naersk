@@ -7,6 +7,7 @@ args: {
   git-dep-by-branch-with-slash = import ./git-dep-by-branch-with-slash args;
   git-dep-by-tag = import ./git-dep-by-tag args;
   git-dep-dup = import ./git-dep-dup args;
+  post-install-hook = import ./post-install-hook args;
   readme = import ./readme args;
   simple-dep = import ./simple-dep args;
   simple-dep-patched = import ./simple-dep-patched args;

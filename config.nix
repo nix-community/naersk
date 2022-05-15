@@ -11,15 +11,19 @@ let
         in
           throw "${attrName} should be a function from ${finalTy} to ${finalTy}, but is a ${actualTy}"
     else default;
+
   mkAttrs = attrs0: rec
   {
     # The name of the derivation.
     name = attrs0.name or null;
+
     # The version of the derivation.
     version = attrs0.version or null;
+
     # Used by `naersk` as source input to the derivation. When `root` is not
     # set, `src` is also used to discover the `Cargo.toml` and `Cargo.lock`.
     src = attrs0.src or null;
+
     # Used by `naersk` to read the `Cargo.toml` and `Cargo.lock` files. May
     # be different from `src`. When `src` is not set, `root` is (indirectly)
     # used as `src`.
@@ -49,7 +53,6 @@ let
     # environment variables but must be careful when introducing e.g. spaces. <br/>
     cargoBuildOptions =
       allowFun attrs0 "cargoBuildOptions" [ "$cargo_release" ''-j "$NIX_BUILD_CORES"'' "--message-format=$cargo_message_format" ];
-
 
     # When `true`, rustc remaps the (`/nix/store`) source paths to `/sources`
     # to reduce the number of dependencies in the closure.
@@ -100,6 +103,7 @@ let
     # When true, all cargo builds are run with `--release`. The environment
     # variable `cargo_release` is set to `--release` iff this option is set.
     release = attrs0.release or true;
+
     # An override for all derivations involved in the build.
     override = attrs0.override or (x: x);
 
@@ -111,12 +115,15 @@ let
     # When true, no intermediary (dependency-only) build is run. Enabling
     # `singleStep` greatly reduces the incrementality of the builds.
     singleStep = attrs0.singleStep or false;
+
     # The targets to build if the `Cargo.toml` is a virtual manifest.
     targets = attrs0.targets or null;
+
     # When true, the resulting binaries are copied to `$out/bin`. <br/>
     # Note: this relies on cargo's `--message-format` argument, set in the
     # default `cargoBuildOptions`.
     copyBins = attrs0.copyBins or true;
+
     # When true, the resulting binaries are copied to `$out/lib`. <br/> Note:
     # this relies on cargo's `--message-format` argument, set in the default
     # `cargoBuildOptions`.
@@ -129,6 +136,7 @@ let
     # The value is written to the `cargo_bins_jq_filter` variable.
     copyBinsFilter = attrs0.copyBinsFilter or
       ''select(.reason == "compiler-artifact" and .executable != null and .profile.test == false)'';
+
     # A [`jq`](https://stedolan.github.io/jq) filter for selecting which build
     # artifacts to release. This is run on cargo's
     # [`--message-format`](https://doc.rust-lang.org/cargo/reference/external-tools.html#json-messages)
@@ -139,20 +147,32 @@ let
     # false)''`
     copyLibsFilter = attrs0.copyLibsFilter or
       ''select(.reason == "compiler-artifact" and ((.target.kind | contains(["staticlib"])) or (.target.kind | contains(["cdylib"]))) and .filenames != null and .profile.test == false)'';
+
     # When true, the documentation is generated in a different output, `doc`.
     copyDocsToSeparateOutput = attrs0.copyDocsToSeparateOutput or true;
+
     # When true, the build fails if the documentation step fails; otherwise
     # the failure is ignored.
     doDocFail = attrs0.doDocFail or false;
+
     # When true, references to the nix store are removed from the generated
     # documentation.
     removeReferencesToSrcFromDocs = attrs0.removeReferencesToSrcFromDocs or true;
+
     # When true, the build output of intermediary builds is compressed with
     # [`Zstandard`](https://facebook.github.io/zstd/). This reduces the size
     # of closures.
     compressTarget = attrs0.compressTarget or true;
+
     # When true, the `target/` directory is copied to `$out`.
     copyTarget = attrs0.copyTarget or false;
+
+    # Optional hook to run after the compilation is done; inside this script,
+    # `$out/bin` contains compiled Rust binaries. Useful if your application
+    # needs e.g. custom environment variables, in which case you can simply run
+    # `wrapProgram $out/bin/your-app-name` in here.
+    postInstall = attrs0.postInstall or false;
+
     # Whether to use the `fromTOML` built-in or not. When set to `false` the
     # python package `remarshal` is used instead (in a derivation) and the
     # JSON output is read with `builtins.fromJSON`.
@@ -242,6 +262,8 @@ let
       cargoDocOptions
       copyDocsToSeparateOutput
       removeReferencesToSrcFromDocs
+
+      postInstall
       ;
 
     # The list of _all_ crates (incl. transitive dependencies) with name,
