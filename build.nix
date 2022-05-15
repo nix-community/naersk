@@ -45,6 +45,7 @@
 , nativeBuildInputs
 , buildInputs
 , builtDependencies
+, postInstall
 , release
 , cargoOptions
 , stdenv
@@ -187,6 +188,7 @@ let
       src
       version
       remapPathPrefix
+      postInstall
       ;
 
     crate_sources = nixSourcesDir;
