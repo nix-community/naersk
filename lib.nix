@@ -176,7 +176,7 @@ rec
                 # aren't an issue because we strip the `build` field in
                 # `fixupCargoToml`; so cargo always thinks there's a build
                 # script which is `./build.rs`.
-                echo 'fn main(){}' > build.rs
+                echo 'fn main() {}' > build.rs
                 popd > /dev/null
             done
 
