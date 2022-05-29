@@ -150,7 +150,7 @@ let
             | grep -oP '(?<=").+(?=")' \
             || true)
 
-          if [ "$name" -ne "$pname" ]; then
+          if [ "$name" != "$pname" ]; then
             continue
           fi
 
