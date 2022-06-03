@@ -111,7 +111,7 @@ rec
           ref = lock.branch;
         } // lib.optionalAttrs (lock ? tag) {
           ref = lock.tag;
-        } // lib.optionalAttrs gitAllRefs {
+        } // lib.optionalAttrs (gitAllRefs || lock ? rev) {
           allRefs = true;
         } // lib.optionalAttrs gitSubmodules {
           submodules = true;
