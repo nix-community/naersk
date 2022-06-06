@@ -111,7 +111,7 @@ rec
           ref = lock.branch;
         } // lib.optionalAttrs (lock ? tag) {
           ref = lock.tag;
-        } // lib.optionalAttrs (gitAllRefs || lock ? rev) {
+        } // lib.optionalAttrs ((lib.versionAtLeast builtins.nixVersion "2.4") && (gitAllRefs || lock ? rev)) {
           allRefs = true;
         } // lib.optionalAttrs gitSubmodules {
           submodules = true;
