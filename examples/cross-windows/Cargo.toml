@@ -1,9 +1,10 @@
 [package]
 name = "cross-windows"
 version = "0.1.0"
-authors = ["John Doe <example@example.com>"]
 edition = "2018"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
+# This example uses Serde to prove that Naersk works correctly even when some of
+# the dependencies have build scripts:
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"

@@ -1,4 +1,3 @@
-final: prev:
-{
+final: prev: {
   naersk = prev.callPackage ./. {};
 }
