@@ -2,43 +2,193 @@
 
 [![GitHub Actions](https://github.com/nix-community/naersk/workflows/test/badge.svg?branch=master)](https://github.com/nix-community/naersk/actions)
 
-Nix support for building [cargo] crates.
+Build Rust projects with ease!
 
-* [Install](#install)
-* [Configuration](#configuration)
+* [Setup](#setup)
+* [Usage](#usage)
 
-## Install
+## Setup
 
-Use [niv]:
+### Using Flakes
 
 ``` shell
+$ nix flake init -t github:nix-community/naersk
+$ nix flake lock
+```
+
+Alternatively, store this as `flake.nix` in your repository:
+
+``` nix
+{
+  inputs = {
+    flake-utils.url = "github:numtide/flake-utils";
+    naersk.url = "github:nix-community/naersk";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+  };
+
+  outputs = { self, flake-utils, naersk, nixpkgs }:
+    flake-utils.lib.eachDefaultSystem (system:
+      let
+        pkgs = (import nixpkgs) {
+          inherit system;
+        };
+
+        naersk' = pkgs.callPackage naersk {};
+        
+      in rec {
+        # For `nix build` & `nix run`:
+        defaultPackage = naersk'.buildPackage {
+          src = ./.;
+        };
+
+        # For `nix develop` (optional, can be skipped):
+        devShell = pkgs.mkShell {
+          nativeBuildInputs = with pkgs; [ rustc cargo ];
+        };
+      }
+    );
+}
+```
+
+This assumes `flake.nix` is created next to `Cargo.toml` & `Cargo.lock` - if
+that's not the case for you, adjust `./.` in `naersk'.buildPackage`.
+
+Note that Naersk by default ignores the `rust-toolchain` file, using whatever
+Rust compiler version is present in `nixpkgs`.
+
+If you have a custom `rust-toolchain` file, you can make Naersk use it this way:
+
+``` nix
+{
+  inputs = {
+    flake-utils.url = "github:numtide/flake-utils";
+    naersk.url = "github:nix-community/naersk";
+    
+    nixpkgs-mozilla = {
+      url = "github:mozilla/nixpkgs-mozilla";
+      flake = false;
+    };
+  };
+
+  outputs = { self, flake-utils, naersk, nixpkgs, nixpkgs-mozilla }:
+    flake-utils.lib.eachDefaultSystem (system:
+      let
+        pkgs = (import nixpkgs) {
+          inherit system;
+
+          overlays = [
+            (import nixpkgs-mozilla)
+          ];
+        };
+
+        toolchain = (pkgs.rustChannelOf {
+          rustToolchain = ./rust-toolchain;
+          sha256 = "";
+          #        ^ After you run `nix build`, replace this with the actual
+          #          hash from the error message
+        }).rust;
+
+        naersk' = pkgs.callPackage naersk {
+          cargo = toolchain;
+          rustc = toolchain;
+        };
+        
+      in rec {
+        # For `nix build` & `nix run`:
+        defaultPackage = naersk'.buildPackage {
+          src = ./.;
+        };
+
+        # For `nix develop` (optional, can be skipped):
+        devShell = pkgs.mkShell {
+          nativeBuildInputs = [ toolchain ];
+        };
+      }
+    );
+}
+```
+
+### Using Niv
+
+``` shell
+$ niv init
 $ niv add nix-community/naersk
 ```
 
-And then
+... and then create `default.nix` with:
 
 ``` nix
 let
-    pkgs = import <nixpkgs> {};
-    sources = import ./nix/sources.nix;
-    naersk = pkgs.callPackage sources.naersk {};
-in naersk.buildPackage ./path/to/rust
+  pkgs = import <nixpkgs> {};
+  sources = import ./nix/sources.nix;
+  naersk = pkgs.callPackage sources.naersk {};
+  
+in
+  naersk.buildPackage ./.
 ```
 
-_NOTE_: `./path/to/rust/` should contain a `Cargo.lock`.
+This assumes `default.nix` is created next to `Cargo.toml` & `Cargo.lock` - if
+that's not the case for you, adjust `./.` in `naersk.buildPackage`.
 
-## Configuration
+Note that Naersk by default ignores the `rust-toolchain` file, using whatever
+Rust compiler version is present in `nixpkgs`.
 
-The `buildPackage` function also accepts an attribute set. The attributes are
-described below. Any attribute that is _not_ listed below will be forwarded _as
-is_ to `stdenv.mkDerivation`. When the argument passed in _not_ an attribute
-set, e.g.
+If you have a custom `rust-toolchain` file, you can make Naersk use it this way:
+
+``` shell
+$ niv add mozilla/nixpkgs-mozilla
+```
+
+... and then:
 
 ``` nix
-naersk.buildPackage theArg
+let
+  sources = import ./nix/sources.nix;
+  nixpkgs-mozilla = import sources.nixpkgs-mozilla;
+  
+  pkgs = import sources.nixpkgs {
+    overlays = [
+      nixpkgs-mozilla
+    ];
+  };
+  
+  toolchain = (pkgs.rustChannelOf {
+    rustToolchain = ./rust-toolchain;
+    sha256 = "";
+    #        ^ After you run `nix-build`, replace this with the actual
+    #          hash from the error message
+  }).rust;
+  
+  naersk = pkgs.callPackage sources.naersk {
+    cargo = toolchain;
+    rustc = toolchain;
+  };
+  
+in
+  naersk.buildPackage ./.
 ```
 
-it is converted to an attribute set equivalent to `{ root = theArg; }`.
+## Usage
+
+Naersk provides a function called `buildPackage` that takes an attribute set
+describing your application's directory, its dependencies etc.; in general, the
+usage is:
+
+``` nix
+naersk.buildPackage {
+  # Assuming there's `Cargo.toml` right in this directory:
+  src = ./.; 
+  
+  someOption = "yass";
+  someOtherOption = false;
+  CARGO_ENVIRONMENTAL_VARIABLE = "test";
+}
+```
+
+Some of the options (described below) are used by Naersk to affect the building
+process, rest is passed-through into `mkDerivation`.
+
+### `buildPackage`'s parameters
 
 | Attribute | Description |
 | - | - |
@@ -76,130 +226,17 @@ it is converted to an attribute set equivalent to `{ root = theArg; }`.
 | `postInstall` | Optional hook to run after the compilation is done; inside this script, `$out/bin` contains compiled Rust binaries. Useful if your application needs e.g. custom environment variables, in which case you can simply run `wrapProgram $out/bin/your-app-name` in here. Default: `false` |
 | `usePureFromTOML` | Whether to use the `fromTOML` built-in or not. When set to `false` the python package `remarshal` is used instead (in a derivation) and the JSON output is read with `builtins.fromJSON`. This is a workaround for old versions of Nix. May be used safely from Nix 2.3 onwards where all bugs in `builtins.fromTOML` seem to have been fixed. Default: `true` |
 
-## Using naersk with nixpkgs-mozilla
+## Tips & Tricks
 
-The [nixpkgs-mozilla](https://github.com/mozilla/nixpkgs-mozilla) overlay
-provides nightly versions of `rustc` and `cargo`. Below is an example setup for
-using it with naersk:
+### Using OpenSSL
 
-``` nix
-let
-  sources = import ./nix/sources.nix;
-  nixpkgs-mozilla = import sources.nixpkgs-mozilla;
-  pkgs = import sources.nixpkgs {
-    overlays =
-      [
-        nixpkgs-mozilla
-        (self: super:
-            {
-              rustc = self.latest.rustChannels.nightly.rust;
-              cargo = self.latest.rustChannels.nightly.rust;
-            }
-        )
-      ];
-  };
-  naersk = pkgs.callPackage sources.naersk {};
-in
-naersk.buildPackage ./my-package
-```
-
-[cargo]: https://crates.io/
-[niv]: https://github.com/nmattia/niv
-
-## Using with Nix Flakes
-
-Initialize flakes within your repo by running:
-
-``` bash
-nix flake init -t github:nix-community/naersk
-nix flake lock
-```
-
-Alternatively, copy this `flake.nix` into your repo.
+If your application uses OpenSSL (making the build process fail), try:
 
 ``` nix
-{
-  inputs = {
-    utils.url = "github:numtide/flake-utils";
-    naersk.url = "github:nix-community/naersk";
-  };
-
-  outputs = { self, nixpkgs, utils, naersk }:
-    utils.lib.eachDefaultSystem (system: let
-      pkgs = nixpkgs.legacyPackages."${system}";
-      naersk-lib = naersk.lib."${system}";
-    in rec {
-      # `nix build`
-      packages.my-project = naersk-lib.buildPackage {
-        pname = "my-project";
-        root = ./.;
-      };
-      defaultPackage = packages.my-project;
-
-      # `nix run`
-      apps.my-project = utils.lib.mkApp {
-        drv = packages.my-project;
-      };
-      defaultApp = apps.my-project;
-
-      # `nix develop`
-      devShell = pkgs.mkShell {
-        nativeBuildInputs = with pkgs; [ rustc cargo ];
-      };
-    });
-}
-```
-
-If you want to use a specific toolchain version instead of the latest stable
-available in nixpkgs, you can use mozilla's nixpkgs overlay in your flake.
-
-``` nix
-{
-  inputs = {
-    utils.url = "github:numtide/flake-utils";
-    naersk.url = "github:nix-community/naersk";
-    mozillapkgs = {
-      url = "github:mozilla/nixpkgs-mozilla";
-      flake = false;
-    };
-  };
-
-  outputs = { self, nixpkgs, utils, naersk, mozillapkgs }:
-    utils.lib.eachDefaultSystem (system: let
-      pkgs = nixpkgs.legacyPackages."${system}";
-
-      # Get a specific rust version
-      mozilla = pkgs.callPackage (mozillapkgs + "/package-set.nix") {};
-      rust = (mozilla.rustChannelOf {
-        date = "2020-01-01"; # get the current date with `date -I`
-        channel = "nightly";
-        sha256 = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
-      }).rust;
-
-      # Override the version used in naersk
-      naersk-lib = naersk.lib."${system}".override {
-        cargo = rust;
-        rustc = rust;
-      };
-    in rec {
-      # `nix build`
-      packages.my-project = naersk-lib.buildPackage {
-        pname = "my-project";
-        root = ./.;
-      };
-      defaultPackage = packages.my-project;
-
-      # `nix run`
-      apps.my-project = utils.lib.mkApp {
-        drv = packages.my-project;
-      };
-      defaultApp = apps.my-project;
-
-      # `nix develop`
-      devShell = pkgs.mkShell {
-        # supply the specific rust version
-        nativeBuildInputs = [ rust ];
-      };
-    });
+naersk.buildPackage {
+  # ...
+  
+  nativeBuildInputs = with pkgs; [ pkg-config ];
+  buildInputs = with pkgs; [ openssl ];
 }
 ```

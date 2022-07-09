@@ -8,7 +8,7 @@ fn main() {
     fs::write(
         &dest_path,
         "pub fn message() -> &'static str {
-            \"Hello, World!\"
+            \"Hello, world!\"
         }
         "
     ).unwrap();
