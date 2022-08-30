@@ -19,6 +19,7 @@
             minimal.cargo
             targets.x86_64-unknown-linux-musl.latest.rust-std
             targets.x86_64-pc-windows-gnu.latest.rust-std
+            targets.i686-pc-windows-gnu.latest.rust-std
           ];
 
         naersk' = naersk.lib.${system}.override {
@@ -84,6 +85,54 @@
             wineWowPackages.stable
           ];
         };
+
+        # For `nix build .#i686-pc-windows-gnu`:
+        packages.i686-pc-windows-gnu = 
+          let
+            # GCC supports 2 types of exception handling: SJLJ and DWARF-2
+            # (https://gcc.gnu.org/wiki/WindowsGCCImprovements)
+            #
+            # Rust uses libgcc_eh for exception handling and it does not support SJLJ
+            # (https://github.com/rust-lang/rust/pull/55444#issuecomment-434044002)
+            #
+            # Solution for this are either: 
+            # 1. Rebuilding MinGW32 with DWARF-2 enabled instead of SJLJ (Which is provided in this example)
+            # 2. Using "panic = abort" for i686-pc-windows-gnu target and rebuilding rust-std to exclude any linking to libgcc_eh
+            cc' = pkgs.pkgsCross.mingw32.buildPackages.wrapCC (
+              pkgs.pkgsCross.mingw32.buildPackages.gcc.cc.overrideAttrs (oldAttr: rec{
+                configureFlags = oldAttr.configureFlags ++ [
+                  # Taken from Fedora mingw32 rpm spec
+                  # (https://src.fedoraproject.org/rpms/mingw-gcc/blob/rawhide/f/mingw-gcc.spec)
+                  "--disable-sjlj-exceptions --with-dwarf2"
+                ];
+              })
+            );
+
+          in naerskBuildPackage "i686-pc-windows-gnu" {
+            src = ./.;
+            doCheck = true;
+            strictDeps = true;
+
+            # libgcc_eh implicitly requires libmcfgthread to be linked.
+            depsBuildBuild = [cc'] ++ (with pkgs.pkgsCross.mingw32.windows; [ pthreads mcfgthreads ]);
+            # It's currently not possible to statically link mcfgtread, so instead just add a symlink so it's easier to transfer to target machine
+            postInstall = ''
+              ln -s ${pkgs.pkgsCross.mingw32.windows.mcfgthreads}/bin/mcfgthread-12.dll $out/bin/mcfgthread-12.dll
+            '';
+            CARGO_TARGET_I686_PC_WINDOWS_GNU_RUSTFLAGS = "-Clink-args=-lmcfgthread";
+            CARGO_TARGET_I686_PC_WINDOWS_GNU_RUNNER = pkgs.writeScript "wine-wrapper" ''
+              export WINEPREFIX="$(mktemp -d)"
+              ln -s \
+                ${pkgs.pkgsCross.mingw32.windows.mcfgthreads}/bin/mcfgthread-12.dll \
+                mcfgthread-12.dll
+              exec wine64 $@
+            '';
+
+            nativeBuildInputs = with pkgs; [
+              # We need Wine to run tests:
+              wineWowPackages.stable
+            ];
+          };
 
         devShell = pkgs.mkShell (
           {
