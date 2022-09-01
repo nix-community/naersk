@@ -1,4 +1,6 @@
 { src
+  #| From where the crates should be downloaded
+, cratesDownloadUrl
   #| What command to run during the build phase
 , cargoCommand
 , cargoBuildOptions
@@ -389,7 +391,7 @@ let
       crate = fetchurl {
         inherit sha256;
 
-        url = "https://crates.io/api/v1/crates/${name}/${version}/download";
+        url = "${cratesDownloadUrl}/api/v1/crates/${name}/${version}/download";
         name = "download-${name}-${version}";
       };
 

@@ -37,6 +37,9 @@ let
     # 2.4+.
     gitSubmodules = attrs0.gitSubmodules or false;
 
+    # Url for downloading crates from an alternative source
+    cratesDownloadUrl = attrs0.cratesDownloadUrl or "https://crates.io";
+
     # The command to use for the build.
     cargoBuild =
       allowFun attrs0 "cargoBuild"
@@ -259,6 +262,7 @@ let
       cargoOptions
       compressTarget
       mode
+      cratesDownloadUrl
 
       cargoBuildOptions
       remapPathPrefix
