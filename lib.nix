@@ -108,9 +108,9 @@ rec
           url = lock.url;
           rev = lock.revision;
         } // lib.optionalAttrs (lock ? branch) {
-          ref = lock.branch;
+          ref = "refs/heads/${lock.branch}";
         } // lib.optionalAttrs (lock ? tag) {
-          ref = lock.tag;
+          ref = "refs/tags/${lock.tag}";
         } // lib.optionalAttrs ((lib.versionAtLeast builtins.nixVersion "2.4") && (gitAllRefs || lock ? rev)) {
           allRefs = true;
         } // lib.optionalAttrs gitSubmodules {
