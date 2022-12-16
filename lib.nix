@@ -135,7 +135,7 @@ rec
             attrs =
               # Since we pretend everything is a lib, we remove any mentions
               # of binaries
-              removeAttrs cargotoml [ "bin" "example" "lib" "test" "bench" "default-run" ]
+              removeAttrs cargotoml [ "bin" "example" "test" "bench" "default-run" ]
                 // lib.optionalAttrs (builtins.hasAttr "package" cargotoml) ({ package = removeAttrs cargotoml.package [ "default-run" ] ; })
                 ;
           in
@@ -170,7 +170,11 @@ rec
                 pushd $out/$member > /dev/null
                 mkdir -p src
                 # Avoid accidentally pulling `std` for no-std crates.
-                echo '#![no_std]' >src/lib.rs
+                cat <<EOF >src/lib.rs
+                #![no_std]
+                #[panic_handler]
+                fn panic(_info: &core::panic::PanicInfo) -> ! { loop {} }
+            EOF
                 # pretend there's a `build.rs`, otherwise cargo doesn't build
                 # the `[build-dependencies]`. Custom locations of build scripts
                 # aren't an issue because we strip the `build` field in
