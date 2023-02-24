@@ -116,9 +116,6 @@ let
     # `singleStep` greatly reduces the incrementality of the builds.
     singleStep = attrs0.singleStep or false;
 
-    # The targets to build if the `Cargo.toml` is a virtual manifest.
-    targets = attrs0.targets or null;
-
     # When true, the resulting binaries are copied to `$out/bin`. <br/>
     # Note: this relies on cargo's `--message-format` argument, set in the
     # default `cargoBuildOptions`.
@@ -277,77 +274,48 @@ let
   buildPlanConfig = rec {
     inherit userAttrs;
     inherit (sr) src root;
-    # Whether we skip pre-building the deps
-    isSingleStep = attrs.singleStep;
-
     inherit (attrs) overrideMain gitAllRefs gitSubmodules;
 
-    # The members we want to build
-    # (list of directory names)
-    wantedMembers =
-      lib.mapAttrsToList (member: _cargotoml: member) wantedMemberCargotomls;
+    isSingleStep = attrs.singleStep;
 
-    # Member path to cargotoml
-    # (attrset from directory name to Nix object)
-    wantedMemberCargotomls =
-      let
-        pred =
-          if ! isWorkspace
-          then (_member: _cargotoml: true)
-          else
-            if ! isNull attrs.targets
-            then (_member: cargotoml: lib.elem cargotoml.package.name attrs.targets)
-            else (member: _cargotoml: member != ".");
-      in
-        lib.filterAttrs pred cargotomls;
-
-    # All cargotomls, from path to nix object
-    # (attrset from directory name to Nix object)
+    # List of all the Cargo.tomls in the workspace.
+    #
+    # Note that the simplest thing here would be to read `workspace.members`,
+    # but somewhat unfortunately there's no requirement that all workspace
+    # crates should be listed there - for instance, some projects¹ do:
+    #
+    # ```
+    # [workspace]
+    # members = [ "crates/foo", "crates/bar" ]
+    #
+    # [dependencies]
+    # foo = { path = "crates/foo" }
+    # bar = { path = "crates/bar" }
+    # zar = { path = "crates/zar" }
+    # ```
+    #
+    # ... which Cargo allows and so should we.
+    #
+    # ¹ such as Nushell
     cargotomls =
       let
-        readTOML = builtinz.readTOML usePureFromTOML;
-      in
-        { "." = toplevelCargotoml; } // lib.optionalAttrs isWorkspace
-          (
-            lib.listToAttrs
-              (
-                map
-                  (
-                    member:
-                      {
-                        name = member;
-                        value = readTOML (root + "/${member}/Cargo.toml");
-                      }
-                  )
-                  members
-              )
-          );
+        findCargoTomls = dir:
+          lib.mapAttrsToList
+            (name: type:
+              let
+                path = "${root}/${dir}/${name}";
 
-    # The cargo members
-    members =
-      let
-        # the members, as listed in the virtual manifest
-        listedMembers = toplevelCargotoml.workspace.members or [];
-
-        # this turns members like "foo/*" into [ "foo/bar" "foo/baz" ]
-        # as in https://github.com/rust-analyzer/rust-analyzer/blob/b2ed130ffd9c79de26249a1dfb2a8312d6af12b3/Cargo.toml#L2
-        expandMember = member:
-          if (lib.hasSuffix "/*" member) || (lib.hasSuffix "/*/" member)
-          then
-            let
-              rootDir = lib.replaceStrings [ "/*/" "/*" ] [ "" "" ] member;
-              subdirs = (
-                builtins.attrNames (
-                  lib.filterAttrs
-                    (name: type: type == "directory")
-                    (builtins.readDir (root + "/${rootDir}"))
-                )
-              );
-            in map (subdir: "${rootDir}/${subdir}") subdirs
-          else [ member ];
+              in
+              if type == "regular" && name == "Cargo.toml" then
+                [{ name = dir; toml = readTOML path; }]
+              else if type == "directory" then
+                findCargoTomls "${dir}/${name}"
+              else
+                [])
+            (builtins.readDir "${root}/${dir}");
 
       in
-        lib.unique (lib.concatMap expandMember listedMembers);
+        lib.flatten (findCargoTomls ".");
 
     # If `copySourcesFrom` is set, then it looks like the benefits brought by
     # two-step caching break, for unclear reasons as of now. As such, do not set
@@ -379,13 +347,13 @@ let
     toplevelCargotoml = readTOML (root + "/Cargo.toml");
 
     # The cargo lock
-    cargolock = 
+    cargolock =
       let
         cargolock-file = root + "/Cargo.lock";
       in
       if builtins.pathExists cargolock-file then
         readTOML (cargolock-file)
-      else 
+      else
         throw "Naersk requires Cargo.lock to be available in root. Check that it is not in .gitignore and stage it when using git to filter sources (which flakes does)";
 
     packageName =

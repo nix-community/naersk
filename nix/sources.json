@@ -11,18 +11,6 @@
         "url": "https://github.com/ninegua/agent-rs/archive/4a22e590516bc79ec3c75a320f7941e7762ea098.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
-    "cargo": {
-        "branch": "nm/canonicalize-path-args",
-        "description": "The Rust package manager",
-        "homepage": "https://doc.rust-lang.org/cargo",
-        "owner": "nmattia",
-        "repo": "cargo",
-        "rev": "979904e092b39bb6aafe62a3ff3d994d3d8b6247",
-        "sha256": "078hhwii2qhdsm179xl249p0c2445yiyl5dv48kvx2372mc0g2gd",
-        "type": "tarball",
-        "url": "https://github.com/nmattia/cargo/archive/979904e092b39bb6aafe62a3ff3d994d3d8b6247.tar.gz",
-        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
-    },
     "lorri": {
         "branch": "master",
         "description": "foo",
@@ -33,18 +21,6 @@
         "sha256": "17b2s62bdly9gf93rcbc39f0qyz45pq13x2ch6ga5vwb8ydmn4r8",
         "type": "tarball",
         "url": "https://github.com/target/lorri/archive/ba299dde70af5cb8bffbce3eb770ec6cfb2fd1aa.tar.gz",
-        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
-    },
-    "lucet": {
-        "branch": "master",
-        "description": "Lucet, the Sandboxing WebAssembly Compiler.",
-        "homepage": "",
-        "owner": "fastly",
-        "repo": "lucet",
-        "rev": "8b20e9527aabd27e8360bd2aac763cedf4a96a8b",
-        "sha256": "0wpfj1qyqbkym83yvlg3xmj8vlf1g7r0azmif51m58k3qqm86fca",
-        "type": "tarball",
-        "url": "https://github.com/fastly/lucet/archive/8b20e9527aabd27e8360bd2aac763cedf4a96a8b.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "niv": {
@@ -107,28 +83,28 @@
         "url": "https://github.com/NixOS/nixpkgs/archive/432864f33c84af53192d4b23ee5871697e57f094.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
-    "noria": {
+    "nixpkgs-mozilla": {
         "branch": "master",
-        "description": "Dynamically changing, partially-stateful data-flow for web application backends.",
+        "description": "Mozilla overlay for Nixpkgs.",
         "homepage": "",
-        "owner": "mit-pdos",
-        "repo": "noria",
-        "rev": "e1dd3d4bdeda53ff72f8ee0b8deaa923afe4f67a",
-        "sha256": "1x3lx58qhgy8iw3ykd3cwia5bnfflgxpf88ssi2p631kcail5m6z",
+        "owner": "mozilla",
+        "repo": "nixpkgs-mozilla",
+        "rev": "85eb0ba7d8e5d6d4b79e5b0180aadbdd25d76404",
+        "sha256": "15a7zd7nrnfgjzs8gq2cpkxg7l3c38jradkxxyaf136kkqhlc0k4",
         "type": "tarball",
-        "url": "https://github.com/mit-pdos/noria/archive/e1dd3d4bdeda53ff72f8ee0b8deaa923afe4f67a.tar.gz",
+        "url": "https://github.com/mozilla/nixpkgs-mozilla/archive/85eb0ba7d8e5d6d4b79e5b0180aadbdd25d76404.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
-    "ripgrep": {
-        "branch": "master",
-        "description": "ripgrep recursively searches directories for a regex pattern",
-        "homepage": "",
-        "owner": "BurntSushi",
-        "repo": "ripgrep",
-        "rev": "d1389db2e39802d5e04dc7b902fd2b1f9f615b01",
-        "sha256": "11cflb47pjyb5kx8n2a4w34y47z8dw935i7v11g3ynzhq4apsavi",
+    "nushell": {
+        "branch": "main",
+        "description": "A new type of shell",
+        "homepage": "https://www.nushell.sh/",
+        "owner": "nushell",
+        "repo": "nushell",
+        "rev": "85bfdca578157072e51e6972d370cfe63b0fda77",
+        "sha256": "0virlm3wpzsavdlci725iw0f8amr6ijxg9p2xp2q41zngjgb3w98",
         "type": "tarball",
-        "url": "https://github.com/BurntSushi/ripgrep/archive/d1389db2e39802d5e04dc7b902fd2b1f9f615b01.tar.gz",
+        "url": "https://github.com/nushell/nushell/archive/85bfdca578157072e51e6972d370cfe63b0fda77.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "ripgrep-all": {
@@ -143,30 +119,6 @@
         "url": "https://github.com/phiresky/ripgrep-all/archive/v0.9.6.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
-    "rust": {
-        "branch": "master",
-        "description": "Empowering everyone to build reliable and efficient software.",
-        "homepage": "https://www.rust-lang.org",
-        "owner": "rust-lang",
-        "repo": "rust",
-        "rev": "8ebd67e4ee394cad9441a801f2022724ae7e07db",
-        "sha256": "10r5q5vgpmqkgq942qzajfgz5fwm3m9jbg8h22ykb62nsi35wv02",
-        "type": "tarball",
-        "url": "https://github.com/rust-lang/rust/archive/8ebd67e4ee394cad9441a801f2022724ae7e07db.tar.gz",
-        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
-    },
-    "rustfmt": {
-        "branch": "master",
-        "description": "Format Rust code",
-        "homepage": "",
-        "owner": "rust-lang",
-        "repo": "rustfmt",
-        "rev": "1d19a08ed4743e3c95176fb639ebcd50f68a3313",
-        "sha256": "1cschys4igyraqqw1gq3279bavvsjy6hx93is5myr70kx998x48k",
-        "type": "tarball",
-        "url": "https://github.com/rust-lang/rustfmt/archive/1d19a08ed4743e3c95176fb639ebcd50f68a3313.tar.gz",
-        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
-    },
     "rustlings": {
         "branch": "master",
         "description": "Small exercises to get you used to reading and writing Rust code!",
@@ -177,18 +129,6 @@
         "sha256": "1rqn9rbgxs8vxqm4y29kvrgri22cgkb7jczwx19f9vlfphj7lkvm",
         "type": "tarball",
         "url": "https://github.com/rust-lang/rustlings/archive/b8d59d699bed76b6be95d1ed41881d00d4b0d533.tar.gz",
-        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
-    },
-    "servo": {
-        "branch": "master",
-        "description": "The Servo Browser Engine",
-        "homepage": "https://servo.org/",
-        "owner": "servo",
-        "repo": "servo",
-        "rev": "a2b76b0169bbc7691fe2dc173ce7948ee1aca876",
-        "sha256": "0a9p5hd8aq07ygdgjmhlmy7xajaz6ahnj38c2xipbhzyp6wfmd4y",
-        "type": "tarball",
-        "url": "https://github.com/servo/servo/archive/a2b76b0169bbc7691fe2dc173ce7948ee1aca876.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "talent-plan": {

@@ -213,7 +213,6 @@ process, rest is passed-through into `mkDerivation`.
 | `override` | An override for all derivations involved in the build. Default: `(x: x)` |
 | `overrideMain` | An override for the top-level (last, main) derivation. If both `override` and `overrideMain` are specified, _both_ will be applied to the top-level derivation. Default: `(x: x)` |
 | `singleStep` | When true, no intermediary (dependency-only) build is run. Enabling `singleStep` greatly reduces the incrementality of the builds. Default: `false` |
-| `targets` | The targets to build if the `Cargo.toml` is a virtual manifest. |
 | `copyBins` | When true, the resulting binaries are copied to `$out/bin`. <br/> Note: this relies on cargo's `--message-format` argument, set in the default `cargoBuildOptions`. Default: `true` |
 | `copyLibs` | When true, the resulting binaries are copied to `$out/lib`. <br/> Note: this relies on cargo's `--message-format` argument, set in the default `cargoBuildOptions`. Default: `false` |
 | `copyBinsFilter` | A [`jq`](https://stedolan.github.io/jq) filter for selecting which build artifacts to release. This is run on cargo's [`--message-format`](https://doc.rust-lang.org/cargo/reference/external-tools.html#json-messages) JSON output. <br/> The value is written to the `cargo_bins_jq_filter` variable. Default: `''select(.reason == "compiler-artifact" and .executable != null and .profile.test == false)''` |

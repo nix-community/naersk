@@ -121,15 +121,16 @@ rec
 
   # A very minimal 'src' which makes cargo happy nonetheless
   dummySrc =
-    { cargoconfig   # string
-    , cargotomls   # attrset
-    , cargolock   # attrset
+    { cargoconfig # string
+    , cargotomls # list
+    , cargolock # attrset
     , copySources # list of paths that should be copied to the output
     , copySourcesFrom # path from which to copy ${copySources}
     }:
       let
         config = writeText "config" cargoconfig;
         cargolock' = builtinz.writeTOML "Cargo.lock" cargolock;
+
         fixupCargoToml = cargotoml:
           let
             attrs =
@@ -143,10 +144,9 @@ rec
               package = removeAttrs attrs.package [ "build" ];
             };
 
-        # a list of tuples from member to cargo toml:
-        #   "foo-member:/path/to/toml bar:/path/to/other-toml"
-        cargotomlss = lib.mapAttrsToList
-          (k: v: "${k}:${builtinz.writeTOML "Cargo.toml" (fixupCargoToml v)}")
+        cargotomlss = map
+          ({ name, toml }:
+            "${name}:${builtinz.writeTOML "Cargo.toml" (fixupCargoToml toml)}")
           cargotomls;
 
       in
@@ -166,11 +166,12 @@ rec
                 final_path="$final_dir/Cargo.toml"
                 cp $cargotoml "$final_path"
 
-                # make sure cargo is happy
                 pushd $out/$member > /dev/null
                 mkdir -p src
+
                 # Avoid accidentally pulling `std` for no-std crates.
                 echo '#![no_std]' >src/lib.rs
+
                 # pretend there's a `build.rs`, otherwise cargo doesn't build
                 # the `[build-dependencies]`. Custom locations of build scripts
                 # aren't an issue because we strip the `build` field in
