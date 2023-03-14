@@ -15,25 +15,37 @@ let
   docparse = naersk.buildPackage {
     root = ./docparse;
 
-    src = builtins.filterSource (
-      p: t:
-        let
-          p' = pkgs.lib.removePrefix (toString ./docparse + "/") p;
-        in
-        p' == "Cargo.lock" || p' == "Cargo.toml" || p' == "src" || p' == "src/main.rs"
-    ) ./docparse;
+    src = builtins.filterSource
+      (
+        p: t:
+          let
+            p' = pkgs.lib.removePrefix (toString ./docparse + "/") p;
+          in
+          p' == "Cargo.lock" || p' == "Cargo.toml" || p' == "src" || p' == "src/main.rs"
+      ) ./docparse;
   };
 
-in rec {
-  body = pkgs.runCommand "readme-body" {
-    buildInputs = [ docparse ];
-  } ''
-    cat ${./README.tpl.md} > $out
-    docparse ${./config.nix} >> gen
-    sed -e '/GEN_CONFIGURATION/{r gen' -e 'd}' -i $out
-  '';
+in
+rec {
+  body =
+    let
+      readme = builtins.readFile ./README.tpl.md;
 
-  test = pkgs.runCommand "readme-test" {} ''
+      params = builtins.readFile (
+        pkgs.runCommand "docparse"
+          { buildInputs = [ docparse ]; }
+          "docparse ${./config.nix} > $out"
+      );
+
+    in
+    pkgs.writeText "readme" (
+      builtins.replaceStrings
+        [ "{{ params }}" ]
+        [ params ]
+        readme
+    );
+
+  test = pkgs.runCommand "readme-test" { } ''
     diff ${./README.md} ${body}
     touch $out
   '';
