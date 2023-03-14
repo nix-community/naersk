@@ -6,6 +6,8 @@ Build Rust projects with ease!
 
 * [Setup](#setup)
 * [Usage](#usage)
+* [Examples](#examples)
+* [Tips & Tricks](#tips--tricks)
 
 ## Setup
 
@@ -190,7 +192,11 @@ process, rest is passed-through into `mkDerivation`.
 
 ### `buildPackage`'s parameters
 
-GEN_CONFIGURATION
+{{ params }}
+
+## Examples
+
+See: [./examples](./examples).
 
 ## Tips & Tricks
 
