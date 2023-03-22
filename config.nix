@@ -306,7 +306,7 @@ let
                 path = "${root}/${dir}/${name}";
 
               in
-              if type == "regular" && name == "Cargo.toml" then
+              if name == "Cargo.toml" then
                 [{ name = dir; toml = readTOML path; }]
               else if type == "directory" then
                 findCargoTomls "${dir}/${name}"

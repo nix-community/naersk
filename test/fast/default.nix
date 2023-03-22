@@ -13,6 +13,7 @@ args: {
   readme = import ./readme args;
   simple-dep = import ./simple-dep args;
   simple-dep-patched = import ./simple-dep-patched args;
+  symlinks = import ./symlinks args;
   workspace = import ./workspace args;
   workspace-build-rs = import ./workspace-build-rs args;
   workspace-patched = import ./workspace-patched args;
