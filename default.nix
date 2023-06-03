@@ -11,6 +11,7 @@
 , stdenv
 , writeText
 , zstd
+, clippy
 }@defaultBuildAttrs:
 
 let
