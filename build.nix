@@ -36,11 +36,15 @@
   #  Which drops the run-time dependency on the crates-io source thereby
   #  significantly reducing the Nix closure size.
 , removeReferencesToSrcFromDocs
+, checkOnly ? false
+, testOnly ? false
+, clippyOnly ? false
 , gitDependencies
 , pname
 , version
 , rustc
 , cargo
+, clippy
 , override
 , nativeBuildInputs
 , buildInputs
@@ -119,7 +123,8 @@ let
       cargo
       jq
       rsync
-    ] ++ nativeBuildInputs;
+    ] ++ nativeBuildInputs
+      ++ lib.optionals clippyOnly [clippy];
 
     buildInputs = lib.optionals stdenv.isDarwin [
       darwin.Security
