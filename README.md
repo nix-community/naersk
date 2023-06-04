@@ -258,9 +258,8 @@ process, rest is passed-through into `mkDerivation`.
 | `copyTarget` | When true, the `target/` directory is copied to `$out`. Default: `false` |
 | `postInstall` | Optional hook to run after the compilation is done; inside this script, `$out/bin` contains compiled Rust binaries. Useful if your application needs e.g. custom environment variables, in which case you can simply run `wrapProgram $out/bin/your-app-name` in here. Default: `false` |
 | `usePureFromTOML` | Whether to use the `fromTOML` built-in or not. When set to `false` the python package `remarshal` is used instead (in a derivation) and the JSON output is read with `builtins.fromJSON`. This is a workaround for old versions of Nix. May be used safely from Nix 2.3 onwards where all bugs in `builtins.fromTOML` seem to have been fixed. Default: `true` |
-| `checkOnly` | When true, only runs `cargo check` during build instead of building the project, overwrites `cargoBuild`. Default: `false` |
-| `testOnly` | When true, only runs `cargo test` during build instead of building the project, overwrites `cargoBuild`. Default: `false` |
-| `testOnly` | When true, only runs `cargo test` during build instead of building the project, overwrites `cargoBuild`. Default: `false` |
+| `mode` | What to do when building the derivation. Either `build`, `check`, `test` or `clippy`. <br/> When set to something other than `build`, no binaries are generated. Default: `"build"` |
+
 
 ## Examples
 

@@ -1,6 +1,6 @@
 { src
   #| What command to run during the build phase
-, cargoBuild
+, cargoCommand
 , cargoBuildOptions
 , remapPathPrefix
 , #| What command to run during the test phase
@@ -36,9 +36,7 @@
   #  Which drops the run-time dependency on the crates-io source thereby
   #  significantly reducing the Nix closure size.
 , removeReferencesToSrcFromDocs
-, checkOnly ? false
-, testOnly ? false
-, clippyOnly ? false
+, mode ? "build" # `build`, `check`, `test` or `clippy`
 , gitDependencies
 , pname
 , version
@@ -124,7 +122,7 @@ let
       jq
       rsync
     ] ++ nativeBuildInputs
-      ++ lib.optionals clippyOnly [clippy];
+      ++ lib.optionals (mode == "clippy") [clippy];
 
     buildInputs = lib.optionals stdenv.isDarwin [
       darwin.Security
@@ -241,7 +239,7 @@ let
       export SOURCE_DATE_EPOCH=1
 
       cargo_ec=0
-      logRun ${cargoBuild} || cargo_ec="$?"
+      logRun ${cargoCommand} || cargo_ec="$?"
 
       if [ "$cargo_ec" -ne "0" ]; then
         cat "$cargo_build_output_json" | jq -cMr 'select(.message.rendered != null) | .message.rendered'
