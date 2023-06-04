@@ -178,14 +178,9 @@ let
     # fixed.
     usePureFromTOML = attrs0.usePureFromTOML or true;
 
-    # When true, only run `cargo check`.
-    checkOnly = attrs0.checkOnly or false;
-
-    # When true, only run `cargo test`.
-    testOnly = attrs0.testOnly or false;
-
-    # When true, only run `cargo clippy`.
-    clippyOnly = attrs0.clippyOnly or false;
+    # What to do when building the derivation. Either `build`, `check`, `test` or `clippy`. <br/>
+    # When set to something other than `build`, no binaries are generated.
+    mode = attrs0.mode or "build";
   };
 
   argIsAttrs =
@@ -240,18 +235,22 @@ let
   usePureFromTOML = attrs.usePureFromTOML;
   readTOML = builtinz.readTOML usePureFromTOML;
 
-  cargoBuildOverwrite = let
-    inherit (lib.attrsets) optionalAttrs;
-  in (optionalAttrs attrs.checkOnly {
-    cargoBuild = ''cargo $cargo_options check $cargo_build_options >> $cargo_build_output_json'';
-  }) // (optionalAttrs attrs.testOnly {
-    cargoBuild = ''cargo $cargo_options test $cargo_test_options >> $cargo_build_output_json'';
-  }) // (optionalAttrs attrs.clippyOnly {
-    cargoBuild = ''cargo $cargo_options clippy $cargo_build_options -- -D warnings >> $cargo_build_output_json'';
-  });
+  cargoCommand = let
+      mode = attrs.mode;
+    in
+      if (mode == "build") then
+        attrs.cargoBuild
+      else if (mode == "check") then
+        ''cargo $cargo_options check $cargo_build_options >> $cargo_build_output_json''
+      else if (mode == "test") then
+        ''cargo $cargo_options test $cargo_test_options >> $cargo_build_output_json''
+      else if (mode == "clippy") then
+        ''cargo $cargo_options clippy $cargo_build_options -- -D warnings >> $cargo_build_output_json''
+      else throw "Unknown mode ${mode}, allowed modes: build, check, test, clippy";
 
   # config used during build the prebuild and the final build
   buildConfig = {
+    inherit cargoCommand;
     inherit (attrs)
       nativeBuildInputs
       buildInputs
@@ -260,7 +259,6 @@ let
       cargoOptions
       compressTarget
 
-      cargoBuild
       cargoBuildOptions
       remapPathPrefix
       copyBins
@@ -287,7 +285,7 @@ let
     # Example:
     #   [ { name = "wabt", version = "2.0.6", sha256 = "..." } ]
     crateDependencies = libb.mkVersions buildPlanConfig.cargolock;
-  } // cargoBuildOverwrite;
+  };
 
   # config used when planning the builds
   buildPlanConfig = rec {

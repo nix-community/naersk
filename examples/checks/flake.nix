@@ -1,8 +1,7 @@
 {
   inputs = {
     flake-utils.url = "github:numtide/flake-utils";
-#    naersk.url = "github:nix-community/naersk";
-    naersk.url = "path:/home/robin/Projects/naersk";
+    naersk.url = "github:nix-community/naersk";
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
   };
 
@@ -24,17 +23,17 @@
           # Run `nix build .#check` to check code
           check = naersk'.buildPackage {
             src = ./.;
-            checkOnly = true;
+            mode = "check";
           };
           # Run `nix build .#test` to run tests
           test = naersk'.buildPackage {
             src = ./.;
-            testOnly = true;
+            mode = "test";
           };
           # Run `nix build .#clippy` to lint code
           clippy = naersk'.buildPackage {
             src = ./.;
-            clippyOnly = true;
+            mode = "clippy";
           };
         };
 
