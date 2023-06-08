@@ -258,6 +258,7 @@ let
       override
       cargoOptions
       compressTarget
+      mode
 
       cargoBuildOptions
       remapPathPrefix
