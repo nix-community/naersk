@@ -4,10 +4,42 @@
 
 Build Rust projects with ease!
 
+* [Introduction](#introduction)
 * [Setup](#setup)
 * [Usage](#usage)
 * [Examples](#examples)
 * [Tips & Tricks](#tips--tricks)
+
+## Introduction
+
+Naersk is a [Nix](https://nixos.org/explore.html) library for building Rust
+projects - basically, you write:
+
+```
+naersk.buildPackage {
+  src = ./.; # Wherever your Cargo.lock and the rest of your source code are
+}
+```
+
+... and that turns your code into a Nix derivation which you can, for instance,
+include in your system:
+
+```
+environment.systemPackages = [
+  (naersk.buildPackage {
+    src = ./my-cool-app;
+  })
+];
+
+# (see below for more complete examples)
+```
+
+Under the hood, `buildPackage` parses `Cargo.lock`, downloads all dependencies,
+and compiles your application, fully utilizing Nix's sandboxing and caching
+abilities; so, with a pinch of salt, Naersk is `cargo build`, but inside Nix!
+
+If you're using Hydra, you can rely on Naersk as well because it doesn't use
+IFD - all the parsing happens directly inside Nix code.
 
 ## Setup
 
