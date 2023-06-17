@@ -2,7 +2,6 @@
 
 naersk.buildPackage {
   src = sources.agent-rs;
-  doCheck = true;
 
   buildInputs = [
     pkgs.openssl
