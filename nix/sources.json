@@ -11,6 +11,18 @@
         "url": "https://github.com/ninegua/agent-rs/archive/4a22e590516bc79ec3c75a320f7941e7762ea098.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
+    "fenix": {
+        "branch": "main",
+        "description": "Rust toolchains and rust-analyzer nightly for Nix [maintainer=@figsoda]",
+        "homepage": "",
+        "owner": "nix-community",
+        "repo": "fenix",
+        "rev": "06776a448cfdee8ed146305369c1810cd7c82799",
+        "sha256": "15z2mcrgzj9322xndk1xs29m23rdkfzbg2b0w0hva489rnq4mnc3",
+        "type": "tarball",
+        "url": "https://github.com/nix-community/fenix/archive/06776a448cfdee8ed146305369c1810cd7c82799.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    },
     "lorri": {
         "branch": "master",
         "description": "foo",

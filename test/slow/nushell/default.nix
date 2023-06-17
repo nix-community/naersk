@@ -1,15 +1,11 @@
-{ sources, ... }:
+{ sources, pkgs, ... }:
 let
-  pkgs = import sources.nixpkgs {
-    overlays = [
-      (import sources.nixpkgs-mozilla)
-    ];
-  };
+  fenix = import sources.fenix { };
 
-  toolchain = (pkgs.rustChannelOf {
-    rustToolchain = "${sources.nushell}/rust-toolchain.toml";
+  toolchain = fenix.fromToolchainFile {
+    file = "${sources.nushell}/rust-toolchain.toml";
     sha256 = "sha256-Zk2rxv6vwKFkTTidgjPm6gDsseVmmljVt201H7zuDkk=";
-  }).rust;
+  };
 
   naersk = pkgs.callPackage ../../../default.nix {
     cargo = toolchain;
@@ -18,8 +14,13 @@ let
 
   app = naersk.buildPackage {
     src = sources.nushell;
+
     nativeBuildInputs = with pkgs; [ pkg-config ];
-    buildInputs = with pkgs; [ openssl ];
+
+    buildInputs = with pkgs; [ openssl ]
+      ++ lib.optionals stdenv.isDarwin [ zlib libiconv darwin.Libsystem darwin.Security darwin.apple_sdk.frameworks.Foundation ];
+
+    LIBCLANG_PATH = "${pkgs.clang.cc.lib}/lib";
   };
 
 in
