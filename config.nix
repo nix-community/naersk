@@ -71,6 +71,14 @@ let
     cargoTestOptions =
       allowFun attrs0 "cargoTestOptions" [ "$cargo_release" ''-j "$NIX_BUILD_CORES"'' ];
 
+    # Options passed to cargo clippy, i.e. `cargo clippy -- <OPTS>`. These options
+    # can be accessed during the build through the environment variable
+    # `cargo_clippy_options`. <br />
+    # Note: these values are not (shell) escaped, meaning that you can use
+    # environment variables but must be careful when introducing e.g. spaces. <br/>
+    cargoClippyOptions =
+      allowFun attrs0 "cargoClippyOptions" [ "-D warnings" ];
+
     # Extra `nativeBuildInputs` to all derivations.
     nativeBuildInputs = attrs0.nativeBuildInputs or [];
 
@@ -245,7 +253,7 @@ let
       else if (mode == "test") then
         ''cargo $cargo_options test $cargo_test_options >> $cargo_build_output_json''
       else if (mode == "clippy") then
-        ''cargo $cargo_options clippy $cargo_build_options -- -D warnings >> $cargo_build_output_json''
+        ''cargo $cargo_options clippy $cargo_build_options -- $cargo_clippy_options >> $cargo_build_output_json''
       else throw "Unknown mode ${mode}, allowed modes: build, check, test, clippy";
 
   # config used during build the prebuild and the final build
@@ -270,6 +278,8 @@ let
 
       cargoTestCommands
       cargoTestOptions
+
+      cargoClippyOptions
 
       doDoc
       doDocFail
