@@ -38,6 +38,7 @@
   #  Which drops the run-time dependency on the crates-io source thereby
   #  significantly reducing the Nix closure size.
 , removeReferencesToSrcFromDocs
+, cargoClippyOptions
 , mode ? "build" # `build`, `check`, `test` or `clippy`
 , gitDependencies
 , pname
@@ -140,6 +141,7 @@ let
     cargo_options = cargoOptions;
     cargo_build_options = cargoBuildOptions;
     cargo_test_options = cargoTestOptions;
+    cargo_clippy_options = cargoClippyOptions;
     cargo_doc_options = cargoDocOptions;
     cargo_bins_jq_filter = copyBinsFilter;
     cargo_libs_jq_filter = copyLibsFilter;
