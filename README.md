@@ -267,6 +267,23 @@ See: [./examples](./examples).
 
 ## Tips & Tricks
 
+### Building a particular example
+
+If you want to build only a particular example, use:
+
+``` nix
+naersk.buildPackage {
+  pname = "your-example-name";
+  src = ./.;
+
+  overrideMain = old: {
+    preConfigure = ''
+      cargo_build_options="$cargo_build_options --example your-example-name"
+    '';
+  };
+}
+```
+
 ### Using OpenSSL
 
 If your application uses OpenSSL (making the build process fail), try:
