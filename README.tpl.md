@@ -249,6 +249,31 @@ naersk.buildPackage {
 }
 ```
 
+### Using CMake
+
+If your application uses CMake, the build process might fail, saying:
+
+```
+CMake Error: The current CMakeCache.txt directory ... is different than the directory ... where CMakeCache.txt was created.
+```
+
+You can fix this problem by removing stale `CMakeCache.txt` files before the
+build:
+
+``` nix
+naersk.buildPackage {
+  # ...
+  
+  preBuild = ''
+    find \
+        -name CMakeCache.txt \
+        -exec rm {} \;
+  '';
+}
+```
+
+([context](https://github.com/nix-community/naersk/pull/288))
+
 ### Using OpenSSL
 
 If your application uses OpenSSL (making the build process fail), try:
