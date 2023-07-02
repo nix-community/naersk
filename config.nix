@@ -82,6 +82,14 @@ let
     cargoClippyOptions =
       allowFun attrs0 "cargoClippyOptions" [ "-D warnings" ];
 
+    # Options passed to cargo fmt, i.e. `cargo fmt -- <OPTS>`. These options
+    # can be accessed during the build through the environment variable
+    # `cargo_fmt_options`. <br />
+    # Note: these values are not (shell) escaped, meaning that you can use
+    # environment variables but must be careful when introducing e.g. spaces. <br/>
+    cargoFmtOptions =
+      allowFun attrs0 "cargoFmtOptions" [ "--check" ];
+
     # Extra `nativeBuildInputs` to all derivations.
     nativeBuildInputs = attrs0.nativeBuildInputs or [];
 
@@ -189,7 +197,7 @@ let
     # fixed.
     usePureFromTOML = attrs0.usePureFromTOML or true;
 
-    # What to do when building the derivation. Either `build`, `check`, `test` or `clippy`. <br/>
+    # What to do when building the derivation. Either `build`, `check`, `test`, `fmt` or `clippy`. <br/>
     # When set to something other than `build`, no binaries are generated.
     mode = attrs0.mode or "build";
   };
@@ -257,6 +265,8 @@ let
         ''cargo $cargo_options test $cargo_test_options >> $cargo_build_output_json''
       else if (mode == "clippy") then
         ''cargo $cargo_options clippy $cargo_build_options -- $cargo_clippy_options >> $cargo_build_output_json''
+      else if (mode == "fmt") then
+        ''cargo $cargo_options fmt -- $cargo_fmt_options''
       else throw "Unknown mode ${mode}, allowed modes: build, check, test, clippy";
 
   # config used during build the prebuild and the final build
@@ -284,6 +294,7 @@ let
       cargoTestOptions
 
       cargoClippyOptions
+      cargoFmtOptions
 
       doDoc
       doDocFail
