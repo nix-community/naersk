@@ -39,6 +39,7 @@
   #  significantly reducing the Nix closure size.
 , removeReferencesToSrcFromDocs
 , cargoClippyOptions
+, cargoFmtOptions
 , mode ? "build" # `build`, `check`, `test` or `clippy`
 , gitDependencies
 , pname
@@ -142,6 +143,7 @@ let
     cargo_build_options = cargoBuildOptions;
     cargo_test_options = cargoTestOptions;
     cargo_clippy_options = cargoClippyOptions;
+    cargo_fmt_options = cargoFmtOptions;
     cargo_doc_options = cargoDocOptions;
     cargo_bins_jq_filter = copyBinsFilter;
     cargo_libs_jq_filter = copyLibsFilter;
