@@ -2,6 +2,7 @@ args: {
   cargo-wildcard = import ./cargo-wildcard args;
   default-run = import ./default-run args;
   dummyfication = import ./dummyfication args;
+  duplicated-cargo-lock-items = import ./duplicated-cargo-lock-items args;
   git-dep = import ./git-dep args;
   git-dep-by-branch = import ./git-dep-by-branch args;
   git-dep-by-branch-with-slash = import ./git-dep-by-branch-with-slash args;
