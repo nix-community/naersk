@@ -1,0 +1,8 @@
+[package]
+name = "app"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+rand = { git = "https://github.com/rust-random/rand.git", rev = "bda997404d9ab8a89d590734d8b0bb72aed10758", package = "rand_core" }
+rand_core = "0.6.1"

@@ -404,7 +404,37 @@ let
     ''
       mkdir -p $out
       tar -xzf ${crate} -C $out
-      echo '{"package":"${sha256}","files":{}}' > $out/${name}-${version}/.cargo-checksum.json
+
+      # Most filesystems have a maximum filename length of 255
+      dest="$out/$(echo "${name}-${version}-${sha256}" | head -c 255)"
+
+      # Unpacked crates contain a directory named after package's name and its
+      # version - here we're renaming that directory to contain the package's
+      # checksum as well, to avoid clashes in edge cases like:
+      #
+      # ```
+      # [dependencies]
+      # rand_core = "0.6.1"
+      # rand = { git = "https://github.com/rust-random/rand.git", rev = "...", package = "rand_core" }
+      # ```
+      #
+      # ... which might end up having similar entries in the Cargo.lock file:
+      #
+      # ```
+      # [[package]]
+      # name = "rand_core"
+      # version = "0.6.1"
+      # source = "registry+https://github.com/rust-lang/crates.io-index"
+      # checksum = "..."
+      #
+      # [[package]]
+      # name = "rand_core"
+      # version = "0.6.1"
+      # source = "git+https://github.com/rust-random/rand.git?rev=..."
+      # ```
+      mv "$out/${name}-${version}" "$dest"
+
+      echo '{"package":"${sha256}","files":{}}' > "$dest/.cargo-checksum.json"
     '';
 
   unpackGitDependency = { checkout, key, name, url, ... }:
