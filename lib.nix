@@ -1,8 +1,8 @@
-{ lib, writeText, runCommandLocal, remarshal }:
+{ lib, writeText, runCommandLocal, remarshal, formats }:
 let
   builtinz =
     builtins // import ./builtins
-      { inherit lib writeText remarshal runCommandLocal; };
+      { inherit lib writeText remarshal runCommandLocal formats; };
 in
 rec
 {
@@ -121,14 +121,13 @@ rec
 
   # A very minimal 'src' which makes cargo happy nonetheless
   dummySrc =
-    { cargoconfig # string
+    { cargoconfig # path
     , cargotomls # list
     , cargolock # attrset
     , copySources # list of paths that should be copied to the output
     , copySourcesFrom # path from which to copy ${copySources}
     }:
       let
-        config = writeText "config" cargoconfig;
         cargolock' = builtinz.writeTOML "Cargo.lock" cargolock;
 
         fixupCargoToml = cargotoml:
@@ -154,7 +153,7 @@ rec
           { inherit copySources copySourcesFrom cargotomlss; }
           ''
             mkdir -p $out/.cargo
-            ${lib.optionalString (! isNull cargoconfig) "cp ${config} $out/.cargo/config"}
+            ${lib.optionalString (! isNull cargoconfig) "cp ${cargoconfig} $out/.cargo/config"}
             cp ${cargolock'} $out/Cargo.lock
 
             for tuple in $cargotomlss; do

@@ -62,6 +62,7 @@
 , writeText
 , runCommandLocal
 , remarshal
+, formats
 , crateDependencies
 , zstd
 , fetchurl
@@ -72,7 +73,7 @@
 let
   builtinz =
     builtins // import ./builtins
-      { inherit lib writeText remarshal runCommandLocal; };
+      { inherit lib writeText remarshal runCommandLocal formats; };
 
   drvAttrs = {
     name = "${pname}-${version}";
@@ -87,7 +88,7 @@ let
 
     # The cargo config with source replacement. Replaces both crates.io crates
     # and git dependencies.
-    cargoconfig = builtinz.toTOML {
+    cargoconfig = builtinz.writeTOML "config" {
       source = {
         crates-io = { replace-with = "nix-sources"; };
         nix-sources = {
@@ -235,7 +236,7 @@ let
       export CARGO_HOME=''${CARGO_HOME:-$PWD/.cargo-home}
       mkdir -p $CARGO_HOME
 
-      echo "$cargoconfig" > $CARGO_HOME/config
+      cp "$cargoconfig" $CARGO_HOME/config
 
       runHook postConfigure
     '';

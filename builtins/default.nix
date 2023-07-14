@@ -3,12 +3,12 @@
 , writeText
 , runCommandLocal
 , remarshal
+, formats
 }:
 
 rec
 {
-  toTOML = import ./to-toml.nix { inherit lib; };
-  writeTOML = name: attrs: writeText name (toTOML attrs);
+  writeTOML = (formats.toml { }).generate;
 
   readTOML = usePure: f:
     if usePure then
