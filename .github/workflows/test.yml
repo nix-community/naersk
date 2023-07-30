@@ -8,11 +8,11 @@ jobs:
   linux:
     strategy:
         matrix:
-            nixpkgs: [ nixpkgs, nixpkgs-21.05, nixpkgs-21.11 ]
-    runs-on: ubuntu-20.04
+            nixpkgs: [ nixpkgs, nixpkgs-21.05, nixpkgs-22.05, nixpkgs-23.05 ]
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: cachix/install-nix-action@v16
+      - uses: actions/checkout@v3
+      - uses: cachix/install-nix-action@v22
         with:
           CACHIX_SIGNING_KEY: ${{ secrets.CACHIX_SIGNING_KEY }}
       - name: "Run tests"
@@ -20,10 +20,10 @@ jobs:
         env:
             nixpkgs: ${{ matrix.nixpkgs }}
   darwin:
-    runs-on: macos-10.15
+    runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: cachix/install-nix-action@v16
+      - uses: actions/checkout@v3
+      - uses: cachix/install-nix-action@v22
         with:
           CACHIX_SIGNING_KEY: ${{ secrets.CACHIX_SIGNING_KEY }}
       - name: "Run tests"
