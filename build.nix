@@ -63,7 +63,7 @@
 , runCommandLocal
 , remarshal
 , formats
-, crateDependencies
+, cratesIoDependencies
 , zstd
 , fetchurl
 , lndir
@@ -84,15 +84,18 @@ let
       postInstall
       ;
 
-    crate_sources = unpackedDependencies;
+    cratesio_sources = unpackedCratesIoDependencies;
+    git_sources = unpackedGitDependencies;
 
     # The cargo config with source replacement. Replaces both crates.io crates
     # and git dependencies.
     cargoconfig = builtinz.writeTOML "config" {
       source = {
-        crates-io = { replace-with = "nix-sources"; };
-        nix-sources = {
-          directory = unpackedDependencies;
+        crates-io = {
+          directory = unpackedCratesIoDependencies;
+        };
+        git = {
+          directory = unpackedGitDependencies;
         };
       } // lib.listToAttrs (
         map
@@ -108,7 +111,7 @@ let
                 name = "${e.url}${key}";
                 value = lib.filterAttrs (n: _: n == "rev" || n == "tag" || n == "branch") e // {
                   git = e.url;
-                  replace-with = "nix-sources";
+                  replace-with = "git";
                 };
               }
           )
@@ -188,7 +191,6 @@ let
       log "RUST_TEST_THREADS: $RUST_TEST_THREADS"
       log "cargo_bins_jq_filter: $cargo_bins_jq_filter"
       log "cargo_build_output_json (created): $cargo_build_output_json"
-      log "crate_sources: $crate_sources"
       log "RUSTFLAGS: $RUSTFLAGS"
       log "CARGO_BUILD_RUSTFLAGS: $CARGO_BUILD_RUSTFLAGS"
 
@@ -196,13 +198,18 @@ let
 
       # Remove the source path(s) in Rust
       if [ -n "$RUSTFLAGS" ]; then
-        RUSTFLAGS="$RUSTFLAGS --remap-path-prefix $crate_sources=/sources"
+        RUSTFLAGS="$RUSTFLAGS --remap-path-prefix $cratesio_sources=/sources"
+        RUSTFLAGS="$RUSTFLAGS --remap-path-prefix $git_sources=/sources"
+
         log "RUSTFLAGS (updated): $RUSTFLAGS"
-      elif [ -n "$CARGO_BUILD_RUSTFLAGS" ]; then
-        CARGO_BUILD_RUSTFLAGS="$CARGO_BUILD_RUSTFLAGS --remap-path-prefix $crate_sources=/sources"
-        log "CARGO_BUILD_RUSTFLAGS (updated): $CARGO_BUILD_RUSTFLAGS"
       else
-        export CARGO_BUILD_RUSTFLAGS="--remap-path-prefix $crate_sources=/sources"
+        if [ -z "$CARGO_BUILD_RUSTFLAGS" ]; then
+          export CARGO_BUILD_RUSTFLAGS=""
+        fi
+
+        CARGO_BUILD_RUSTFLAGS="$CARGO_BUILD_RUSTFLAGS --remap-path-prefix $cratesio_sources=/sources"
+        CARGO_BUILD_RUSTFLAGS="$CARGO_BUILD_RUSTFLAGS --remap-path-prefix $git_sources=/sources"
+
         log "CARGO_BUILD_RUSTFLAGS (updated): $CARGO_BUILD_RUSTFLAGS"
       fi
 
@@ -210,7 +217,7 @@ let
 
       mkdir -p target
 
-      # make sure that all source files are tagged as "recent" (since we write
+      # Make sure that all source files are tagged as "recent" (since we write
       # some stubs here and there)
       find . -type f -exec touch {} +
 
@@ -365,7 +372,7 @@ let
     };
   };
 
-  # Unpacks all dependencies required to compile user's crate.
+  # Crates.io dependencies required to compile user's crate.
   #
   # As an output, for each dependency, this derivation produces a subdirectory
   # containing `.cargo-checksum.json` (required for Cargo to process the crate)
@@ -380,18 +387,19 @@ let
   # something-else-1.2.3/src                   (-> /nix/store/...)
   # ...
   # ```
-  #
-  # (note that the actual crate format is not document, but in practice it's a
-  # gzipped tar.)
-  unpackedDependencies = symlinkJoinPassViaFile {
-    name = "dependencies";
-
-    paths =
-      (map unpackCrateDependency crateDependencies) ++
-      (map unpackGitDependency gitDependencies);
+  unpackedCratesIoDependencies = symlinkJoinPassViaFile {
+    name = "crates-io-dependencies";
+    paths = (map unpackCratesIoDependency cratesIoDependencies);
   };
 
-  unpackCrateDependency = { name, version, sha256 }:
+  # Git dependencies required to compile user's crate; follows same format as
+  # the crates.io dependencies above.
+  unpackedGitDependencies = symlinkJoinPassViaFile {
+    name = "git-dependencies";
+    paths = (map unpackGitDependency gitDependencies);
+  };
+
+  unpackCratesIoDependency = { name, version, sha256 }:
     let
       crate = fetchurl {
         inherit sha256;
