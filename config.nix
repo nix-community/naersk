@@ -310,7 +310,7 @@ let
     # version and sha256 of the crate
     # Example:
     #   [ { name = "wabt", version = "2.0.6", sha256 = "..." } ]
-    crateDependencies = libb.mkVersions buildPlanConfig.cargolock;
+    cratesIoDependencies = libb.mkVersions buildPlanConfig.cargolock;
   };
 
   # config used when planning the builds
