@@ -408,7 +408,9 @@ let
     packageVersion =
       if ! isNull attrs.version
       then attrs.version
-      else toplevelCargotoml.package.version or "unknown";
+      else toplevelCargotoml.package.version
+        or toplevelCargotoml."workspace.package".version
+        or "unknown";
   };
 in
 buildPlanConfig // { inherit buildConfig; }
