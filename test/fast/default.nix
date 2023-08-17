@@ -1,4 +1,5 @@
 args: {
+  cargo-config = import ./cargo-config args;
   cargo-wildcard = import ./cargo-wildcard args;
   default-run = import ./default-run args;
   dummyfication = import ./dummyfication args;
