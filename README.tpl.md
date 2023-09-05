@@ -205,7 +205,7 @@ in
 ## Usage
 
 Naersk provides a function called `buildPackage` that takes an attribute set
-describing your application's directory, its dependencies etc.; in general, the
+describing your application's directory, its dependencies etc. - in general, the
 usage is:
 
 ``` nix
@@ -222,9 +222,93 @@ naersk.buildPackage {
 Some of the options (described below) are used by Naersk to affect the building
 process, rest is passed-through into `mkDerivation`.
 
+Note that you shouldn't call `overrideAttrs` on a derivation built by Naersk
+(see the [note on `overrideAttrs`](#note-on-overrideattrs) below).
+
 ### `buildPackage`'s parameters
 
 {{ params }}
+
+### Note on `overrideAttrs`
+
+When you call `buildPackage`, Naersk internally builds two derivations: one that
+compiles all of your application's dependencies and then another one that
+compiles just your application.
+
+It's done this way to improve compilation speed when you build your program for
+the second time etc., because then if only your application's code has changed 
+(and `Cargo.toml` & `Cargo.lock` stayed the same), Naersk doesn't have to
+rebuild your dependencies.
+
+This mechanism has a shortcoming, though - in particular, you shouldn't use 
+`overrideAttrs` to inject something into the build environment:
+
+``` nix
+{ pkgs, naersk, ... }:
+
+let
+  app = naersk.buildPackage {
+    src = ./.;
+  };
+  
+in
+app.overrideAttrs (p: {
+  buildInputs = p.buildInputs + [ pkgs.cmake ];
+  SOME_ENV_VAR = "yes";
+})
+```
+
+... because that will inject it only into the app-derivation, leaving it
+inaccessible for your dependencies to use.
+
+Instead, you should pass the parameters directly into the `buildPackage`
+invocation:
+
+``` nix
+{ pkgs, naersk, ... }:
+
+naersk.buildPackage {
+  src = ./.;
+  buildInputs = [ pkgs.cmake ];
+  SOME_ENV_VAR = "yes";
+}
+```
+
+... or use `override`, if the names conflict with something already reserved by
+Naersk:
+
+``` nix
+{ pkgs, naersk, ... }:
+
+naersk.buildPackage {
+  src = ./.;
+  
+  override = p: {
+    # ...
+  };
+}
+```
+
+... or, if you really have to call `overrideAttrs` on the final derivation, you
+should disable the incremental-compilation mechanism:
+
+``` nix
+{ pkgs, naersk, ... }:
+
+let
+  app = naersk.buildPackage {
+    src = ./.;
+    singleStep = true; # here
+  };
+  
+in
+app.overrideAttrs (p: {
+  buildInputs = p.buildInputs + [ pkgs.cmake ];
+})
+```
+
+(it's just an optimization so there's no harm in disabling it, Naersk should
+produce the same binary anyway.)
 
 ## Examples
 
