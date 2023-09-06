@@ -99,7 +99,14 @@ rec
       } // (lib.optionalAttrs (! isNull branch) { inherit branch; })
         // (lib.optionalAttrs (! isNull tag) { inherit tag; })
         // (lib.optionalAttrs (! isNull rev) { inherit rev; });
-      packageLocks = builtins.map parseLock (lib.filter query cargolock.package);
+
+      usedPackageLocks =
+        builtins.map parseLock (lib.filter query cargolock.package);
+
+      unusedPackageLocks =
+        builtins.map parseLock (lib.filter query ((cargolock.patch or []).unused or []));
+
+      packageLocks = usedPackageLocks ++ unusedPackageLocks;
 
       mkFetch = lock: {
         key = lock.rev or lock.tag or lock.branch or lock.revision

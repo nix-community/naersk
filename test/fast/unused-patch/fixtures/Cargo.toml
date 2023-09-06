@@ -1,0 +1,7 @@
+[package]
+name = "app"
+version = "0.1.0"
+edition = "2018"
+
+[patch.crates-io]
+uuid = { git = "https://github.com/uuid-rs/uuid" }
