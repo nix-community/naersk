@@ -15,24 +15,28 @@
 
       templates = {
         hello-world = {
+          description = "A simple and straight-forward 'hello world' Rust program.";
           path =
             builtins.filterSource (path: type: baseNameOf path == "flake.nix")
               ./examples/hello-world;
         };
 
         cross-windows = {
+          description = "Pre-configured for cross-compiling to Windows.";
           path =
             builtins.filterSource (path: type: baseNameOf path == "flake.nix")
               ./examples/cross-windows;
         };
 
         static-musl = {
+          description = "Pre-configured for statically linked binaries for Linux with musl.";
           path =
             builtins.filterSource (path: type: baseNameOf path == "flake.nix")
               ./examples/static-musl;
         };
 
         multi-target = {
+          description = "A Rust project with multiple crates and build targets.";
           path =
             builtins.filterSource (path: type: baseNameOf path == "flake.nix")
               ./examples/multi-target;
