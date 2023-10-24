@@ -10,6 +10,8 @@ Build Rust projects with ease!
 * [Examples](#examples)
 * [Tips & Tricks](#tips--tricks)
 
+Status: project's working, but we're [looking for a maintainer](https://github.com/nix-community/naersk/issues/314).
+
 ## Introduction
 
 Naersk is a [Nix](https://nixos.org/explore.html) library for building Rust
