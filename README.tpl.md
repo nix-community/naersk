@@ -4,13 +4,13 @@
 
 Build Rust projects with ease!
 
-* [Introduction](#introduction)
-* [Setup](#setup)
-* [Usage](#usage)
-* [Examples](#examples)
-* [Tips & Tricks](#tips--tricks)
+- [Introduction](#introduction)
+- [Setup](#setup)
+- [Usage](#usage)
+- [Examples](#examples)
+- [Tips & Tricks](#tips--tricks)
 
-Status: project's working, but we're [looking for a maintainer](https://github.com/nix-community/naersk/issues/314).
+Status: project's working!
 
 ## Introduction
 
@@ -47,14 +47,14 @@ IFD - all the parsing happens directly inside Nix code.
 
 ### Using Flakes
 
-``` shell
+```shell
 $ nix flake init -t github:nix-community/naersk
 $ nix flake lock
 ```
 
 Alternatively, store this as `flake.nix` in your repository:
 
-``` nix
+```nix
 {
   inputs = {
     flake-utils.url = "github:numtide/flake-utils";
@@ -70,7 +70,7 @@ Alternatively, store this as `flake.nix` in your repository:
         };
 
         naersk' = pkgs.callPackage naersk {};
-        
+
       in rec {
         # For `nix build` & `nix run`:
         defaultPackage = naersk'.buildPackage {
@@ -94,12 +94,12 @@ Rust compiler version is present in `nixpkgs`.
 
 If you have a custom `rust-toolchain` file, you can make Naersk use it this way:
 
-``` nix
+```nix
 {
   inputs = {
     flake-utils.url = "github:numtide/flake-utils";
     naersk.url = "github:nix-community/naersk";
-    
+
     nixpkgs-mozilla = {
       url = "github:mozilla/nixpkgs-mozilla";
       flake = false;
@@ -128,7 +128,7 @@ If you have a custom `rust-toolchain` file, you can make Naersk use it this way:
           cargo = toolchain;
           rustc = toolchain;
         };
-        
+
       in rec {
         # For `nix build` & `nix run`:
         defaultPackage = naersk'.buildPackage {
@@ -146,19 +146,19 @@ If you have a custom `rust-toolchain` file, you can make Naersk use it this way:
 
 ### Using Niv
 
-``` shell
+```shell
 $ niv init
 $ niv add nix-community/naersk
 ```
 
 ... and then create `default.nix` with:
 
-``` nix
+```nix
 let
   pkgs = import <nixpkgs> {};
   sources = import ./nix/sources.nix;
   naersk = pkgs.callPackage sources.naersk {};
-  
+
 in
   naersk.buildPackage ./.
 ```
@@ -171,35 +171,35 @@ Rust compiler version is present in `nixpkgs`.
 
 If you have a custom `rust-toolchain` file, you can make Naersk use it this way:
 
-``` shell
+```shell
 $ niv add mozilla/nixpkgs-mozilla
 ```
 
 ... and then:
 
-``` nix
+```nix
 let
   sources = import ./nix/sources.nix;
   nixpkgs-mozilla = import sources.nixpkgs-mozilla;
-  
+
   pkgs = import sources.nixpkgs {
     overlays = [
       nixpkgs-mozilla
     ];
   };
-  
+
   toolchain = (pkgs.rustChannelOf {
     rustToolchain = ./rust-toolchain;
     sha256 = "";
     #        ^ After you run `nix-build`, replace this with the actual
     #          hash from the error message
   }).rust;
-  
+
   naersk = pkgs.callPackage sources.naersk {
     cargo = toolchain;
     rustc = toolchain;
   };
-  
+
 in
   naersk.buildPackage ./.
 ```
@@ -210,11 +210,11 @@ Naersk provides a function called `buildPackage` that takes an attribute set
 describing your application's directory, its dependencies etc. - in general, the
 usage is:
 
-``` nix
+```nix
 naersk.buildPackage {
   # Assuming there's `Cargo.toml` right in this directory:
-  src = ./.; 
-  
+  src = ./.;
+
   someOption = "yass";
   someOtherOption = false;
   CARGO_ENVIRONMENTAL_VARIABLE = "test";
@@ -238,21 +238,21 @@ compiles all of your application's dependencies and then another one that
 compiles just your application.
 
 It's done this way to improve compilation speed when you build your program for
-the second time etc., because then if only your application's code has changed 
+the second time etc., because then if only your application's code has changed
 (and `Cargo.toml` & `Cargo.lock` stayed the same), Naersk doesn't have to
 rebuild your dependencies.
 
-This mechanism has a shortcoming, though - in particular, you shouldn't use 
+This mechanism has a shortcoming, though - in particular, you shouldn't use
 `overrideAttrs` to inject something into the build environment:
 
-``` nix
+```nix
 { pkgs, naersk, ... }:
 
 let
   app = naersk.buildPackage {
     src = ./.;
   };
-  
+
 in
 app.overrideAttrs (p: {
   buildInputs = p.buildInputs + [ pkgs.cmake ];
@@ -266,7 +266,7 @@ inaccessible for your dependencies to use.
 Instead, you should pass the parameters directly into the `buildPackage`
 invocation:
 
-``` nix
+```nix
 { pkgs, naersk, ... }:
 
 naersk.buildPackage {
@@ -279,12 +279,12 @@ naersk.buildPackage {
 ... or use `override`, if the names conflict with something already reserved by
 Naersk:
 
-``` nix
+```nix
 { pkgs, naersk, ... }:
 
 naersk.buildPackage {
   src = ./.;
-  
+
   override = p: {
     # ...
   };
@@ -294,7 +294,7 @@ naersk.buildPackage {
 ... or, if you really have to call `overrideAttrs` on the final derivation, you
 should disable the incremental-compilation mechanism:
 
-``` nix
+```nix
 { pkgs, naersk, ... }:
 
 let
@@ -302,7 +302,7 @@ let
     src = ./.;
     singleStep = true; # here
   };
-  
+
 in
 app.overrideAttrs (p: {
   buildInputs = p.buildInputs + [ pkgs.cmake ];
@@ -322,7 +322,7 @@ See: [./examples](./examples).
 
 If you want to build only a particular example, use:
 
-``` nix
+```nix
 naersk.buildPackage {
   pname = "your-example-name";
   src = ./.;
@@ -346,10 +346,10 @@ CMake Error: The current CMakeCache.txt directory ... is different than the dire
 You can fix this problem by removing stale `CMakeCache.txt` files before the
 build:
 
-``` nix
+```nix
 naersk.buildPackage {
   # ...
-  
+
   preBuild = ''
     find \
         -name CMakeCache.txt \
@@ -364,10 +364,10 @@ naersk.buildPackage {
 
 If your application uses OpenSSL (making the build process fail), try:
 
-``` nix
+```nix
 naersk.buildPackage {
   # ...
-  
+
   nativeBuildInputs = with pkgs; [ pkg-config ];
   buildInputs = with pkgs; [ openssl ];
 }
