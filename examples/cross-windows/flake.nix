@@ -6,9 +6,15 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
   };
 
-  outputs = { self, fenix, flake-utils, naersk, nixpkgs }:
-    flake-utils.lib.eachDefaultSystem (system:
-      let
+  outputs = {
+    self,
+    fenix,
+    flake-utils,
+    naersk,
+    nixpkgs,
+  }:
+    flake-utils.lib.eachDefaultSystem (
+      system: let
         pkgs = (import nixpkgs) {
           inherit system;
         };
@@ -24,7 +30,6 @@
           cargo = toolchain;
           rustc = toolchain;
         };
-
       in rec {
         defaultPackage = packages.x86_64-pc-windows-gnu;
 

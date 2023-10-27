@@ -1,15 +1,19 @@
-{ lib, libb, builtinz, arg }:
-let
+{
+  lib,
+  libb,
+  builtinz,
+  arg,
+}: let
   allowFun = attrs0: attrName: default:
-    if builtins.hasAttr attrName attrs0 then
-      if lib.isFunction attrs0.${attrName} then
-        attrs0.${attrName} default
-      else
-        let
-          finalTy = builtins.typeOf default;
-          actualTy = builtins.typeOf attrs0.${attrName};
-        in
-          throw "${attrName} should be a function from ${finalTy} to ${finalTy}, but is a ${actualTy}"
+    if builtins.hasAttr attrName attrs0
+    then
+      if lib.isFunction attrs0.${attrName}
+      then attrs0.${attrName} default
+      else let
+        finalTy = builtins.typeOf default;
+        actualTy = builtins.typeOf attrs0.${attrName};
+      in
+        throw "${attrName} should be a function from ${finalTy} to ${finalTy}, but is a ${actualTy}"
     else default;
 
   mkAttrs = attrs0: rec
@@ -43,7 +47,7 @@ let
     # The command to use for the build.
     cargoBuild =
       allowFun attrs0 "cargoBuild"
-        ''cargo $cargo_options build $cargo_build_options >> $cargo_build_output_json'';
+      ''cargo $cargo_options build $cargo_build_options >> $cargo_build_output_json'';
 
     # Options passed to cargo build, i.e. `cargo build <OPTS>`. These options
     # can be accessed during the build through the environment variable
@@ -55,7 +59,7 @@ let
     # Note: these values are not (shell) escaped, meaning that you can use
     # environment variables but must be careful when introducing e.g. spaces. <br/>
     cargoBuildOptions =
-      allowFun attrs0 "cargoBuildOptions" [ "$cargo_release" ''-j "$NIX_BUILD_CORES"'' "--message-format=$cargo_message_format" ];
+      allowFun attrs0 "cargoBuildOptions" ["$cargo_release" ''-j "$NIX_BUILD_CORES"'' "--message-format=$cargo_message_format"];
 
     # When `true`, rustc remaps the (`/nix/store`) source paths to `/sources`
     # to reduce the number of dependencies in the closure.
@@ -64,7 +68,7 @@ let
     # The commands to run in the `checkPhase`. Do not forget to set
     # [`doCheck`](https://nixos.org/nixpkgs/manual/#ssec-check-phase).
     cargoTestCommands =
-      allowFun attrs0 "cargoTestCommands" [ ''cargo $cargo_options test $cargo_test_options'' ];
+      allowFun attrs0 "cargoTestCommands" [''cargo $cargo_options test $cargo_test_options''];
 
     # Options passed to cargo test, i.e. `cargo test <OPTS>`. These options
     # can be accessed during the build through the environment variable
@@ -72,7 +76,7 @@ let
     # Note: these values are not (shell) escaped, meaning that you can use
     # environment variables but must be careful when introducing e.g. spaces. <br/>
     cargoTestOptions =
-      allowFun attrs0 "cargoTestOptions" [ "$cargo_release" ''-j "$NIX_BUILD_CORES"'' ];
+      allowFun attrs0 "cargoTestOptions" ["$cargo_release" ''-j "$NIX_BUILD_CORES"''];
 
     # Options passed to cargo clippy, i.e. `cargo clippy -- <OPTS>`. These options
     # can be accessed during the build through the environment variable
@@ -80,7 +84,7 @@ let
     # Note: these values are not (shell) escaped, meaning that you can use
     # environment variables but must be careful when introducing e.g. spaces. <br/>
     cargoClippyOptions =
-      allowFun attrs0 "cargoClippyOptions" [ "-D warnings" ];
+      allowFun attrs0 "cargoClippyOptions" ["-D warnings"];
 
     # Options passed to cargo fmt, i.e. `cargo fmt -- <OPTS>`. These options
     # can be accessed during the build through the environment variable
@@ -88,7 +92,7 @@ let
     # Note: these values are not (shell) escaped, meaning that you can use
     # environment variables but must be careful when introducing e.g. spaces. <br/>
     cargoFmtOptions =
-      allowFun attrs0 "cargoFmtOptions" [ "--check" ];
+      allowFun attrs0 "cargoFmtOptions" ["--check"];
 
     # Extra `nativeBuildInputs` to all derivations.
     nativeBuildInputs = attrs0.nativeBuildInputs or [];
@@ -102,14 +106,14 @@ let
     # Note: these values are not (shell) escaped, meaning that you can use
     # environment variables but must be careful when introducing e.g. spaces. <br/>
     cargoOptions =
-      allowFun attrs0 "cargoOptions" [ ];
+      allowFun attrs0 "cargoOptions" [];
 
     # When true, `cargo doc` is run and a new output `doc` is generated.
     doDoc = attrs0.doDoc or false;
 
     # The commands to run in the `docPhase`. Do not forget to set `doDoc`.
     cargoDocCommands =
-      allowFun attrs0 "cargoDocCommands" [ ''cargo $cargo_options doc $cargo_doc_options'' ];
+      allowFun attrs0 "cargoDocCommands" [''cargo $cargo_options doc $cargo_doc_options''];
 
     # Options passed to cargo doc, i.e. `cargo doc <OPTS>`. These options
     # can be accessed during the build through the environment variable
@@ -117,7 +121,7 @@ let
     # Note: these values are not (shell) escaped, meaning that you can use
     # environment variables but must be careful when introducing e.g. spaces. <br/>
     cargoDocOptions =
-      allowFun attrs0 "cargoDocOptions" [ "--offline" "$cargo_release" ''-j "$NIX_BUILD_CORES"'' ];
+      allowFun attrs0 "cargoDocOptions" ["--offline" "$cargo_release" ''-j "$NIX_BUILD_CORES"''];
 
     # When true, all cargo builds are run with `--release`. The environment
     # variable `cargo_release` is set to `--release` iff this option is set.
@@ -150,8 +154,9 @@ let
     # [`--message-format`](https://doc.rust-lang.org/cargo/reference/external-tools.html#json-messages)
     # JSON output. <br/>
     # The value is written to the `cargo_bins_jq_filter` variable.
-    copyBinsFilter = attrs0.copyBinsFilter or
-      ''select(.reason == "compiler-artifact" and .executable != null and .profile.test == false)'';
+    copyBinsFilter =
+      attrs0.copyBinsFilter
+      or ''select(.reason == "compiler-artifact" and .executable != null and .profile.test == false)'';
 
     # A [`jq`](https://stedolan.github.io/jq) filter for selecting which build
     # artifacts to release. This is run on cargo's
@@ -161,8 +166,9 @@ let
     # ((.target.kind | contains(["staticlib"])) or (.target.kind |
     # contains(["cdylib"]))) and .filenames != null and .profile.test ==
     # false)''`
-    copyLibsFilter = attrs0.copyLibsFilter or
-      ''select(.reason == "compiler-artifact" and ((.target.kind | contains(["staticlib"])) or (.target.kind | contains(["cdylib"]))) and .filenames != null and .profile.test == false)'';
+    copyLibsFilter =
+      attrs0.copyLibsFilter
+      or ''select(.reason == "compiler-artifact" and ((.target.kind | contains(["staticlib"])) or (.target.kind | contains(["cdylib"]))) and .filenames != null and .profile.test == false)'';
 
     # When true, the documentation is generated in a different output, `doc`.
     copyDocsToSeparateOutput = attrs0.copyDocsToSeparateOutput or true;
@@ -203,10 +209,14 @@ let
   };
 
   argIsAttrs =
-    if lib.isDerivation arg then false
-    else if lib.isString arg then false
-    else if builtins.typeOf arg == "path" then false
-    else if builtins.hasAttr "outPath" arg then false
+    if lib.isDerivation arg
+    then false
+    else if lib.isString arg
+    then false
+    else if builtins.typeOf arg == "path"
+    then false
+    else if builtins.hasAttr "outPath" arg
+    then false
     else true;
 
   # if the argument is not an attribute set, then assume it's the 'root'.
@@ -214,7 +224,7 @@ let
   attrs =
     if argIsAttrs
     then mkAttrs arg
-    else mkAttrs { root = arg; };
+    else mkAttrs {root = arg;};
 
   userAttrs =
     if argIsAttrs
@@ -226,53 +236,66 @@ let
   # should be a "path" to avoid reading values from the nix-store.
   # Below we try to come up with some good values for src and root if they're
   # not defined.
-  sr =
-    let
-      hasRoot = ! isNull attrs.root;
-      hasSrc = ! isNull attrs.src;
-      isPath = x: builtins.typeOf x == "path";
-      root = attrs.root;
-      src = attrs.src;
-    in
-      # src: yes, root: no
-      if hasSrc && ! hasRoot then
-        if isPath src then
-          { src = lib.cleanSource src; root = src; }
-        else { inherit src; root = src; }
-        # src: yes, root: yes
-      else if hasRoot && hasSrc then
-        { inherit src root; }
-        # src: no, root: yes
-      else if hasRoot && ! hasSrc then
-        if isPath root then
-          { inherit root; src = lib.cleanSource root; }
-        else
-          { inherit root; src = root; }
-        # src: no, root: yes
-      else throw "please specify either 'src' or 'root'";
+  sr = let
+    hasRoot = ! isNull attrs.root;
+    hasSrc = ! isNull attrs.src;
+    isPath = x: builtins.typeOf x == "path";
+    root = attrs.root;
+    src = attrs.src;
+  in
+    # src: yes, root: no
+    if hasSrc && ! hasRoot
+    then
+      if isPath src
+      then {
+        src = lib.cleanSource src;
+        root = src;
+      }
+      else {
+        inherit src;
+        root = src;
+      }
+    # src: yes, root: yes
+    else if hasRoot && hasSrc
+    then {inherit src root;}
+    # src: no, root: yes
+    else if hasRoot && ! hasSrc
+    then
+      if isPath root
+      then {
+        inherit root;
+        src = lib.cleanSource root;
+      }
+      else {
+        inherit root;
+        src = root;
+      }
+    # src: no, root: yes
+    else throw "please specify either 'src' or 'root'";
 
   usePureFromTOML = attrs.usePureFromTOML;
   readTOML = builtinz.readTOML usePureFromTOML;
 
   cargoCommand = let
-      mode = attrs.mode;
-    in
-      if (mode == "build") then
-        attrs.cargoBuild
-      else if (mode == "check") then
-        ''cargo $cargo_options check $cargo_build_options >> $cargo_build_output_json''
-      else if (mode == "test") then
-        ''cargo $cargo_options test $cargo_test_options >> $cargo_build_output_json''
-      else if (mode == "clippy") then
-        ''cargo $cargo_options clippy $cargo_build_options -- $cargo_clippy_options >> $cargo_build_output_json''
-      else if (mode == "fmt") then
-        ''cargo $cargo_options fmt -- $cargo_fmt_options''
-      else throw "Unknown mode ${mode}, allowed modes: build, check, test, clippy";
+    mode = attrs.mode;
+  in
+    if (mode == "build")
+    then attrs.cargoBuild
+    else if (mode == "check")
+    then ''cargo $cargo_options check $cargo_build_options >> $cargo_build_output_json''
+    else if (mode == "test")
+    then ''cargo $cargo_options test $cargo_test_options >> $cargo_build_output_json''
+    else if (mode == "clippy")
+    then ''cargo $cargo_options clippy $cargo_build_options -- $cargo_clippy_options >> $cargo_build_output_json''
+    else if (mode == "fmt")
+    then ''cargo $cargo_options fmt -- $cargo_fmt_options''
+    else throw "Unknown mode ${mode}, allowed modes: build, check, test, clippy";
 
   # config used during build the prebuild and the final build
   buildConfig = {
     inherit cargoCommand;
-    inherit (attrs)
+    inherit
+      (attrs)
       nativeBuildInputs
       buildInputs
       release
@@ -281,7 +304,6 @@ let
       compressTarget
       mode
       cratesDownloadUrl
-
       cargoBuildOptions
       remapPathPrefix
       copyBins
@@ -289,20 +311,16 @@ let
       copyLibs
       copyLibsFilter
       copyTarget
-
       cargoTestCommands
       cargoTestOptions
-
       cargoClippyOptions
       cargoFmtOptions
-
       doDoc
       doDocFail
       cargoDocCommands
       cargoDocOptions
       copyDocsToSeparateOutput
       removeReferencesToSrcFromDocs
-
       postInstall
       ;
 
@@ -340,48 +358,50 @@ let
     # ... which Cargo allows and so should we.
     #
     # ¹ such as Nushell
-    cargotomls =
-      let
-        findCargoTomls = dir:
-          lib.mapAttrsToList
-            (name: type:
-              let
-                path = "${root}/${dir}/${name}";
-
-              in
-              if name == "Cargo.toml" then
-                [{ name = dir; toml = readTOML path; }]
-              else if type == "directory" then
-                findCargoTomls "${dir}/${name}"
-              else
-                [])
-            (builtins.readDir "${root}/${dir}");
-
-      in
-        lib.flatten (findCargoTomls ".");
+    cargotomls = let
+      findCargoTomls = dir:
+        lib.mapAttrsToList
+        (name: type: let
+          path = "${root}/${dir}/${name}";
+        in
+          if name == "Cargo.toml"
+          then [
+            {
+              name = dir;
+              toml = readTOML path;
+            }
+          ]
+          else if type == "directory"
+          then findCargoTomls "${dir}/${name}"
+          else [])
+        (builtins.readDir "${root}/${dir}");
+    in
+      lib.flatten (findCargoTomls ".");
 
     # If `copySourcesFrom` is set, then it looks like the benefits brought by
     # two-step caching break, for unclear reasons as of now. As such, do not set
     # `copySourcesFrom` if there is no source to actually copy from.
-    copySourcesFrom = if copySources != [] then src else null;
+    copySourcesFrom =
+      if copySources != []
+      then src
+      else null;
 
-    copySources =
-      let
-        mkRelative = po:
-          if lib.hasPrefix "/" po.path
-          then throw "'${toString src}/Cargo.toml' contains the absolute path '${toString po.path}' which is not allowed under a [patch] section by naersk. Please make it relative to '${toString src}'"
-          else po.path;
-      in
-        arg.copySources or []
-      ++
-        lib.optionals (builtins.hasAttr "patch" toplevelCargotoml)
-          (
-            map mkRelative
-              (
-                lib.collect (as: lib.isAttrs as && builtins.hasAttr "path" as)
-                  toplevelCargotoml.patch
-              )
-          );
+    copySources = let
+      mkRelative = po:
+        if lib.hasPrefix "/" po.path
+        then throw "'${toString src}/Cargo.toml' contains the absolute path '${toString po.path}' which is not allowed under a [patch] section by naersk. Please make it relative to '${toString src}'"
+        else po.path;
+    in
+      arg.copySources
+      or []
+      ++ lib.optionals (builtins.hasAttr "patch" toplevelCargotoml)
+      (
+        map mkRelative
+        (
+          lib.collect (as: lib.isAttrs as && builtins.hasAttr "path" as)
+          toplevelCargotoml.patch
+        )
+      );
 
     # Are we building a workspace (or is this a simple crate) ?
     isWorkspace = builtins.hasAttr "workspace" toplevelCargotoml;
@@ -390,27 +410,31 @@ let
     toplevelCargotoml = readTOML (root + "/Cargo.toml");
 
     # The cargo lock
-    cargolock =
-      let
-        cargolock-file = root + "/Cargo.lock";
-      in
-      if builtins.pathExists cargolock-file then
-        readTOML (cargolock-file)
-      else
-        throw "Naersk requires Cargo.lock to be available in root. Check that it is not in .gitignore and stage it when using git to filter sources (which flakes does)";
+    cargolock = let
+      cargolock-file = root + "/Cargo.lock";
+    in
+      if builtins.pathExists cargolock-file
+      then readTOML cargolock-file
+      else throw "Naersk requires Cargo.lock to be available in root. Check that it is not in .gitignore and stage it when using git to filter sources (which flakes does)";
 
     packageName =
       if ! isNull attrs.name
       then attrs.name
-      else toplevelCargotoml.package.name or
-        (if isWorkspace then "rust-workspace" else "rust-package");
+      else
+        toplevelCargotoml.package.name
+        or (
+          if isWorkspace
+          then "rust-workspace"
+          else "rust-package"
+        );
 
     packageVersion =
       if ! isNull attrs.version
       then attrs.version
-      else toplevelCargotoml.package.version
+      else
+        toplevelCargotoml.package.version
         or toplevelCargotoml."workspace.package".version
         or "unknown";
   };
 in
-buildPlanConfig // { inherit buildConfig; }
+  buildPlanConfig // {inherit buildConfig;}

@@ -1,6 +1,9 @@
-{ sources, pkgs, ... }:
-let
-  fenix = import sources.fenix { };
+{
+  sources,
+  pkgs,
+  ...
+}: let
+  fenix = import sources.fenix {};
 
   toolchain = fenix.fromToolchainFile {
     file = "${sources.agent-rs}/rust-toolchain.toml";
@@ -11,14 +14,15 @@ let
     cargo = toolchain;
     rustc = toolchain;
   };
-
 in
-naersk.buildPackage {
-  src = sources.agent-rs;
+  naersk.buildPackage {
+    src = sources.agent-rs;
 
-  buildInputs = [
-    pkgs.openssl
-    pkgs.pkg-config
-    pkgs.perl
-  ] ++ pkgs.lib.optional pkgs.stdenv.isDarwin pkgs.libiconv;
-}
+    buildInputs =
+      [
+        pkgs.openssl
+        pkgs.pkg-config
+        pkgs.perl
+      ]
+      ++ pkgs.lib.optional pkgs.stdenv.isDarwin pkgs.libiconv;
+  }

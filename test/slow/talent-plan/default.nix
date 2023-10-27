@@ -1,4 +1,9 @@
-{ sources, naersk, pkgs, ... }: {
+{
+  sources,
+  naersk,
+  pkgs,
+  ...
+}: {
   talent-plan-1 = naersk.buildPackage {
     src = "${sources.talent-plan}/rust/projects/project-1";
     doCheck = true;

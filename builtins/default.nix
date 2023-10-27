@@ -1,12 +1,11 @@
 # some extra "builtins"
-{ lib
-, writeText
-, runCommandLocal
-, remarshal
-, formats
-}:
-
-rec
+{
+  lib,
+  writeText,
+  runCommandLocal,
+  remarshal,
+  formats,
+}: rec
 {
   # Serializes given attrset into a TOML file.
   #
@@ -24,34 +23,30 @@ rec
   #
   # ¹ e.g. cases like `[targets."cfg(\"something\")"]` are translated badly
   # ² https://github.com/nix-community/naersk/issues/263
-  writeTOML =
-    let
-      our-impl =
-        let
-          to-toml = import ./to-toml.nix {
-            inherit lib;
-          };
-
-        in
-        name: value:
-          runCommandLocal name {
-            value = to-toml value;
-            passAsFile = [ "value" ];
-          } ''
-            cp "$valuePath" "$out"
-            cat "$out"
-          '';
-
-      nixpkgs-impl = (formats.toml { }).generate;
-
+  writeTOML = let
+    our-impl = let
+      to-toml = import ./to-toml.nix {
+        inherit lib;
+      };
     in
-    if builtins.compareVersions lib.version "22.11" <= 0 then
-      our-impl
-    else
-      nixpkgs-impl;
+      name: value:
+        runCommandLocal name {
+          value = to-toml value;
+          passAsFile = ["value"];
+        } ''
+          cp "$valuePath" "$out"
+          cat "$out"
+        '';
+
+    nixpkgs-impl = (formats.toml {}).generate;
+  in
+    if builtins.compareVersions lib.version "22.11" <= 0
+    then our-impl
+    else nixpkgs-impl;
 
   readTOML = usePure: f:
-    if usePure then
+    if usePure
+    then
       builtins.fromTOML (
         # Safety: We invoke `unsafeDiscardStringContext` _after_ reading the
         # file, so the derivation either had been already realized or `readFile`
@@ -76,16 +71,16 @@ rec
       builtins.fromJSON (
         builtins.readFile (
           runCommandLocal "from-toml" {
-            buildInputs = [ remarshal ];
+            buildInputs = [remarshal];
           }
-            ''
-              echo "$from_toml_in" > in.toml
-              remarshal \
-                -if toml \
-                -i ${f} \
-                -of json \
-                -o $out
-            ''
+          ''
+            echo "$from_toml_in" > in.toml
+            remarshal \
+              -if toml \
+              -i ${f} \
+              -of json \
+              -o $out
+          ''
         )
       );
 
@@ -95,24 +90,25 @@ rec
   # TODO: use `builtins.pathExists` once
   # https://github.com/NixOS/nix/pull/3012 has landed and is generally
   # available
-  pathExists = if lib.versionAtLeast builtins.nixVersion "2.3" then builtins.pathExists else path:
-    let
+  pathExists =
+    if lib.versionAtLeast builtins.nixVersion "2.3"
+    then builtins.pathExists
+    else path: let
       all = lib.all (x: x);
-      isOk = part:
-        let
-          dir = builtins.dirOf part;
-          basename = builtins.unsafeDiscardStringContext (builtins.baseNameOf part);
-          dirContent = builtins.readDir dir;
-        in
-          builtins.hasAttr basename dirContent && # XXX: this may not work if the directory is a symlink
-          (part == path || dirContent.${basename} == "directory");
-      parts =
-        let
-          # [ "" "nix" "store" "123123" "foo" "bar" ]
-          parts = lib.splitString "/" path;
-          len = lib.length parts;
-        in
-          map (n: lib.concatStringsSep "/" (lib.take n parts)) (lib.range 3 len);
+      isOk = part: let
+        dir = builtins.dirOf part;
+        basename = builtins.unsafeDiscardStringContext (builtins.baseNameOf part);
+        dirContent = builtins.readDir dir;
+      in
+        builtins.hasAttr basename dirContent
+        && # XXX: this may not work if the directory is a symlink
+        (part == path || dirContent.${basename} == "directory");
+      parts = let
+        # [ "" "nix" "store" "123123" "foo" "bar" ]
+        parts = lib.splitString "/" path;
+        len = lib.length parts;
+      in
+        map (n: lib.concatStringsSep "/" (lib.take n parts)) (lib.range 3 len);
     in
       all (map isOk parts);
 }
