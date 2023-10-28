@@ -1,4 +1,8 @@
-{ naersk, pkgs, ... }: rec {
+{
+  naersk,
+  pkgs,
+  ...
+}: rec {
   default = naersk.buildPackage {
     src = ./fixtures;
     doCheck = true;
@@ -36,9 +40,10 @@
   # which is wasteful.
   #
   # See: https://github.com/nix-community/naersk/issues/202.
-  depsTargetNotEmptyWhenCompressed = pkgs.runCommand "test" {
-    inherit (withCompressTarget) builtDependencies;
-  } ''
+  depsTargetNotEmptyWhenCompressed =
+    pkgs.runCommand "test" {
+      inherit (withCompressTarget) builtDependencies;
+    } ''
       for dep in $builtDependencies; do
         mkdir dst
         ${pkgs.zstd}/bin/zstd -d "$dep/target.tar.zst" --stdout | tar -x -C ./dst
@@ -56,9 +61,10 @@
     '';
 
   # Same as the one above, just for `withoutCompressTarget`
-  depsTargetNotEmptyWhenNotCompressed = pkgs.runCommand "test" {
-    inherit (withoutCompressTarget) builtDependencies;
-  } ''
+  depsTargetNotEmptyWhenNotCompressed =
+    pkgs.runCommand "test" {
+      inherit (withoutCompressTarget) builtDependencies;
+    } ''
       for dep in $builtDependencies; do
         if [ -z "$(ls -A "$dep"/target)" ]; then
           echo target directory is empty: "$dep"

@@ -1,5 +1,4 @@
 # This script is used to test & generate `README.md`.
-
 let
   sources = import ./nix/sources.nix;
 
@@ -15,37 +14,34 @@ let
   docparse = naersk.buildPackage {
     root = ./docparse;
 
-    src = builtins.filterSource
+    src =
+      builtins.filterSource
       (
-        p: t:
-          let
-            p' = pkgs.lib.removePrefix (toString ./docparse + "/") p;
-          in
+        p: t: let
+          p' = pkgs.lib.removePrefix (toString ./docparse + "/") p;
+        in
           p' == "Cargo.lock" || p' == "Cargo.toml" || p' == "src" || p' == "src/main.rs"
-      ) ./docparse;
+      )
+      ./docparse;
   };
+in rec {
+  body = let
+    readme = builtins.readFile ./README.tpl.md;
 
-in
-rec {
-  body =
-    let
-      readme = builtins.readFile ./README.tpl.md;
-
-      params = builtins.readFile (
-        pkgs.runCommand "docparse"
-          { buildInputs = [ docparse ]; }
-          "docparse ${./config.nix} > $out"
-      );
-
-    in
+    params = builtins.readFile (
+      pkgs.runCommand "docparse"
+      {buildInputs = [docparse];}
+      "docparse ${./config.nix} > $out"
+    );
+  in
     pkgs.writeText "readme" (
       builtins.replaceStrings
-        [ "{{ params }}" ]
-        [ params ]
-        readme
+      ["{{ params }}"]
+      [params]
+      readme
     );
 
-  test = pkgs.runCommand "readme-test" { } ''
+  test = pkgs.runCommand "readme-test" {} ''
     diff ${./README.md} ${body}
     touch $out
   '';

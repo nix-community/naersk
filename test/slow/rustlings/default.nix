@@ -1,3 +1,6 @@
-{ sources, naersk, ... }:
-
+{
+  sources,
+  naersk,
+  ...
+}:
 naersk.buildPackage sources.rustlings

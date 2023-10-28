@@ -1,4 +1,4 @@
-{ naersk, ... }: {
+{naersk, ...}: {
   default = naersk.buildPackage {
     src = ./fixtures;
     doCheck = true;

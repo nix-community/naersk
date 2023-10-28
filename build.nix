@@ -1,27 +1,28 @@
-{ src
+{
+  src,
   #| From where the crates should be downloaded
-, cratesDownloadUrl
+  cratesDownloadUrl,
   #| What command to run during the build phase
-, cargoCommand
-, cargoBuildOptions
-, remapPathPrefix
-, #| What command to run during the test phase
-  cargoTestCommands
-, cargoTestOptions
-, copyTarget
+  cargoCommand,
+  cargoBuildOptions,
+  remapPathPrefix,
+  #| What command to run during the test phase
+  cargoTestCommands,
+  cargoTestOptions,
+  copyTarget,
   #| Whether or not to compress the target when copying it
-, compressTarget
+  compressTarget,
   #| Whether or not to copy binaries to $out/bin
-, copyBins
-, copyBinsFilter
+  copyBins,
+  copyBinsFilter,
   #| Whether or not to copy libraries to $out/bin
-, copyLibs
-, copyLibsFilter
-, doDoc
-, doDocFail
-, cargoDocCommands
-, cargoDocOptions
-, copyDocsToSeparateOutput
+  copyLibs,
+  copyLibsFilter,
+  doDoc,
+  doDocFail,
+  cargoDocCommands,
+  cargoDocOptions,
+  copyDocsToSeparateOutput,
   #| Whether to remove references to source code from the generated cargo docs
   #  to reduce Nix closure size. By default cargo doc includes snippets like the
   #  following in the generated highlighted source code in files like: src/rand/lib.rs.html:
@@ -37,43 +38,42 @@
   #
   #  Which drops the run-time dependency on the crates-io source thereby
   #  significantly reducing the Nix closure size.
-, removeReferencesToSrcFromDocs
-, cargoClippyOptions
-, cargoFmtOptions
-, mode ? "build" # `build`, `check`, `test` or `clippy`
-, gitDependencies
-, pname
-, version
-, rustc
-, cargo
-, clippy
-, override
-, nativeBuildInputs
-, buildInputs
-, builtDependencies
-, postInstall
-, release
-, cargoOptions
-, stdenv
-, lib
-, rsync
-, jq
-, darwin
-, writeText
-, runCommandLocal
-, remarshal
-, formats
-, cratesIoDependencies
-, zstd
-, fetchurl
-, lndir
-, userAttrs
-}:
-
-let
+  removeReferencesToSrcFromDocs,
+  cargoClippyOptions,
+  cargoFmtOptions,
+  mode ? "build", # `build`, `check`, `test` or `clippy`
+  gitDependencies,
+  pname,
+  version,
+  rustc,
+  cargo,
+  clippy,
+  override,
+  nativeBuildInputs,
+  buildInputs,
+  builtDependencies,
+  postInstall,
+  release,
+  cargoOptions,
+  stdenv,
+  lib,
+  rsync,
+  jq,
+  darwin,
+  writeText,
+  runCommandLocal,
+  remarshal,
+  formats,
+  cratesIoDependencies,
+  zstd,
+  fetchurl,
+  lndir,
+  userAttrs,
+}: let
   builtinz =
-    builtins // import ./builtins
-      { inherit lib writeText remarshal runCommandLocal formats; };
+    builtins
+    // import ./builtins
+    {inherit lib writeText remarshal runCommandLocal formats;};
 
   drvAttrs = {
     name = "${pname}-${version}";
@@ -90,54 +90,64 @@ let
     # The cargo config with source replacement. Replaces both crates.io crates
     # and git dependencies.
     cargoconfig = builtinz.writeTOML "config" {
-      source = {
-        crates-io = {
-          directory = unpackedCratesIoDependencies;
-        };
-        git = {
-          directory = unpackedGitDependencies;
-        };
-      } // lib.listToAttrs (
-        map
+      source =
+        {
+          crates-io = {
+            directory = unpackedCratesIoDependencies;
+          };
+          git = {
+            directory = unpackedGitDependencies;
+          };
+        }
+        // lib.listToAttrs (
+          map
           (
-            e:
-              let
-                key = if e ? rev    then "?rev=${e.rev}"       else
-                      if e ? tag    then "?tag=${e.tag}"       else
-                      if e ? branch then "?branch=${e.branch}" else
-                      "";
-              in
-              {
-                name = "${e.url}${key}";
-                value = lib.filterAttrs (n: _: n == "rev" || n == "tag" || n == "branch") e // {
+            e: let
+              key =
+                if e ? rev
+                then "?rev=${e.rev}"
+                else if e ? tag
+                then "?tag=${e.tag}"
+                else if e ? branch
+                then "?branch=${e.branch}"
+                else "";
+            in {
+              name = "${e.url}${key}";
+              value =
+                lib.filterAttrs (n: _: n == "rev" || n == "tag" || n == "branch") e
+                // {
                   git = e.url;
                   replace-with = "git";
                 };
-              }
+            }
           )
           gitDependencies
-      );
+        );
     };
 
-    outputs = [ "out" ] ++ lib.optional (doDoc && copyDocsToSeparateOutput) "doc";
-    preInstallPhases = lib.optional doDoc [ "docPhase" ];
+    outputs = ["out"] ++ lib.optional (doDoc && copyDocsToSeparateOutput) "doc";
+    preInstallPhases = lib.optional doDoc ["docPhase"];
 
     # Otherwise specifying CMake as a dep breaks the build
     dontUseCmakeConfigure = true;
 
-    nativeBuildInputs = [
-      cargo
-      jq
-      rsync
-    ] ++ nativeBuildInputs
+    nativeBuildInputs =
+      [
+        cargo
+        jq
+        rsync
+      ]
+      ++ nativeBuildInputs
       ++ lib.optionals (mode == "clippy") [clippy];
 
-    buildInputs = lib.optionals stdenv.isDarwin [
-      darwin.Security
-      darwin.apple_sdk.frameworks.CoreServices
-      darwin.cf-private
-      darwin.libiconv
-    ] ++ buildInputs;
+    buildInputs =
+      lib.optionals stdenv.isDarwin [
+        darwin.Security
+        darwin.apple_sdk.frameworks.CoreServices
+        darwin.cf-private
+        darwin.libiconv
+      ]
+      ++ buildInputs;
 
     inherit builtDependencies;
 
@@ -196,22 +206,22 @@ let
 
       ${lib.optionalString remapPathPrefix ''
 
-      # Remove the source path(s) in Rust
-      if [ -n "$RUSTFLAGS" ]; then
-        RUSTFLAGS="$RUSTFLAGS --remap-path-prefix $cratesio_sources=/sources"
-        RUSTFLAGS="$RUSTFLAGS --remap-path-prefix $git_sources=/sources"
+        # Remove the source path(s) in Rust
+        if [ -n "$RUSTFLAGS" ]; then
+          RUSTFLAGS="$RUSTFLAGS --remap-path-prefix $cratesio_sources=/sources"
+          RUSTFLAGS="$RUSTFLAGS --remap-path-prefix $git_sources=/sources"
 
-        log "RUSTFLAGS (updated): $RUSTFLAGS"
-      else
-        if [ -z "$CARGO_BUILD_RUSTFLAGS" ]; then
-          export CARGO_BUILD_RUSTFLAGS=""
+          log "RUSTFLAGS (updated): $RUSTFLAGS"
+        else
+          if [ -z "$CARGO_BUILD_RUSTFLAGS" ]; then
+            export CARGO_BUILD_RUSTFLAGS=""
+          fi
+
+          CARGO_BUILD_RUSTFLAGS="$CARGO_BUILD_RUSTFLAGS --remap-path-prefix $cratesio_sources=/sources"
+          CARGO_BUILD_RUSTFLAGS="$CARGO_BUILD_RUSTFLAGS --remap-path-prefix $git_sources=/sources"
+
+          log "CARGO_BUILD_RUSTFLAGS (updated): $CARGO_BUILD_RUSTFLAGS"
         fi
-
-        CARGO_BUILD_RUSTFLAGS="$CARGO_BUILD_RUSTFLAGS --remap-path-prefix $cratesio_sources=/sources"
-        CARGO_BUILD_RUSTFLAGS="$CARGO_BUILD_RUSTFLAGS --remap-path-prefix $git_sources=/sources"
-
-        log "CARGO_BUILD_RUSTFLAGS (updated): $CARGO_BUILD_RUSTFLAGS"
-      fi
 
       ''}
 
@@ -277,24 +287,28 @@ let
       runHook preDoc
       export SOURCE_DATE_EPOCH=1
 
-      ${lib.concatMapStringsSep "\n" (cmd: "logRun ${cmd}  || ${if doDocFail then "false" else "true" }") cargoDocCommands}
+      ${lib.concatMapStringsSep "\n" (cmd: "logRun ${cmd}  || ${
+          if doDocFail
+          then "false"
+          else "true"
+        }")
+        cargoDocCommands}
 
       ${lib.optionalString removeReferencesToSrcFromDocs ''
-      # Remove references to the source derivation to reduce closure size
-            match='<meta name="description" content="Source to the Rust file `${builtins.storeDir}[^`]*`.">'
-      replacement='<meta name="description" content="Source to the Rust file removed to reduce Nix closure size.">'
-      find target/doc ''${CARGO_BUILD_TARGET:+target/$CARGO_BUILD_TARGET/doc} -name "*\.rs\.html" -exec sed -i "s|$match|$replacement|" {} +
-    ''}
+        # Remove references to the source derivation to reduce closure size
+              match='<meta name="description" content="Source to the Rust file `${builtins.storeDir}[^`]*`.">'
+        replacement='<meta name="description" content="Source to the Rust file removed to reduce Nix closure size.">'
+        find target/doc ''${CARGO_BUILD_TARGET:+target/$CARGO_BUILD_TARGET/doc} -name "*\.rs\.html" -exec sed -i "s|$match|$replacement|" {} +
+      ''}
 
       runHook postDoc
     '';
 
-    installPhase =
-      ''
-        runHook preInstall
-        export SOURCE_DATE_EPOCH=1
+    installPhase = ''
+      runHook preInstall
+      export SOURCE_DATE_EPOCH=1
 
-        ${lib.optionalString copyBins ''
+      ${lib.optionalString copyBins ''
         export SOURCE_DATE_EPOCH=1
 
         mkdir -p $out/bin
@@ -313,8 +327,8 @@ let
             -not -name '*.so' -a -not -name '*.dylib' \
             -exec cp {} $out/bin \;
         fi
-        ''}
-        ${lib.optionalString copyLibs ''
+      ''}
+      ${lib.optionalString copyLibs ''
         export SOURCE_DATE_EPOCH=1
 
         mkdir -p $out/lib
@@ -334,27 +348,29 @@ let
             -name '*.so' -or -name '*.dylib' -or -name '*.a' \
             -exec cp {} $out/lib \;
         fi
-        ''}
+      ''}
 
-        ${lib.optionalString copyTarget ''
+      ${lib.optionalString copyTarget ''
         export SOURCE_DATE_EPOCH=1
 
         mkdir -p $out
-        ${if compressTarget then
-        ''
-          # See: https://reproducible-builds.org/docs/archives/
-          tar --sort=name \
-            --mtime="@''${SOURCE_DATE_EPOCH}" \
-            --owner=0 --group=0 --numeric-owner \
-            --pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime \
-            -c target | ${zstd}/bin/zstd -o $out/target.tar.zst
-        '' else
-        ''
-          cp -r target $out
-        ''}
+        ${
+          if compressTarget
+          then ''
+            # See: https://reproducible-builds.org/docs/archives/
+            tar --sort=name \
+              --mtime="@''${SOURCE_DATE_EPOCH}" \
+              --owner=0 --group=0 --numeric-owner \
+              --pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime \
+              -c target | ${zstd}/bin/zstd -o $out/target.tar.zst
+          ''
+          else ''
+            cp -r target $out
+          ''
+        }
       ''}
 
-        ${lib.optionalString (doDoc && copyDocsToSeparateOutput) ''
+      ${lib.optionalString (doDoc && copyDocsToSeparateOutput) ''
         export SOURCE_DATE_EPOCH=1
 
         cp -r target/doc $doc
@@ -363,8 +379,8 @@ let
         fi
       ''}
 
-        runHook postInstall
-      '';
+      runHook postInstall
+    '';
 
     passthru = {
       # Handy for debugging
@@ -389,27 +405,29 @@ let
   # ```
   unpackedCratesIoDependencies = symlinkJoinPassViaFile {
     name = "crates-io-dependencies";
-    paths = (map unpackCratesIoDependency cratesIoDependencies);
+    paths = map unpackCratesIoDependency cratesIoDependencies;
   };
 
   # Git dependencies required to compile user's crate; follows same format as
   # the crates.io dependencies above.
   unpackedGitDependencies = symlinkJoinPassViaFile {
     name = "git-dependencies";
-    paths = (map unpackGitDependency gitDependencies);
+    paths = map unpackGitDependency gitDependencies;
   };
 
-  unpackCratesIoDependency = { name, version, sha256 }:
-    let
-      crate = fetchurl {
-        inherit sha256;
+  unpackCratesIoDependency = {
+    name,
+    version,
+    sha256,
+  }: let
+    crate = fetchurl {
+      inherit sha256;
 
-        url = "${cratesDownloadUrl}/api/v1/crates/${name}/${version}/download";
-        name = "download-${name}-${version}";
-      };
-
-    in
-    runCommandLocal "unpack-${name}-${version}" { }
+      url = "${cratesDownloadUrl}/api/v1/crates/${name}/${version}/download";
+      name = "download-${name}-${version}";
+    };
+  in
+    runCommandLocal "unpack-${name}-${version}" {}
     ''
       mkdir -p $out
       tar -xzf ${crate} -C $out
@@ -446,10 +464,16 @@ let
       echo '{"package":"${sha256}","files":{}}' > "$dest/.cargo-checksum.json"
     '';
 
-  unpackGitDependency = { checkout, key, name, url, ... }:
+  unpackGitDependency = {
+    checkout,
+    key,
+    name,
+    url,
+    ...
+  }:
     runCommandLocal "unpack-${name}-${version}" {
       inherit checkout key name url;
-      nativeBuildInputs = [ jq cargo ];
+      nativeBuildInputs = [jq cargo];
     }
     ''
       log() {
@@ -548,29 +572,31 @@ let
   * { symlinkJoin, hello }:
   * symlinkJoin { name = "myhello"; paths = [ hello ]; postBuild = "echo links added"; }
   */
-  symlinkJoinPassViaFile =
-    args_@{ name
-         , paths
-         , preferLocalBuild ? true
-         , allowSubstitutes ? false
-         , postBuild ? ""
-         , ...
-         }:
-    let
-      args = removeAttrs args_ [ "name" "postBuild" ]
-        // { inherit preferLocalBuild allowSubstitutes;
-             passAsFile = [ "paths" ];
-             nativeBuildInputs = [ lndir ];
-           }; # pass the defaults
-    in runCommandLocal name args
-      ''
-        mkdir -p $out
+  symlinkJoinPassViaFile = args_ @ {
+    name,
+    paths,
+    preferLocalBuild ? true,
+    allowSubstitutes ? false,
+    postBuild ? "",
+    ...
+  }: let
+    args =
+      removeAttrs args_ ["name" "postBuild"]
+      // {
+        inherit preferLocalBuild allowSubstitutes;
+        passAsFile = ["paths"];
+        nativeBuildInputs = [lndir];
+      }; # pass the defaults
+  in
+    runCommandLocal name args
+    ''
+      mkdir -p $out
 
-        for i in $(cat $pathsPath); do
-          lndir -silent $i $out
-        done
-        ${postBuild}
-      '';
+      for i in $(cat $pathsPath); do
+        lndir -silent $i $out
+      done
+      ${postBuild}
+    '';
   drv = stdenv.mkDerivation (drvAttrs // userAttrs);
 in
-drv.overrideAttrs override
+  drv.overrideAttrs override

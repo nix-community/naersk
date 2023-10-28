@@ -1,2 +1,2 @@
-{ ... }:
+{...}:
 (import ../../../readme.nix).test

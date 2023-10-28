@@ -6,7 +6,13 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
   };
 
-  outputs = { self, fenix, flake-utils, naersk, nixpkgs }:
+  outputs = {
+    self,
+    fenix,
+    flake-utils,
+    naersk,
+    nixpkgs,
+  }:
     flake-utils.lib.eachDefaultSystem (
       system: let
         pkgs = (import nixpkgs) {
@@ -24,12 +30,11 @@
           cargo = toolchain;
           rustc = toolchain;
         };
-
       in rec {
         defaultPackage = naersk'.buildPackage {
           src = ./.;
           doCheck = true;
-          nativeBuildInputs = with pkgs; [ pkgsStatic.stdenv.cc ];
+          nativeBuildInputs = with pkgs; [pkgsStatic.stdenv.cc];
 
           # Tells Cargo that we're building for musl.
           # (https://doc.rust-lang.org/cargo/reference/config.html#buildtarget)
