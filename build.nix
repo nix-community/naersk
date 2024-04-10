@@ -76,8 +76,8 @@ let
       { inherit lib writeText remarshal runCommandLocal formats; };
 
   drvAttrs = {
-    name = "${pname}-${version}";
     inherit
+      pname
       src
       version
       remapPathPrefix
