@@ -137,10 +137,10 @@
         "homepage": "https://probe.rs",
         "owner": "probe-rs",
         "repo": "probe-rs",
-        "rev": "51fa324aef9f7c413988a3d18052b1bbc278a4c5",
-        "sha256": "0zb9s80hsz83ngjngs9cllp7gf8xq9jz0m3lwdhf08x3cp3bj6fd",
+        "rev": "c651f263751b370473f61addc58ccf93eb054374",
+        "sha256": "1n2w2gz68wf2961mjhdgi6v3jhprygkri36gr9c4kd4gykadpzdw",
         "type": "tarball",
-        "url": "https://github.com/probe-rs/probe-rs/archive/51fa324aef9f7c413988a3d18052b1bbc278a4c5.tar.gz",
+        "url": "https://github.com/probe-rs/probe-rs/archive/c651f263751b370473f61addc58ccf93eb054374.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "ripgrep-all": {

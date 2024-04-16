@@ -4,8 +4,8 @@ let
 
   toolchain = (fenix.toolchainOf {
     channel = "nightly";
-    date = "2023-07-01";
-    sha256 = "sha256-pWd4tAHP4QWGC3CKWZzDjzYANxATC6CGRmKuP2ZZv5k=";
+    date = "2024-04-12";
+    sha256 = "sha256-nOsrWb08M6PTE3qXqaiCyKBy7Shk2YTvALYaIvNWa1s=";
   }).toolchain;
 
   naersk = pkgs.callPackage ../../../default.nix {
