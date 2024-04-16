@@ -243,7 +243,8 @@ let
       export CARGO_HOME=''${CARGO_HOME:-$PWD/.cargo-home}
       mkdir -p $CARGO_HOME
 
-      cp "$cargoconfig" $CARGO_HOME/config
+      cp "$cargoconfig" $CARGO_HOME/config.toml
+      ln -s ./config.toml $CARGO_HOME/config
 
       runHook postConfigure
     '';
