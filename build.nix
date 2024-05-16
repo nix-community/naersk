@@ -70,6 +70,7 @@
 , userAttrs
   #| Some additional buildInputs/overrides individual crates require
 , crateSpecificOverrides
+, autoCrateSpecificOverrides
 , pkgs
 }:
 
@@ -393,16 +394,18 @@ let
           else {}
         )
         cratesIoDependencies;
-    in builtins.foldl'
-      (acc: elem:
-        {
-          buildInputs =       acc.buildInputs       ++ elem.buildInputs or [];
-          nativeBuildInputs = acc.nativeBuildInputs ++ elem.nativeBuildInputs or [];
-        }
-      )
-      { buildInputs = []; nativeBuildInputs = []; }
-      overridesList;
-
+      emptyOverrides = { buildInputs = []; nativeBuildInputs = []; };
+    in if autoCrateSpecificOverrides then
+      builtins.foldl'
+        (acc: elem:
+          {
+            buildInputs =       acc.buildInputs       ++ elem.buildInputs or [];
+            nativeBuildInputs = acc.nativeBuildInputs ++ elem.nativeBuildInputs or [];
+          }
+        )
+        emptyOverrides
+        overridesList
+      else emptyOverrides;
 
   # Crates.io dependencies required to compile user's crate.
   #
