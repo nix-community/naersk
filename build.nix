@@ -68,6 +68,8 @@
 , fetchurl
 , lndir
 , userAttrs
+, crateSpecificOverrides
+, pkgs
 }:
 
 let
@@ -130,14 +132,16 @@ let
       jq
       rsync
     ] ++ nativeBuildInputs
-      ++ lib.optionals (mode == "clippy") [clippy];
+      ++ lib.optionals (mode == "clippy") [clippy]
+      ++ neededCrateSpecificOverrides.nativeBuildInputs;
 
     buildInputs = lib.optionals stdenv.isDarwin [
       darwin.Security
       darwin.apple_sdk.frameworks.CoreServices
       darwin.cf-private
       darwin.libiconv
-    ] ++ buildInputs;
+    ] ++ buildInputs
+      ++ neededCrateSpecificOverrides.buildInputs;
 
     inherit builtDependencies;
 
@@ -373,6 +377,26 @@ let
       inherit builtDependencies;
     };
   };
+
+  neededCrateSpecificOverrides =
+    let
+      overridesList = builtins.map
+        ( crateInfo:
+          if builtins.hasAttr crateInfo.name crateSpecificOverrides then
+            crateSpecificOverrides.${crateInfo.name} { inherit crateInfo; }
+          else {}
+        )
+        cratesIoDependencies;
+    in builtins.foldl'
+      (acc: elem:
+        {
+          buildInputs =       acc.buildInputs       ++ elem.buildInputs or [];
+          nativeBuildInputs = acc.nativeBuildInputs ++ elem.nativeBuildInputs or [];
+        }
+      )
+      { buildInputs = []; nativeBuildInputs = []; }
+      overridesList;
+
 
   # Crates.io dependencies required to compile user's crate.
   #

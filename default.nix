@@ -13,6 +13,7 @@
 , writeText
 , zstd
 , clippy
+, pkgs
 }@defaultBuildAttrs:
 
 let
@@ -22,7 +23,7 @@ let
     { inherit lib writeText remarshal runCommandLocal formats; };
 
   mkConfig = arg:
-    import ./config.nix { inherit lib arg libb builtinz; };
+    import ./config.nix { inherit lib arg libb builtinz pkgs; };
 
   buildPackage = arg:
     let
