@@ -68,6 +68,7 @@
 , fetchurl
 , lndir
 , userAttrs
+  #| Some additional buildInputs/overrides individual crates require
 , crateSpecificOverrides
 , pkgs
 }:
@@ -378,6 +379,11 @@ let
     };
   };
 
+  # Crate-specific overrides needed for this build.
+  # They are merged from all the overrides of `cratesIoDependencies` defined in the `crate_specific.nix` file
+  #
+  # This can contain fields: `buildInputs`, `nativeBuildInputs`
+  # When changing them (eg. adding support for new ones/removing some), also update the comment in the `crate_specific.nix` file
   neededCrateSpecificOverrides =
     let
       overridesList = builtins.map
