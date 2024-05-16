@@ -1,4 +1,4 @@
-{ lib, libb, builtinz, arg }:
+{ lib, libb, builtinz, arg, pkgs }:
 let
   allowFun = attrs0: attrName: default:
     if builtins.hasAttr attrName attrs0 then
@@ -311,6 +311,8 @@ let
     # Example:
     #   [ { name = "wabt", version = "2.0.6", sha256 = "..." } ]
     cratesIoDependencies = libb.mkVersions buildPlanConfig.cargolock;
+
+    crateSpecificOverrides = import ./crate_specific.nix { inherit pkgs; };
   };
 
   # config used when planning the builds
