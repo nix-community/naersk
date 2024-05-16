@@ -200,6 +200,12 @@ let
     # What to do when building the derivation. Either `build`, `check`, `test`, `fmt` or `clippy`. <br/>
     # When set to something other than `build`, no binaries are generated.
     mode = attrs0.mode or "build";
+
+    # Whether to automatically apply crate-specific overrides, mainly additional
+    # `buildInputs` for dependencies. <br />
+    # For example, if you use the `openssl` crate, `pkgs.pkg-config` and
+    # `pkgs.openssl` are automatically added as buildInputs.
+    autoCrateSpecificOverrides = attrs0.autoCrateSpecificOverrides or true;
   };
 
   argIsAttrs =
@@ -302,6 +308,7 @@ let
       cargoDocOptions
       copyDocsToSeparateOutput
       removeReferencesToSrcFromDocs
+      autoCrateSpecificOverrides
 
       postInstall
       ;
