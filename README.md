@@ -397,16 +397,3 @@ naersk.buildPackage {
 ```
 
 ([context](https://github.com/nix-community/naersk/pull/288))
-
-### Using OpenSSL
-
-If your application uses OpenSSL (making the build process fail), try:
-
-```nix
-naersk.buildPackage {
-  # ...
-
-  nativeBuildInputs = with pkgs; [ pkg-config ];
-  buildInputs = with pkgs; [ openssl ];
-}
-```
