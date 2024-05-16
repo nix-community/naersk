@@ -11,6 +11,7 @@ args: {
   git-dep-dup = import ./git-dep-dup args;
   git-single-repository-with-multiple-crates = import ./git-single-repository-with-multiple-crates args;
   git-symlink = import ./git-symlink args;
+  openssl = import ./openssl args;
   post-install-hook = import ./post-install-hook args;
   readme = import ./readme args;
   simple-dep = import ./simple-dep args;

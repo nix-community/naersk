@@ -1,0 +1,11 @@
+# Tests that default-run doesn't break the dependency build, see
+# https://github.com/nmattia/naersk/issues/123
+
+[package]
+name = "openssl-test"
+version = "0.1.0"
+authors = ["FireFragment <55660550+FireFragment@users.noreply.github.com>"]
+edition = "2018"
+
+[dependencies]
+openssl = "0.10.64"
