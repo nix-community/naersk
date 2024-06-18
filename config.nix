@@ -37,6 +37,7 @@ let
     # 2.4+.
     gitSubmodules = attrs0.gitSubmodules or false;
 
+    # Additional cargo lock used to specify crates required for build
     additionalCargoLock = attrs0.additionalCargoLock or null;
 
     # Url for downloading crates from an alternative source
