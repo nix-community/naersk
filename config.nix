@@ -37,6 +37,8 @@ let
     # 2.4+.
     gitSubmodules = attrs0.gitSubmodules or false;
 
+    additionalCargoLock = attrs0.additionalCargoLock or null;
+
     # Url for downloading crates from an alternative source
     cratesDownloadUrl = attrs0.cratesDownloadUrl or "https://crates.io";
 
@@ -317,7 +319,7 @@ let
     # version and sha256 of the crate
     # Example:
     #   [ { name = "wabt", version = "2.0.6", sha256 = "..." } ]
-    cratesIoDependencies = libb.mkVersions buildPlanConfig.cargolock;
+    cratesIoDependencies = libb.mkVersions buildPlanConfig.cargolock ++ lib.optionals (! isNull buildPlanConfig.additionalcargolock) (libb.mkVersions buildPlanConfig.additionalcargolock);
 
     crateSpecificOverrides = import ./crate_specific.nix { inherit pkgs; };
   };
@@ -407,6 +409,12 @@ let
         readTOML (cargolock-file)
       else
         throw "Naersk requires Cargo.lock to be available in root. Check that it is not in .gitignore and stage it when using git to filter sources (which flakes does)";
+
+    additionalcargolock =
+      if ! isNull attrs.additionalCargoLock then
+        readTOML (attrs.additionalCargoLock)
+      else
+        null;
 
     packageName =
       if ! isNull attrs.name
