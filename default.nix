@@ -1,5 +1,4 @@
 { cargo
-, darwin
 , fetchurl
 , jq
 , lib
