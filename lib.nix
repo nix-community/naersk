@@ -73,7 +73,7 @@ rec
   #   }
   # ]
   findGitDependencies =
-    { cargolock, gitAllRefs, gitSubmodules }:
+    { cargolock, additionalcargolock, gitAllRefs, gitSubmodules }:
     let
       query = p: (lib.substring 0 4 (p.source or "")) == "git+";
 
@@ -101,10 +101,10 @@ rec
         // (lib.optionalAttrs (! isNull rev) { inherit rev; });
 
       usedPackageLocks =
-        builtins.map parseLock (lib.filter query cargolock.package);
+        builtins.map parseLock ((lib.filter query cargolock.package) ++ (lib.optionals (! isNull additionalcargolock) (lib.filter query additionalcargolock.package)));
 
       unusedPackageLocks =
-        builtins.map parseLock (lib.filter query ((cargolock.patch or []).unused or []));
+        builtins.map parseLock (lib.filter query ((cargolock.patch or [ ]).unused or [ ])) ++ (lib.optionals (! isNull additionalcargolock) (lib.filter query ((additionalcargolock.patch or [ ]).unused or [ ])));
 
       packageLocks = usedPackageLocks ++ unusedPackageLocks;
 
