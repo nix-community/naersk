@@ -58,7 +58,6 @@
 , lib
 , rsync
 , jq
-, darwin
 , writeText
 , runCommandLocal
 , remarshal
@@ -137,12 +136,7 @@ let
       ++ lib.optionals (mode == "clippy") [clippy]
       ++ neededCrateSpecificOverrides.nativeBuildInputs;
 
-    buildInputs = lib.optionals stdenv.isDarwin [
-      darwin.Security
-      darwin.apple_sdk.frameworks.CoreServices
-      darwin.cf-private
-      darwin.libiconv
-    ] ++ buildInputs
+    buildInputs = buildInputs
       ++ neededCrateSpecificOverrides.buildInputs;
 
     inherit builtDependencies;
