@@ -4,7 +4,7 @@ let
 
   toolchain = fenix.fromToolchainFile {
     file = "${sources.nushell}/rust-toolchain.toml";
-    sha256 = "sha256-Zk2rxv6vwKFkTTidgjPm6gDsseVmmljVt201H7zuDkk=";
+    sha256 = "sha256-VZZnlyP69+Y3crrLHQyJirqlHrTtGTsyiSnZB8jEvVo=";
   };
 
   naersk = pkgs.callPackage ../../../default.nix {
