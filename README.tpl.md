@@ -1,6 +1,6 @@
 # Naersk
 
-[![GitHub Actions](https://github.com/nix-community/naersk/workflows/test/badge.svg?branch=master)](https://github.com/nix-community/naersk/actions)
+[![GitHub Actions](https://img.shields.io/github/checks-status/nix-community/naersk/master)](https://github.com/nix-community/naersk/actions)
 
 Build Rust projects with ease!
 
