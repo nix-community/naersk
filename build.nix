@@ -78,6 +78,17 @@ let
     builtins // import ./builtins
       { inherit lib writeText remarshal runCommandLocal formats; };
 
+  # Decode a URL-encoded string
+  decodeUrl = str:
+    let
+      toHex = n:
+        let h = lib.toHexString n;
+        in if lib.stringLength h == 1 then "%0${h}" else "%${h}";
+      froms = builtins.genList toHex 256;
+      tos   = builtins.genList (n: builtins.fromJSON "\"\\u00${lib.substring 1 3 (toHex n)}\"") 256;
+    in
+      builtins.replaceStrings froms tos str;
+
   drvAttrs = {
     name = "${pname}-${version}";
     inherit
@@ -115,7 +126,8 @@ let
                 value = lib.filterAttrs (n: _: n == "rev" || n == "tag" || n == "branch") e // {
                   git = e.url;
                   replace-with = "git";
-                };
+                } // lib.optionalAttrs (e ? tag) { tag = decodeUrl e.tag; }
+              // lib.optionalAttrs (e ? branch) { branch = decodeUrl e.branch; };
               }
           )
           gitDependencies
