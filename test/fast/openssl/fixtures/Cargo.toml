@@ -8,4 +8,4 @@ authors = ["FireFragment <55660550+FireFragment@users.noreply.github.com>"]
 edition = "2018"
 
 [dependencies]
-openssl = "0.10.66"
+openssl = "0.10.70"
