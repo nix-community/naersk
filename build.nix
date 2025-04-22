@@ -258,7 +258,7 @@ let
       logRun ${cargoCommand} || cargo_ec="$?"
 
       if [ "$cargo_ec" -ne "0" ]; then
-        cat "$cargo_build_output_json" | jq -cMr 'select(.message.rendered != null) | .message.rendered'
+        cat "$cargo_build_output_json" | jq -cMrR '. as $line | try (fromjson | select(.message.rendered != null) | .message.rendered) catch $line'
         log "cargo returned with exit code $cargo_ec, exiting"
         exit "$cargo_ec"
       fi
