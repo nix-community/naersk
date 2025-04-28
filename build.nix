@@ -258,6 +258,8 @@ let
       logRun ${cargoCommand} || cargo_ec="$?"
 
       if [ "$cargo_ec" -ne "0" ]; then
+      # we allow non-json (with jq -R, try, catch) as tests might also produce output
+      # https://github.com/nix-community/naersk/issues/353
         cat "$cargo_build_output_json" | jq -cMrR '. as $line | try (fromjson | select(.message.rendered != null) | .message.rendered) catch $line'
         log "cargo returned with exit code $cargo_ec, exiting"
         exit "$cargo_ec"
