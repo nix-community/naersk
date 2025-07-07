@@ -123,7 +123,8 @@ let
       allowFun attrs0 "cargoDocOptions" [ "--offline" "$cargo_release" ''-j "$NIX_BUILD_CORES"'' ];
 
     # When true, all cargo builds are run with `--release`. The environment
-    # variable `cargo_release` is set to `--release` iff this option is set.
+    # variable `cargo_release` is set to `--release` if (and only if) this
+    # option is set.
     release = attrs0.release or true;
 
     # An override for all derivations involved in the build.
