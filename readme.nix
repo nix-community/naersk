@@ -27,23 +27,13 @@ let
 
 in
 rec {
-  body =
-    let
-      readme = builtins.readFile ./README.tpl.md;
-
-      params = builtins.readFile (
-        pkgs.runCommand "docparse"
-          { buildInputs = [ docparse ]; }
-          "docparse ${./config.nix} > $out"
-      );
-
-    in
-    pkgs.writeText "readme" (
-      builtins.replaceStrings
-        [ "{{ params }}" ]
-        [ params ]
-        readme
-    );
+  body = pkgs.runCommand "readme-body" {
+    buildInputs = [ docparse ];
+  } ''
+    cat ${./README.tpl.md} > $out
+    docparse ${./config.nix} >> gen
+    sed -e '/GEN_CONFIGURATION/{r gen' -e 'd}' -i $out
+  '';
 
   test = pkgs.runCommand "readme-test" { } ''
     diff ${./README.md} ${body}

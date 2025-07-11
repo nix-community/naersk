@@ -270,7 +270,6 @@ Note that you shouldn't call `overrideAttrs` on a derivation built by Naersk
 | `mode` | What to do when building the derivation. Either `build`, `check`, `test`, `fmt` or `clippy`. <br/> When set to something other than `build`, no binaries are generated. Default: `"build"` |
 | `autoCrateSpecificOverrides` | Whether to automatically apply crate-specific overrides, mainly additional `buildInputs` for dependencies. <br /> For example, if you use the `openssl` crate, `pkgs.pkg-config` and `pkgs.openssl` are automatically added as buildInputs. Default: `true` |
 
-
 ### Note on `overrideAttrs`
 
 When you call `buildPackage`, Naersk internally builds two derivations: one that
