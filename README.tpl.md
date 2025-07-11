@@ -229,7 +229,7 @@ Note that you shouldn't call `overrideAttrs` on a derivation built by Naersk
 
 ### `buildPackage`'s parameters
 
-{{ params }}
+GEN_CONFIGURATION
 
 ### Note on `overrideAttrs`
 
