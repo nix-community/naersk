@@ -15,11 +15,11 @@
       });
 
       # Useful when composing with other flakes:
-      overlay = import ./overlay.nix;
+      overlays.default = import ./overlay.nix;
 
-      defaultTemplate = templates.hello-world;
+      templates = rec {
+        default = hello-world;
 
-      templates = {
         hello-world = {
           description = "A simple and straight-forward 'hello world' Rust program.";
           path =
