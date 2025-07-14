@@ -1,16 +1,4 @@
 {
-    "agent-rs": {
-        "branch": "main",
-        "description": "A collection of libraries and tools for building software around the Internet Computer, in Rust.",
-        "homepage": "",
-        "owner": "dfinity",
-        "repo": "agent-rs",
-        "rev": "6d923cbc918852ef5bfaeb08e63c86580aa80ffe",
-        "sha256": "12y28nmv9af8sj55s998wydy08h32gvxr9dbhfxhfilxdairh0a2",
-        "type": "tarball",
-        "url": "https://github.com/dfinity/agent-rs/archive/6d923cbc918852ef5bfaeb08e63c86580aa80ffe.tar.gz",
-        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
-    },
     "fenix": {
         "branch": "main",
         "description": "Rust toolchains and rust-analyzer nightly for Nix [maintainer=@figsoda]",

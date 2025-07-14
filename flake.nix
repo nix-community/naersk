@@ -3,16 +3,34 @@
 
   inputs.nixpkgs.url = "github:NixOS/nixpkgs?ref=nixpkgs-unstable";
 
-  outputs = { self, nixpkgs }:
+  inputs.fenix.url = "github:nix-community/fenix";
+  inputs.fenix.inputs.nixpkgs.follows = "nixpkgs";
+
+  outputs = { self, nixpkgs, fenix }:
     let
       forAllSystems = nixpkgs.lib.genAttrs [ "x86_64-linux" "x86_64-darwin" "i686-linux" "aarch64-linux" "aarch64-darwin" ];
 
-    in rec {
+    in
+    rec {
       lib = forAllSystems (system: nixpkgs.legacyPackages."${system}".callPackage ./default.nix { });
 
-      packages = forAllSystems (system: {
-          readme = nixpkgs.legacyPackages."${system}".callPackage ./readme.nix { };
-      });
+
+      packages = forAllSystems (system:
+        let
+          pkgs = nixpkgs.legacyPackages."${system}";
+          sources = import ./nix/sources.nix;
+        in
+        rec {
+          readme = pkgs.callPackage ./readme.nix { };
+
+          # Nix doesn't support running individual checks from the flake's "checks"
+          # so we use a package instead.
+          # > nix build .#tests
+          # > nix build .#tests.fast # runs a subset of the tests
+          #
+          # https://github.com/NixOS/nix/issues/8881
+          tests = pkgs.callPackage ./test { inherit sources fenix; };
+        });
 
       # Useful when composing with other flakes:
       overlays.default = import ./overlay.nix;

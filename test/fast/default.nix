@@ -1,24 +1,24 @@
-args: {
-  cargo-config = import ./cargo-config args;
-  cargo-wildcard = import ./cargo-wildcard args;
-  default-run = import ./default-run args;
-  dummyfication = import ./dummyfication args;
-  duplicated-cargo-lock-items = import ./duplicated-cargo-lock-items args;
-  git-dep = import ./git-dep args;
-  git-dep-by-branch = import ./git-dep-by-branch args;
-  git-dep-by-branch-with-slash = import ./git-dep-by-branch-with-slash args;
-  git-dep-by-tag = import ./git-dep-by-tag args;
-  git-dep-dup = import ./git-dep-dup args;
-  git-single-repository-with-multiple-crates = import ./git-single-repository-with-multiple-crates args;
-  git-symlink = import ./git-symlink args;
-  openssl = import ./openssl args;
-  post-install-hook = import ./post-install-hook args;
-  readme = import ./readme args;
-  simple-dep = import ./simple-dep args;
-  simple-dep-patched = import ./simple-dep-patched args;
-  symlinks = import ./symlinks args;
-  unused-patch = import ./unused-patch args;
-  workspace = import ./workspace args;
-  workspace-build-rs = import ./workspace-build-rs args;
-  workspace-patched = import ./workspace-patched args;
+{ pkgs, naersk, ... }: {
+  cargo-config = pkgs.callPackage ./cargo-config { inherit naersk; };
+  cargo-wildcard = pkgs.callPackage ./cargo-wildcard { inherit naersk; };
+  default-run = pkgs.callPackage ./default-run { inherit naersk; };
+  dummyfication = pkgs.callPackage ./dummyfication { inherit naersk; };
+  duplicated-cargo-lock-items = pkgs.callPackage ./duplicated-cargo-lock-items { inherit naersk; };
+  git-dep = pkgs.callPackage ./git-dep { inherit naersk; };
+  git-dep-by-branch = pkgs.callPackage ./git-dep-by-branch { inherit naersk; };
+  git-dep-by-branch-with-slash = pkgs.callPackage ./git-dep-by-branch-with-slash { inherit naersk; };
+  git-dep-by-tag = pkgs.callPackage ./git-dep-by-tag { inherit naersk; };
+  git-dep-dup = pkgs.callPackage ./git-dep-dup { inherit naersk; };
+  git-single-repository-with-multiple-crates = pkgs.callPackage ./git-single-repository-with-multiple-crates { inherit naersk; };
+  git-symlink = pkgs.callPackage ./git-symlink { inherit naersk; };
+  openssl = pkgs.callPackage ./openssl { inherit naersk; };
+  post-install-hook = pkgs.callPackage ./post-install-hook { inherit naersk; };
+  readme = pkgs.callPackage ./readme { inherit naersk; };
+  simple-dep = pkgs.callPackage ./simple-dep { inherit naersk; };
+  simple-dep-patched = pkgs.callPackage ./simple-dep-patched { inherit naersk; };
+  symlinks = pkgs.callPackage ./symlinks { inherit naersk; };
+  unused-patch = pkgs.callPackage ./unused-patch { inherit naersk; };
+  workspace = pkgs.callPackage ./workspace { inherit naersk; };
+  workspace-build-rs = pkgs.callPackage ./workspace-build-rs { inherit naersk; };
+  workspace-patched = pkgs.callPackage ./workspace-patched { inherit naersk; };
 }
