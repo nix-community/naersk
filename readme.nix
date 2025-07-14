@@ -1,12 +1,7 @@
 # This script is used to test & generate `README.md`.
+{ pkgs }:
 
 let
-  sources = import ./nix/sources.nix;
-
-  pkgs = import ./nix {
-    system = builtins.currentSystem;
-    nixpkgs = "nixpkgs";
-  };
 
   naersk = pkgs.callPackage ./default.nix {
     inherit (pkgs.rustPackages) cargo rustc;
@@ -26,17 +21,11 @@ let
   };
 
 in
-rec {
-  body = pkgs.runCommand "readme-body" {
-    buildInputs = [ docparse ];
-  } ''
-    cat ${./README.tpl.md} > $out
-    docparse ${./config.nix} >> gen
-    sed -e '/GEN_CONFIGURATION/{r gen' -e 'd}' -i $out
-  '';
-
-  test = pkgs.runCommand "readme-test" { } ''
-    diff ${./README.md} ${body}
-    touch $out
-  '';
-}
+pkgs.runCommand "readme"
+{
+  buildInputs = [ docparse ];
+} ''
+  cat ${./README.tpl.md} > $out
+  docparse ${./config.nix} >> gen
+  sed -e '/GEN_CONFIGURATION/{r gen' -e 'd}' -i $out
+''

@@ -10,6 +10,10 @@
     in rec {
       lib = forAllSystems (system: nixpkgs.legacyPackages."${system}".callPackage ./default.nix { });
 
+      packages = forAllSystems (system: {
+          readme = nixpkgs.legacyPackages."${system}".callPackage ./readme.nix { };
+      });
+
       # Useful when composing with other flakes:
       overlay = import ./overlay.nix;
 
