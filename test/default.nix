@@ -1,47 +1,22 @@
-{ system, fast, nixpkgs }:
+{ sources, system, fenix, pkgs }:
 let
-  sources = import ../nix/sources.nix;
-
-  pkgs =
-    let
-      pkgs' = import ../nix {
-        inherit system nixpkgs;
-      };
-
-      older-pkgs = import ../nix {
-        inherit system;
-
-        nixpkgs = "nixpkgs-21.05";
-      };
-
-    in
-    pkgs' // {
-      # Some of our tests use dynamically-built Git repositories that fail extra
-      # security checks introduced in newer Git versions - so for the time being
-      # let's pin our test-Git to an older version.
-      git = older-pkgs.git;
-    };
-
   naersk = pkgs.callPackage ../default.nix {
     inherit (pkgs.rustPackages) cargo rustc;
   };
 
-  args = {
-    inherit sources pkgs naersk;
-  };
+  # aggregate all derivations found (recursively) in the input attribute set.
+  flatten = attrs:
+    pkgs.lib.collect pkgs.lib.isDerivation attrs;
 
-  fastTests = import ./fast args;
-  slowTests = import ./slow args;
+  fastTests = flatten (pkgs.callPackage ./fast { inherit naersk fenix; });
+  slowTests = flatten (pkgs.callPackage ./slow { inherit sources naersk fenix; });
 
-  # Because `nix-build` doesn't recurse into attribute sets, some of our more
-  # nested tests (e.g. `fastTests.foo.bar`) normally wouldn't be executed.
-  #
-  # To avoid that, we're recursively flattening all tests into a list, which
-  # `nix-build` then evaluates in its entirety.
-  runTests = tests:
-    pkgs.lib.collect pkgs.lib.isDerivation tests;
+  collectResults = name: tests: pkgs.runCommand name { TESTS = tests; } ''
+    echo tests successful
+    touch $out
+  '';
 
 in
-runTests (
-  fastTests // pkgs.lib.optionalAttrs (!fast) slowTests
-)
+(collectResults "all-tests" (fastTests ++ slowTests)) //
+  /* bit of a hack but super useful to the fast tests only */
+{ fast = collectResults "fast-tests" fastTests; }

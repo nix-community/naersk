@@ -1,10 +1,10 @@
-{ pkgs, ...}@args: {
-  agent-rs = import ./agent-rs args;
-  lorri = import ./lorri args;
+{ pkgs, sources, naersk, fenix, ... }: {
+  lorri = pkgs.callPackage ./lorri { inherit sources naersk fenix; };
+  probe-rs = pkgs.callPackage ./probe-rs { inherit sources naersk fenix; };
+  ripgrep-all = pkgs.callPackage ./ripgrep-all { inherit sources naersk fenix; };
+  rustlings = pkgs.callPackage ./rustlings { inherit sources naersk fenix; };
+  talent-plan = pkgs.callPackage ./talent-plan { inherit sources naersk fenix; };
+} //
+
   /* nushell doesn't build on Darwin */
-  nushell = if pkgs.stdenv.isDarwin then null else import ./nushell args;
-  probe-rs = import ./probe-rs args;
-  ripgrep-all = import ./ripgrep-all args;
-  rustlings = import ./rustlings args;
-  talent-plan = import ./talent-plan args;
-}
+pkgs.lib.optionalAttrs pkgs.stdenv.isLinux { nushell = pkgs.callPackage ./nushell { inherit sources naersk fenix; }; }

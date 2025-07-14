@@ -1,18 +1,5 @@
-{ sources, pkgs, ... }:
+{ sources, naersk, pkgs, fenix, ... }:
 let
-  fenix = import sources.fenix { };
-
-  toolchain = (fenix.toolchainOf {
-    channel = "nightly";
-    date = "2024-04-12";
-    sha256 = "sha256-nOsrWb08M6PTE3qXqaiCyKBy7Shk2YTvALYaIvNWa1s=";
-  }).toolchain;
-
-  naersk = pkgs.callPackage ../../../default.nix {
-    cargo = toolchain;
-    rustc = toolchain;
-  };
-
   app = naersk.buildPackage {
     src = sources.probe-rs;
 

@@ -6,9 +6,6 @@ on:
 
 jobs:
   linux:
-    strategy:
-        matrix:
-            nixpkgs: [ nixpkgs, nixpkgs-21.05, nixpkgs-22.05, nixpkgs-23.05 ]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -17,10 +14,8 @@ jobs:
         with:
           name: nix-community
           authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
-      - name: "Run tests"
-        run: './script/test --nixpkgs "$nixpkgs"'
-        env:
-            nixpkgs: ${{ matrix.nixpkgs }}
+      - name: Run tests
+        run: 'nix build .#tests'
   darwin:
     runs-on: macos-latest
     steps:
@@ -30,5 +25,5 @@ jobs:
         with:
           name: nix-community
           authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
-      - name: "Run tests"
-        run: './script/test'
+      - name: Run tests
+        run: 'nix build .#tests'
