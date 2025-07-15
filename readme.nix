@@ -26,5 +26,5 @@ pkgs.runCommand "readme"
   buildInputs = [ docparse ];
 } ''
   docparse ${./config.nix} >> gen
-  cat ${./README.tpl.md} | sed -e '/GEN_CONFIGURATION/{r gen' -e 'd}' > $out
+  sed <${./README.tpl.md}  -e '/GEN_CONFIGURATION/{r gen' -e 'd}' > $out
 ''
