@@ -18,7 +18,9 @@ let
   '';
 
 in
-(collectResults "all-tests" (flatten (fastTests ++ slowTests))) //
-  /* bit of a hack but super useful to the fast tests only */
-  { fast = collectResults "fast-tests" (flatten fastTests); } //
-  fastTests
+  /* bit of a hack but super useful to run the fast tests only */
+{
+  fast = collectResults "fast-tests" (flatten fastTests);
+  all = collectResults "all-tests" (flatten (fastTests // slowTests));
+} //
+fastTests

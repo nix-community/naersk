@@ -3,7 +3,7 @@
 This directory contains a handful of naersk's tests. Run the tests with:
 
 ```bash
-nix build .#tests
+nix build .#tests.all
 ```
 
 You can build a subset of fast tests:
