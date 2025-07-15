@@ -12,43 +12,7 @@ rec
   #
   # Usage:
   #   writeTOML path attrset
-  #
-  # On newer nixpkgs, this function invokes `lib.formats.toml` that nowadays
-  # handles all TOML documents properly.
-  #
-  # On older nixpkgs, where that serializer doesn't work correctly¹, we rely on
-  # a custom implementation (with its own tiny shortcomings²).
-  #
-  # TODO remove our custom serializer after nixpkgs v23 becomes more widely
-  #      adopted
-  #
-  # ¹ e.g. cases like `[targets."cfg(\"something\")"]` are translated badly
-  # ² https://github.com/nix-community/naersk/issues/263
-  writeTOML =
-    let
-      our-impl =
-        let
-          to-toml = import ./to-toml.nix {
-            inherit lib;
-          };
-
-        in
-        name: value:
-          runCommandLocal name {
-            value = to-toml value;
-            passAsFile = [ "value" ];
-          } ''
-            cp "$valuePath" "$out"
-            cat "$out"
-          '';
-
-      nixpkgs-impl = (formats.toml { }).generate;
-
-    in
-    if builtins.compareVersions lib.version "22.11" <= 0 then
-      our-impl
-    else
-      nixpkgs-impl;
+  writeTOML = (formats.toml { }).generate;
 
   readTOML = usePure: f:
     if usePure then
@@ -90,29 +54,4 @@ rec
       );
 
   writeJSON = name: attrs: writeText name (builtins.toJSON attrs);
-
-  # Returns `true` if `path` exists.
-  # TODO: use `builtins.pathExists` once
-  # https://github.com/NixOS/nix/pull/3012 has landed and is generally
-  # available
-  pathExists = if lib.versionAtLeast builtins.nixVersion "2.3" then builtins.pathExists else path:
-    let
-      all = lib.all (x: x);
-      isOk = part:
-        let
-          dir = builtins.dirOf part;
-          basename = builtins.unsafeDiscardStringContext (builtins.baseNameOf part);
-          dirContent = builtins.readDir dir;
-        in
-          builtins.hasAttr basename dirContent && # XXX: this may not work if the directory is a symlink
-          (part == path || dirContent.${basename} == "directory");
-      parts =
-        let
-          # [ "" "nix" "store" "123123" "foo" "bar" ]
-          parts = lib.splitString "/" path;
-          len = lib.length parts;
-        in
-          map (n: lib.concatStringsSep "/" (lib.take n parts)) (lib.range 3 len);
-    in
-      all (map isOk parts);
 }
