@@ -1,27 +1,28 @@
 # Tests
 
-This directory contains a handful of naersk's tests; you can run them locally
-with:
+This directory contains a handful of naersk's tests. Run the tests with:
 
-```
-# First, you have to be in the naersk's top-level directory:
-$ cd ..
-
-# Then:
-$ ./script/test
+```bash
+nix build .#tests
 ```
 
-# Caveats
+You can build a subset of fast tests:
 
-## Dynamically-built Git repositories
+```bash
+nix build .#tests.fast
+```
 
-Some tests (their READMEs will tell you which ones) utilize dynamically-built
-Git repositories (i.e. repositories built _ad hoc_ during the testing through
-`pkgs.runCommand`).
+You can also build tests individually:
 
-Those tests' `Cargo.toml` and `Cargo.lock` contain variables (e.g. `$depPath`,
-`$depRev` etc.) that are substituted through our Nix code before the test is
-run.
+```bash
+nix build .#tests.simple-dep
+```
 
-Because of that, it's not possible to execute those tests via `cargo test` (for
-whatever the reason you'd like to).
+For a list of tests see `./test` (and subdirs) or type `nix build .#tests.<TAB>`.
+
+
+## External Git repositories
+
+Some tests use external Git repositories hosted on
+https://github.com/nmattia/naersk-fixtures. This is much simpler than wrestling
+with IFD & nested git repos.
