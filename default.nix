@@ -30,9 +30,9 @@ let
       gitDependencies =
         libb.findGitDependencies { inherit (config) cargolock additionalcargolock gitAllRefs gitSubmodules; };
       cargoconfig =
-        if builtinz.pathExists (toString config.root + "/.cargo/config.toml")
+        if builtins.pathExists (toString config.root + "/.cargo/config.toml")
         then (config.root + "/.cargo/config.toml")
-        else if builtinz.pathExists (toString config.root + "/.cargo/config")
+        else if builtins.pathExists (toString config.root + "/.cargo/config")
         then (config.root + "/.cargo/config")
         else null;
       build = args: import ./build.nix (
