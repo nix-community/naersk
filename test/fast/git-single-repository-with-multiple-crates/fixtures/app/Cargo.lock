@@ -14,14 +14,14 @@ dependencies = [
 [[package]]
 name = "dep-a"
 version = "0.1.0"
-source = "git+file://$depPath#$depRev"
+source = "git+https://github.com/nmattia/naersk-fixtures?branch=git-single-repository-with-multiple-crates#0f3830ac71a4c5ddaaeaeb6bbec3398c0388fafa"
 
 [[package]]
 name = "dep-b"
 version = "0.1.0"
-source = "git+file://$depPath#$depRev"
+source = "git+https://github.com/nmattia/naersk-fixtures?branch=git-single-repository-with-multiple-crates#0f3830ac71a4c5ddaaeaeb6bbec3398c0388fafa"
 
 [[package]]
 name = "dep-c"
 version = "0.1.0"
-source = "git+file://$depPath#$depRev"
+source = "git+https://github.com/nmattia/naersk-fixtures?branch=git-single-repository-with-multiple-crates#0f3830ac71a4c5ddaaeaeb6bbec3398c0388fafa"

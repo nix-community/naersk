@@ -12,4 +12,4 @@ dependencies = [
 [[package]]
 name = "dep"
 version = "0.1.0"
-source = "git+file://$depPath?branch=with/slash#$depRev"
+source = "git+https://github.com/nmattia/naersk-fixtures?branch=with/slash#5873040d43624da948d59a1e62088c6cdd29c41d"

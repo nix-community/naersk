@@ -12,4 +12,4 @@ dependencies = [
 [[package]]
 name = "dep"
 version = "0.1.0"
-source = "git+file://$depPath#$depRev"
+source = "git+https://github.com/nmattia/naersk-fixtures?branch=git-symlink#5594f722b8e5bc5116901d6e9af9cf4360e903df"
