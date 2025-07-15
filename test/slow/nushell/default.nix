@@ -1,17 +1,5 @@
-{ sources, pkgs, ... }:
+{ sources, naersk, pkgs, ... }:
 let
-  fenix = import sources.fenix { };
-
-  toolchain = fenix.fromToolchainFile {
-    file = "${sources.nushell}/rust-toolchain.toml";
-    sha256 = "sha256-VZZnlyP69+Y3crrLHQyJirqlHrTtGTsyiSnZB8jEvVo=";
-  };
-
-  naersk = pkgs.callPackage ../../../default.nix {
-    cargo = toolchain;
-    rustc = toolchain;
-  };
-
   app = naersk.buildPackage {
     src = sources.nushell;
 
