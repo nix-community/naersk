@@ -4,6 +4,6 @@ version = "0.1.0"
 edition = "2018"
 
 [dependencies]
-dep-a = { git = "file://$depPath" }
-dep-b = { git = "file://$depPath" }
-dep-c = { git = "file://$depPath" }
+dep-a = { git = "https://github.com/nmattia/naersk-fixtures", branch = "git-single-repository-with-multiple-crates" }
+dep-b = { git = "https://github.com/nmattia/naersk-fixtures", branch = "git-single-repository-with-multiple-crates" }
+dep-c = { git = "https://github.com/nmattia/naersk-fixtures", branch = "git-single-repository-with-multiple-crates" }

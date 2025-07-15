@@ -4,4 +4,4 @@ version = "0.1.0"
 edition = "2018"
 
 [dependencies]
-dep = { git = "file://$depPath" }
+dep = { git = "https://github.com/nmattia/naersk-fixtures", branch = "git-symlink" }
