@@ -77,6 +77,22 @@ rec
     let
       query = p: (lib.substring 0 4 (p.source or "")) == "git+";
 
+      # Decode a URL-encoded string
+      decodeUrl = str:
+        let
+          toHex = n:
+            let h = lib.toHexString n;
+            in if lib.stringLength h == 1 then "%0${h}" else "%${h}";
+          froms = builtins.genList toHex 256;
+          tos   = builtins.genList (n: builtins.fromJSON "\"\\u00${lib.substring 1 3 (toHex n)}\"") 256;
+        in
+          builtins.replaceStrings froms tos str;
+
+      # Starting with Cargo.lock version 4, cargo URL-encodes the git branches. Here we
+      # check if the version is 4+ and if so we post-process the refs read from the
+      # lockfile.
+      fixupRef = if builtins.hasAttr "version" cargolock && builtins.typeOf cargolock.version == "int" && cargolock.version >= 4 then decodeUrl else x: x;
+
       extractRevision = source: lib.last (lib.splitString "#" source);
       extractPart = part: source: if lib.hasInfix part source then lib.last (lib.splitString part (lib.head (lib.splitString "#" source))) else null;
       extractRepoUrl = source:
@@ -96,8 +112,8 @@ rec
         inherit (lock) name;
         revision = extractRevision source;
         url = extractRepoUrl source;
-      } // (lib.optionalAttrs (! isNull branch) { inherit branch; })
-        // (lib.optionalAttrs (! isNull tag) { inherit tag; })
+      } // (lib.optionalAttrs (! isNull branch) { branch = fixupRef branch; })
+        // (lib.optionalAttrs (! isNull tag) { tag = fixupRef tag; })
         // (lib.optionalAttrs (! isNull rev) { inherit rev; });
 
       usedPackageLocks =
