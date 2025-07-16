@@ -7,6 +7,7 @@
   git-dep = pkgs.callPackage ./git-dep { inherit naersk; };
   git-dep-by-branch = pkgs.callPackage ./git-dep-by-branch { inherit naersk; };
   git-dep-by-branch-with-slash = pkgs.callPackage ./git-dep-by-branch-with-slash { inherit naersk; };
+  git-dep-by-branch-with-slash-v4 = pkgs.callPackage ./git-dep-by-branch-with-slash-v4 { inherit naersk; };
   git-dep-by-tag = pkgs.callPackage ./git-dep-by-tag { inherit naersk; };
   git-dep-dup = pkgs.callPackage ./git-dep-dup { inherit naersk; };
   git-single-repository-with-multiple-crates = pkgs.callPackage ./git-single-repository-with-multiple-crates { inherit naersk; };
