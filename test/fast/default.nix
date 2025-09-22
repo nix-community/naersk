@@ -19,6 +19,7 @@
   simple-dep-patched = pkgs.callPackage ./simple-dep-patched { inherit naersk; };
   symlinks = pkgs.callPackage ./symlinks { inherit naersk; };
   unused-patch = pkgs.callPackage ./unused-patch { inherit naersk; };
+  very-verbose = pkgs.callPackage ./very-verbose { inherit naersk; };
   workspace = pkgs.callPackage ./workspace { inherit naersk; };
   workspace-build-rs = pkgs.callPackage ./workspace-build-rs { inherit naersk; };
   workspace-patched = pkgs.callPackage ./workspace-patched { inherit naersk; };
