@@ -34,12 +34,12 @@
 
           depsBuildBuild = with pkgs; [
             pkgsCross.mingwW64.stdenv.cc
-            pkgsCross.mingwW64.windows.pthreads
           ];
 
           nativeBuildInputs = with pkgs; [
             # We need Wine to run tests:
             wineWowPackages.stable
+            pkgsCross.mingwW64.windows.pthreads
           ];
 
           doCheck = true;
