@@ -17,7 +17,9 @@
     },
     "naersk": {
       "inputs": {
-        "nixpkgs": "nixpkgs"
+        "nixpkgs": [
+          "nixpkgs"
+        ]
       },
       "locked": {
         "lastModified": 1655042882,
@@ -34,18 +36,6 @@
       }
     },
     "nixpkgs": {
-      "locked": {
-        "lastModified": 0,
-        "narHash": "sha256-0h1FzkYWei24IdKNpCX93onkF/FMiXQG8SdEbTc0r8A=",
-        "path": "/nix/store/fj7xz1cv9c8nrvdyd6bxhwq3l55k47xc-source",
-        "type": "path"
-      },
-      "original": {
-        "id": "nixpkgs",
-        "type": "indirect"
-      }
-    },
-    "nixpkgs_2": {
       "locked": {
         "lastModified": 1657292830,
         "narHash": "sha256-ldfVSTveWceDCmW6gf3B4kR6vwmz/XS80y5wsLLHFJU=",
@@ -65,7 +55,7 @@
       "inputs": {
         "flake-utils": "flake-utils",
         "naersk": "naersk",
-        "nixpkgs": "nixpkgs_2"
+        "nixpkgs": "nixpkgs"
       }
     }
   },
