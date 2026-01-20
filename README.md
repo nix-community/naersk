@@ -58,11 +58,14 @@ Alternatively, store this as `flake.nix` in your repository:
 {
   inputs = {
     flake-utils.url = "github:numtide/flake-utils";
-    naersk.url = "github:nix-community/naersk";
+    naersk = {
+      url = "github:nix-community/naersk";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
   };
 
-  outputs = { self, flake-utils, naersk, nixpkgs }:
+  outputs = { flake-utils, naersk, nixpkgs, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = (import nixpkgs) {
@@ -71,9 +74,9 @@ Alternatively, store this as `flake.nix` in your repository:
 
         naersk' = pkgs.callPackage naersk {};
 
-      in rec {
+      in {
         # For `nix build` & `nix run`:
-        defaultPackage = naersk'.buildPackage {
+        packages.default  = naersk'.buildPackage {
           src = ./.;
         };
 
@@ -106,7 +109,7 @@ If you have a custom `rust-toolchain` file, you can make Naersk use it this way:
     };
   };
 
-  outputs = { self, flake-utils, naersk, nixpkgs, nixpkgs-mozilla }:
+  outputs = { flake-utils, naersk, nixpkgs, nixpkgs-mozilla, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = (import nixpkgs) {
@@ -129,9 +132,9 @@ If you have a custom `rust-toolchain` file, you can make Naersk use it this way:
           rustc = toolchain;
         };
 
-      in rec {
+      in {
         # For `nix build` & `nix run`:
-        defaultPackage = naersk'.buildPackage {
+        packages.default = naersk'.buildPackage {
           src = ./.;
         };
 
