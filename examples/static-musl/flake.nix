@@ -1,12 +1,19 @@
 {
   inputs = {
-    fenix.url = "github:nix-community/fenix";
+    fenix = {
+      url = "github:nix-community/fenix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     flake-utils.url = "github:numtide/flake-utils";
-    naersk.url = "github:nix-community/naersk";
+    naersk = {
+      url = "github:nix-community/naersk";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
   };
 
-  outputs = { self, fenix, flake-utils, naersk, nixpkgs }:
+  outputs = { fenix, flake-utils, naersk, nixpkgs, ... }:
     flake-utils.lib.eachDefaultSystem (
       system: let
         pkgs = (import nixpkgs) {
@@ -25,8 +32,8 @@
           rustc = toolchain;
         };
 
-      in rec {
-        defaultPackage = naersk'.buildPackage {
+      in {
+        packages.default = naersk'.buildPackage {
           src = ./.;
           doCheck = true;
           nativeBuildInputs = with pkgs; [ pkgsStatic.stdenv.cc ];

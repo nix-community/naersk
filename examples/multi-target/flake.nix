@@ -1,12 +1,18 @@
 {
   inputs = {
-    fenix.url = "github:nix-community/fenix";
+    fenix = {
+      url = "github:nix-community/fenix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     flake-utils.url = "github:numtide/flake-utils";
-    naersk.url = "github:nix-community/naersk";
+    naersk = {
+      url = "github:nix-community/naersk";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
   };
 
-  outputs = { self, fenix, flake-utils, naersk, nixpkgs }:
+  outputs = { fenix, flake-utils, naersk, nixpkgs, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = (import nixpkgs) {
@@ -60,7 +66,7 @@
         };
 
       in rec {
-        defaultPackage = packages.x86_64-unknown-linux-musl;
+        packages.default = packages.x86_64-unknown-linux-musl;
 
         # For `nix build .#x86_64-unknown-linux-musl`:
         packages.x86_64-unknown-linux-musl = naerskBuildPackage "x86_64-unknown-linux-musl" {
@@ -99,7 +105,7 @@
             # 1. Rebuilding MinGW32 with DWARF-2 enabled instead of SJLJ (Which is provided in this example)
             # 2. Using "panic = abort" for i686-pc-windows-gnu target and rebuilding rust-std to exclude any linking to libgcc_eh
             cc' = pkgs.pkgsCross.mingw32.buildPackages.wrapCC (
-              pkgs.pkgsCross.mingw32.buildPackages.gcc.cc.overrideAttrs (oldAttr: rec{
+              pkgs.pkgsCross.mingw32.buildPackages.gcc.cc.overrideAttrs (oldAttr: {
                 configureFlags = oldAttr.configureFlags ++ [
                   # Taken from Fedora mingw32 rpm spec
                   # (https://src.fedoraproject.org/rpms/mingw-gcc/blob/rawhide/f/mingw-gcc.spec)
