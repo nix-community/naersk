@@ -12,6 +12,7 @@
   git-dep-dup = pkgs.callPackage ./git-dep-dup { inherit naersk; };
   git-single-repository-with-multiple-crates = pkgs.callPackage ./git-single-repository-with-multiple-crates { inherit naersk; };
   git-symlink = pkgs.callPackage ./git-symlink { inherit naersk; };
+  stub-lints = pkgs.callPackage ./stub-lints { inherit naersk; };
   openssl = pkgs.callPackage ./openssl { inherit naersk; };
   post-install-hook = pkgs.callPackage ./post-install-hook { inherit naersk; };
   readme = pkgs.callPackage ./readme { inherit naersk; };

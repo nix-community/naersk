@@ -191,15 +191,21 @@ rec
                 pushd $out/$member > /dev/null
                 mkdir -p src
 
-                # Avoid accidentally pulling `std` for no-std crates.
-                echo '#![no_std]' >src/lib.rs
-
                 # pretend there's a `build.rs`, otherwise cargo doesn't build
                 # the `[build-dependencies]`. Custom locations of build scripts
                 # aren't an issue because we strip the `build` field in
                 # `fixupCargoToml`; so cargo always thinks there's a build
                 # script which is `./build.rs`.
-                echo 'fn main() {}' > build.rs
+                # We also add documentation to avoid rustc complaining about
+                # missing documentation: https://github.com/nix-community/naersk/issues/377
+                echo '//! stub crate' > build.rs
+                echo '/// stub main function' >> build.rs
+                echo 'fn main() {}' >> build.rs
+
+                # Avoid accidentally pulling `std` for no-std crates.
+                echo '//! stub lib' >src/lib.rs
+                echo '#![no_std]' >>src/lib.rs
+
                 popd > /dev/null
             done
 
