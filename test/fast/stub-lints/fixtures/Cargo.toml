@@ -1,0 +1,10 @@
+# Tests that the stub/dummy "build.rs" does not fail on rustc lints
+# https://github.com/nix-community/naersk/issues/377
+
+[package]
+name = "stub-lints"
+version = "0.1.0"
+authors = ["nicolas <nicolas@nmattia.com>"]
+edition = "2018"
+
+[dependencies]
