@@ -5,5 +5,5 @@ authors = ["nicolas <nicolas@nmattia.com>"]
 edition = "2018"
 
 [dependencies]
-rand = "0.7.0"
+rand = "0.9.3"
 regex = "1.5.5"
