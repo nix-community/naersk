@@ -1,0 +1,12 @@
+cargo-features = ["metabuild"]
+
+[package]
+name = "metabuild"
+edition = "2021"
+
+# Generate a build script that calls `metabuild_support::metabuild()` using
+# the metabuild feature
+metabuild = ["metabuild_support"]
+
+[build-dependencies]
+metabuild_support = { path = "metabuild-support" }
