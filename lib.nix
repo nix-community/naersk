@@ -159,8 +159,14 @@ rec
               # Since we pretend everything is a lib, we remove any mentions
               # of binaries
               removeAttrs cargotoml [ "bin" "example" "lib" "test" "bench" "default-run" ]
-                // lib.optionalAttrs (builtins.hasAttr "package" cargotoml) ({ package = removeAttrs cargotoml.package [ "default-run" ] ; })
-                ;
+                // lib.optionalAttrs (builtins.hasAttr "package" cargotoml) ({
+                    package = removeAttrs cargotoml.package [
+                      "default-run"
+                      # metabuild (unstable feature) cannot be used with a
+                      # normal build script at the same time
+                      "metabuild"
+                    ];
+                  });
           in
             attrs // lib.optionalAttrs (lib.hasAttr "package" attrs) {
               package = removeAttrs attrs.package [ "build" ];
