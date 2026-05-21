@@ -1,0 +1,3 @@
+[package]
+name = "metabuild_support"
+edition = "2021"
