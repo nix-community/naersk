@@ -41,7 +41,7 @@ let
     additionalCargoLock = attrs0.additionalCargoLock or null;
 
     # Url for downloading crates from an alternative source
-    cratesDownloadUrl = attrs0.cratesDownloadUrl or "https://crates.io";
+    cratesDownloadUrl = attrs0.cratesDownloadUrl or "https://static.crates.io/crates";
 
     # The command to use for the build.
     cargoBuild =
