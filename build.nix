@@ -435,7 +435,7 @@ let
       crate = fetchurl {
         inherit sha256;
 
-        url = "${cratesDownloadUrl}/api/v1/crates/${name}/${version}/download";
+        url = "${cratesDownloadUrl}/${name}/${version}/download";
         name = "download-${name}-${version}";
       };
 
