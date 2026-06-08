@@ -244,8 +244,6 @@ let
       mkdir -p $CARGO_HOME
 
       cp "$cargoconfig" $CARGO_HOME/config.toml
-      # symlink for backwards compatibility with older cargo
-      ln -s ./config.toml $CARGO_HOME/config
 
       runHook postConfigure
     '';
