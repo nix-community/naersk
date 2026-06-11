@@ -1,4 +1,4 @@
-{ pkgs, naersk, fenix, ... }: {
+{ pkgs, naersk, ... }: {
   cargo-config = pkgs.callPackage ./cargo-config { inherit naersk; };
   cargo-wildcard = pkgs.callPackage ./cargo-wildcard { inherit naersk; };
   default-run = pkgs.callPackage ./default-run { inherit naersk; };
@@ -12,7 +12,7 @@
   git-dep-dup = pkgs.callPackage ./git-dep-dup { inherit naersk; };
   git-single-repository-with-multiple-crates = pkgs.callPackage ./git-single-repository-with-multiple-crates { inherit naersk; };
   git-symlink = pkgs.callPackage ./git-symlink { inherit naersk; };
-  metabuild = pkgs.callPackage ./metabuild { inherit fenix naersk; };
+  metabuild = pkgs.callPackage ./metabuild { inherit naersk; };
   stub-lints = pkgs.callPackage ./stub-lints { inherit naersk; };
   openssl = pkgs.callPackage ./openssl { inherit naersk; };
   post-install-hook = pkgs.callPackage ./post-install-hook { inherit naersk; };

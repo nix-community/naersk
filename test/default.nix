@@ -8,7 +8,7 @@ let
   flatten = attrs:
     pkgs.lib.collect pkgs.lib.isDerivation attrs;
 
-  fastTests = pkgs.callPackage ./fast { inherit naersk fenix; };
+  fastTests = pkgs.callPackage ./fast { inherit naersk; };
   slowTests = pkgs.callPackage ./slow { inherit sources naersk fenix; };
 
 
