@@ -162,8 +162,12 @@ rec
                 // lib.optionalAttrs (builtins.hasAttr "package" cargotoml) ({
                     package = removeAttrs cargotoml.package [
                       "default-run"
-                      # metabuild (unstable feature) cannot be used with a
-                      # normal build script at the same time
+                      # cargo will fail if both "metabuild" and a build script
+                      # (i.e. `build.rs` exists) are used at the same time.
+                      # Since we only care about the external
+                      # build-dependencies being beilt, we remove "metabuild"
+                      # for this step and keep the build.rs which will force
+                      # all external dependencies to be built.
                       "metabuild"
                     ];
                   });
