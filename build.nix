@@ -244,8 +244,6 @@ let
       mkdir -p $CARGO_HOME
 
       cp "$cargoconfig" $CARGO_HOME/config.toml
-      # symlink for backwards compatibility with older cargo
-      ln -s ./config.toml $CARGO_HOME/config
 
       runHook postConfigure
     '';
@@ -435,7 +433,7 @@ let
       crate = fetchurl {
         inherit sha256;
 
-        url = "${cratesDownloadUrl}/api/v1/crates/${name}/${version}/download";
+        url = "${cratesDownloadUrl}/${name}/${version}/download";
         name = "download-${name}-${version}";
       };
 
