@@ -1,0 +1,10 @@
+[workspace]
+
+resolver = "2"
+
+members = [
+    "foo",
+]
+
+[workspace.dependencies]
+rand = "0.7"
