@@ -24,5 +24,6 @@
   workspace = pkgs.callPackage ./workspace { inherit naersk; };
   workspace-build-rs = pkgs.callPackage ./workspace-build-rs { inherit naersk; };
   workspace-deps = pkgs.callPackage ./workspace-deps { inherit naersk; };
+  workspace-meta = pkgs.callPackage ./workspace-meta { inherit naersk; };
   workspace-patched = pkgs.callPackage ./workspace-patched { inherit naersk; };
 }
