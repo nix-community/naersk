@@ -427,9 +427,15 @@ let
     packageVersion =
       if ! isNull attrs.version
       then attrs.version
-      else toplevelCargotoml.package.version
-        or toplevelCargotoml."workspace.package".version
-        or "unknown";
+      else
+        let
+          toppackver = toplevelCargotoml.package.version or null;
+        in
+        if lib.isString toppackver || lib.isInt toppackver then
+          toppackver
+        else if (toppackver.workspace or false) then
+          toplevelCargotoml.workspace.package.version or "unknown"
+        else "unknown";
   };
 in
 buildPlanConfig // { inherit buildConfig; }
