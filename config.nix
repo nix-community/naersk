@@ -315,6 +315,8 @@ let
       autoCrateSpecificOverrides
 
       postInstall
+
+    inherit mainProgram;
       ;
 
     # The list of _all_ crates (incl. transitive dependencies) with name,
@@ -417,6 +419,25 @@ let
         readTOML (attrs.additionalCargoLock)
       else
         null;
+
+    # Determine meta.mainProgram from Cargo.toml [[bin]] sections.
+    # If there's exactly one binary, nix run can use it automatically.
+    mainProgram =
+      let
+        bins = toplevelCargotoml.bin or [];
+        # A single [[bin]] entry with an explicit name
+        singleBin =
+          if builtins.isList bins && builtins.length bins == 1
+          then (builtins.head bins).name or (toplevelCargotoml.package.name or null)
+          # No [[bin]] entries — check if src/main.rs exists (default binary)
+          else if builtins.isList bins && builtins.length bins == 0
+            && builtins.pathExists (toString root + "/src/main.rs")
+          then toplevelCargotoml.package.name or null
+          else null;
+      in
+        if ! isNull attrs.mainProgram
+        then attrs.mainProgram
+        else singleBin;
 
     packageName =
       if ! isNull attrs.name
