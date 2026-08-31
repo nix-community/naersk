@@ -7,4 +7,4 @@
 } //
 
   /* nushell doesn't build on Darwin */
-pkgs.lib.optionalAttrs pkgs.stdenv.isLinux { nushell = pkgs.callPackage ./nushell { inherit sources naersk fenix; }; }
+pkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux { nushell = pkgs.callPackage ./nushell { inherit sources naersk fenix; }; }
