@@ -40,6 +40,13 @@ let
     # Additional cargo lock used to specify crates required for build
     additionalCargoLock = attrs0.additionalCargoLock or null;
 
+    # The name of the binary to set as `meta.mainProgram`. When not set,
+    # it is auto-detected from the `[[bin]]` sections in `Cargo.toml`
+    # (falling back to `package.name` when the default `src/main.rs` is
+    # used). Overriding this is useful when the binary name does not
+    # match the package name.
+    mainProgram = attrs0.mainProgram or null;
+
     # Url for downloading crates from an alternative source
     cratesDownloadUrl = attrs0.cratesDownloadUrl or "https://static.crates.io/crates";
 
@@ -316,6 +323,9 @@ let
 
       postInstall
       ;
+    # meta.mainProgram for the derivation; auto-detected from Cargo.toml
+    # unless overridden via buildPackage args (see buildPlanConfig.mainProgram)
+    mainProgram = buildPlanConfig.mainProgram;
 
     # The list of _all_ crates (incl. transitive dependencies) with name,
     # version and sha256 of the crate
@@ -417,6 +427,29 @@ let
         readTOML (attrs.additionalCargoLock)
       else
         null;
+
+    # Determine meta.mainProgram from Cargo.toml [[bin]] sections.
+    # If there's exactly one binary, nix run can use it automatically.
+    # The detected name must match the [[bin]] name (or package.name for
+    # the src/main.rs fallback), otherwise nix run would look for the
+    # wrong binary. An explicit `mainProgram` buildPackage argument always
+    # takes precedence.
+    mainProgram =
+      let
+        bins = toplevelCargotoml.bin or [];
+        # A single [[bin]] entry with an explicit name
+        singleBin =
+          if builtins.isList bins && builtins.length bins == 1
+          then (builtins.head bins).name or (toplevelCargotoml.package.name or null)
+          # No [[bin]] entries — check if src/main.rs exists (default binary)
+          else if builtins.isList bins && builtins.length bins == 0
+            && builtins.pathExists (toString root + "/src/main.rs")
+          then toplevelCargotoml.package.name or null
+          else null;
+      in
+        if ! isNull attrs.mainProgram
+        then attrs.mainProgram
+        else singleBin;
 
     packageName =
       if ! isNull attrs.name
