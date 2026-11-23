@@ -258,6 +258,7 @@ Note that you shouldn't call `overrideAttrs` on a derivation built by Naersk
 | `release` | When true, all cargo builds are run with `--release`. The environment variable `cargo_release` is set to `--release` if (and only if) this option is set. Default: `true` |
 | `override` | An override for all derivations involved in the build. Default: `(x: x)` |
 | `overrideMain` | An override for the top-level (last, main) derivation. If both `override` and `overrideMain` are specified, _both_ will be applied to the top-level derivation. Default: `(x: x)` |
+| `overrideDeps` | An override for the dependencies-only derivation. If both `override` and `overrideDeps` are specified, _both_ will be applied. Default: `(x: x)` |
 | `singleStep` | When true, no intermediary (dependency-only) build is run. Enabling `singleStep` greatly reduces the incrementality of the builds. Default: `false` |
 | `copyBins` | When true, the resulting binaries are copied to `$out/bin`. <br/> Note: this relies on cargo's `--message-format` argument, set in the default `cargoBuildOptions`. Default: `true` |
 | `copyLibs` | When true, the resulting binaries are copied to `$out/lib`. <br/> Note: this relies on cargo's `--message-format` argument, set in the default `cargoBuildOptions`. Default: `false` |
