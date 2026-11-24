@@ -45,23 +45,26 @@ let
 
       # the dependencies from crates.io
       buildDeps =
-        build
-          {
-            pname = "${config.packageName}-deps";
-            src = libb.dummySrc {
-              inherit cargoconfig;
-              inherit (config) cargolock cargotomls copySources copySourcesFrom;
+        let
+          drv = build
+            {
+              pname = "${config.packageName}-deps";
+              src = libb.dummySrc {
+                inherit cargoconfig;
+                inherit (config) cargolock cargotomls copySources copySourcesFrom;
+              };
+              inherit (config) userAttrs;
+              # TODO: custom cargoTestCommands should not be needed here
+              cargoTestCommands = map (cmd: "${cmd} || true") config.buildConfig.cargoTestCommands;
+              copyTarget = true;
+              copyBins = false;
+              copyBinsFilter = ".";
+              copyDocsToSeparateOutput = false;
+              postInstall = false;
+              builtDependencies = [];
             };
-            inherit (config) userAttrs;
-            # TODO: custom cargoTestCommands should not be needed here
-            cargoTestCommands = map (cmd: "${cmd} || true") config.buildConfig.cargoTestCommands;
-            copyTarget = true;
-            copyBins = false;
-            copyBinsFilter = ".";
-            copyDocsToSeparateOutput = false;
-            postInstall = false;
-            builtDependencies = [];
-          };
+        in
+          drv.overrideAttrs config.overrideDeps;
 
       # the top-level build
       buildTopLevel =
