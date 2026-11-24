@@ -35,8 +35,7 @@ let
         else if builtins.pathExists (toString config.root + "/.cargo/config")
         then (config.root + "/.cargo/config")
         else null;
-      version_ = config.packageVersion;
-      version = if version_ == "unknown" then builtins.trace config version_ else version_;
+      version = config.packageVersion;
       build = args: import ./build.nix (
         {
           inherit gitDependencies version;

@@ -20,7 +20,7 @@
           pkgs = nixpkgs.legacyPackages."${system}";
           sources = import ./nix/sources.nix;
         in
-        rec {
+        {
           readme = pkgs.callPackage ./readme.nix { };
 
           # Nix doesn't support running individual checks from the flake's "checks"

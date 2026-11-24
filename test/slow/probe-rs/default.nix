@@ -9,7 +9,6 @@ let
       openssl
     ] ++ lib.optionals stdenv.isDarwin [
       darwin.DarwinTools
-      darwin.apple_sdk.frameworks.AppKit
     ];
   };
 
