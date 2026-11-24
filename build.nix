@@ -71,6 +71,8 @@
 , crateSpecificOverrides
 , autoCrateSpecificOverrides
 , pkgs
+  #| The main binary name for meta.mainProgram (auto-detected from Cargo.toml)
+, mainProgram ? null
 }:
 
 let
@@ -86,6 +88,10 @@ let
       remapPathPrefix
       postInstall
       ;
+
+    meta = lib.optionalAttrs (! isNull mainProgram) {
+      inherit mainProgram;
+    };
 
     cratesio_sources = unpackedCratesIoDependencies;
     git_sources = unpackedGitDependencies;
