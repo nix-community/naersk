@@ -135,6 +135,10 @@ let
     # derivation.
     overrideMain = attrs0.overrideMain or (x: x);
 
+    # An override for the dependencies-only derivation. If both `override` and
+    # `overrideDeps` are specified, _both_ will be applied.
+    overrideDeps = attrs0.overrideDeps or (x: x);
+
     # When true, no intermediary (dependency-only) build is run. Enabling
     # `singleStep` greatly reduces the incrementality of the builds.
     singleStep = attrs0.singleStep or false;
@@ -330,7 +334,7 @@ let
   buildPlanConfig = rec {
     inherit userAttrs;
     inherit (sr) src root;
-    inherit (attrs) overrideMain gitAllRefs gitSubmodules;
+    inherit (attrs) overrideMain overrideDeps gitAllRefs gitSubmodules;
 
     isSingleStep = attrs.singleStep;
 
